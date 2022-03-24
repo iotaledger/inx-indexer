@@ -29,8 +29,8 @@ import (
 const (
 	APIRoute = "indexer/v1"
 
-	// CfgIndexerBindAddress the INX address to which to connect to.
-	CfgIndexerINXAddress = "indexer.inxAddress"
+	// CfgINXAddress the INX address to which to connect to.
+	CfgINXAddress = "inx.address"
 	// CfgIndexerBindAddress bind address on which the Indexer HTTP server listens.
 	CfgIndexerBindAddress = "indexer.bindAddress"
 	// CfgIndexerMaxPageSize the maximum number of results that may be returned for each page.
@@ -125,7 +125,7 @@ func main() {
 		panic(err)
 	}
 
-	conn, err := grpc.Dial(config.String(CfgIndexerINXAddress),
+	conn, err := grpc.Dial(config.String(CfgINXAddress),
 		grpc.WithUnaryInterceptor(grpc_prometheus.UnaryClientInterceptor),
 		grpc.WithStreamInterceptor(grpc_prometheus.StreamClientInterceptor),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -271,7 +271,7 @@ func main() {
 
 func flagSet() *flag.FlagSet {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
-	fs.String(CfgIndexerINXAddress, "localhost:9029", "the INX address to which to connect to")
+	fs.String(CfgINXAddress, "localhost:9029", "the INX address to which to connect to")
 	fs.String(CfgIndexerBindAddress, "localhost:9091", "bind address on which the Indexer HTTP server listens")
 	fs.Int(CfgIndexerMaxPageSize, 1000, "the maximum number of results that may be returned for each page")
 	fs.Bool(CfgPrometheusEnabled, false, "enable prometheus metrics")
