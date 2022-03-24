@@ -29,6 +29,8 @@ import (
 const (
 	APIRoute = "indexer/v1"
 
+	// CfgIndexerBindAddress the INX address to which to connect to.
+	CfgIndexerINXAddress = "indexer.inxAddress"
 	// CfgIndexerBindAddress bind address on which the Indexer HTTP server listens.
 	CfgIndexerBindAddress = "indexer.bindAddress"
 	// CfgIndexerMaxPageSize the maximum number of results that may be returned for each page.
@@ -123,12 +125,7 @@ func main() {
 		panic(err)
 	}
 
-	inxPort, err := loadStringFromEnvironment("INX_PORT")
-	if err != nil {
-		panic(err)
-	}
-
-	conn, err := grpc.Dial(fmt.Sprintf("localhost:%s", inxPort),
+	conn, err := grpc.Dial(config.String(CfgIndexerINXAddress),
 		grpc.WithUnaryInterceptor(grpc_prometheus.UnaryClientInterceptor),
 		grpc.WithStreamInterceptor(grpc_prometheus.StreamClientInterceptor),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -274,6 +271,7 @@ func main() {
 
 func flagSet() *flag.FlagSet {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	fs.String(CfgIndexerINXAddress, "localhost:9029", "the INX address to which to connect to")
 	fs.String(CfgIndexerBindAddress, "localhost:9091", "bind address on which the Indexer HTTP server listens")
 	fs.Int(CfgIndexerMaxPageSize, 1000, "the maximum number of results that may be returned for each page")
 	fs.Bool(CfgPrometheusEnabled, false, "enable prometheus metrics")
@@ -281,23 +279,17 @@ func flagSet() *flag.FlagSet {
 	return fs
 }
 
-func loadStringFromEnvironment(name string) (string, error) {
-	str, exists := os.LookupEnv(name)
-	if !exists {
-		return "", fmt.Errorf("environment variable '%s' not set", name)
-	}
-	if len(str) == 0 {
-		return "", fmt.Errorf("environment variable '%s' not set", name)
-	}
-	return str, nil
-}
-
 func loadConfigFile(filePath string) (*configuration.Configuration, error) {
 	config := configuration.New()
 	if err := config.LoadFile(filePath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("loading config file failed: %w", err)
 	}
-	if err := config.LoadFlagSet(flagSet()); err != nil {
+
+	fs := flagSet()
+	flag.CommandLine.AddFlagSet(fs)
+	flag.Parse()
+
+	if err := config.LoadFlagSet(fs); err != nil {
 		return nil, err
 	}
 	return config, nil
