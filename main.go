@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/labstack/echo/v4"
 	"io"
 	"net/http"
 	"os"
@@ -11,9 +10,12 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/labstack/echo-contrib/prometheus"
+	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/errors"
 	flag "github.com/spf13/pflag"
@@ -119,6 +121,10 @@ func setupPrometheus(bindAddress string) {
 	}()
 }
 
+func retryBackoff(_ uint) time.Duration {
+	return 2 * time.Second
+}
+
 func main() {
 	config, err := loadConfigFile("config.json")
 	if err != nil {
@@ -126,7 +132,7 @@ func main() {
 	}
 
 	conn, err := grpc.Dial(config.String(CfgINXAddress),
-		grpc.WithUnaryInterceptor(grpc_prometheus.UnaryClientInterceptor),
+		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(), grpc_prometheus.UnaryClientInterceptor),
 		grpc.WithStreamInterceptor(grpc_prometheus.StreamClientInterceptor),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -178,12 +184,14 @@ func main() {
 		fmt.Printf("Indexer started at ledgerIndex %d\n", ledgerIndex)
 	}
 
-	protocolParams, err := client.ReadProtocolParameters(context.Background(), &inx.NoParams{})
+	fmt.Println("Connecting and reading protocol parameters")
+	protocolParams, err := client.ReadProtocolParameters(context.Background(), &inx.NoParams{}, grpc_retry.WithMax(10), grpc_retry.WithBackoff(retryBackoff))
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 		return
 	}
 
+	fmt.Println("Reading node status")
 	resp, err := client.ReadNodeStatus(context.Background(), &inx.NoParams{})
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
