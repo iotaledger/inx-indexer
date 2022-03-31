@@ -28,6 +28,11 @@ import (
 	inx "github.com/iotaledger/inx/go"
 )
 
+var (
+	// Version of the app.
+	Version = "0.1.1"
+)
+
 const (
 	APIRoute = "indexer/v1"
 
@@ -98,17 +103,20 @@ func listenToLedgerUpdates(ctx context.Context, client inx.INXClient, indexer *i
 		if err := indexer.UpdatedLedger(message); err != nil {
 			return err
 		}
-		fmt.Printf("Updated ledgerIndex to %d with %d created and %d consumed outputs\n", message.GetMilestoneIndex(), len(message.GetCreated()), len(message.GetConsumed()))
+		fmt.Printf("> Updated ledgerIndex to %d with %d created and %d consumed outputs\n", message.GetMilestoneIndex(), len(message.GetCreated()), len(message.GetConsumed()))
 	}
 	return nil
 }
 
-func setupPrometheus(bindAddress string) {
+func newEcho() *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 	e.Use(middleware.Recover())
+	return e
+}
 
-	// Enable metrics middleware
+func setupPrometheus(bindAddress string) {
+	e := newEcho()
 	p := prometheus.NewPrometheus("echo", nil)
 	p.Use(e)
 
@@ -126,6 +134,8 @@ func retryBackoff(_ uint) time.Duration {
 }
 
 func main() {
+	fmt.Printf(">>>>> Starting Indexer %s <<<<<\n", Version)
+
 	config, err := loadConfigFile("config.json")
 	if err != nil {
 		panic(err)
@@ -143,23 +153,14 @@ func main() {
 
 	client := inx.NewINXClient(conn)
 
-	e := echo.New()
-	e.HideBanner = true
-	apiErrorHandler := server.ErrorHandler()
-	e.HTTPErrorHandler = func(err error, c echo.Context) {
-		fmt.Printf("Error: %s", err)
-		apiErrorHandler(err, c)
+	fmt.Println("Connecting to node and reading protocol parameters...")
+	protocolParams, err := client.ReadProtocolParameters(context.Background(), &inx.NoParams{}, grpc_retry.WithMax(10), grpc_retry.WithBackoff(retryBackoff))
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		return
 	}
-	e.Use(middleware.Recover())
 
-	go func() {
-		if err := e.Start(config.String(CfgIndexerBindAddress)); err != nil {
-			if !errors.Is(err, http.ErrServerClosed) {
-				panic(err)
-			}
-		}
-	}()
-
+	fmt.Println("Setting up database...")
 	i, err := indexer.NewIndexer(".")
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
@@ -171,7 +172,7 @@ func main() {
 	if err != nil {
 		if errors.Is(err, indexer.ErrNotFound) {
 			// Indexer is empty, so import initial ledger state from the node
-			fmt.Println("Indexer is empty, so import initial ledger")
+			fmt.Println("Indexer is empty, so import initial ledger...")
 			if err := fillIndexer(client, i); err != nil {
 				fmt.Printf("Error: %s\n", err)
 				return
@@ -181,24 +182,17 @@ func main() {
 			return
 		}
 	} else {
-		fmt.Printf("Indexer started at ledgerIndex %d\n", ledgerIndex)
+		fmt.Printf("> Indexer started at ledgerIndex %d\n", ledgerIndex)
 	}
 
-	fmt.Println("Connecting and reading protocol parameters")
-	protocolParams, err := client.ReadProtocolParameters(context.Background(), &inx.NoParams{}, grpc_retry.WithMax(10), grpc_retry.WithBackoff(retryBackoff))
-	if err != nil {
-		fmt.Printf("Error: %s\n", err)
-		return
-	}
-
-	fmt.Println("Reading node status")
+	fmt.Println("Reading node status...")
 	resp, err := client.ReadNodeStatus(context.Background(), &inx.NoParams{})
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 		return
 	}
 	if resp.GetPruningIndex() > ledgerIndex {
-		fmt.Println("Node has an newer pruning index than our current ledgerIndex, so re-import initial ledger")
+		fmt.Println("> Node has an newer pruning index than our current ledgerIndex\nRe-import initial ledger...")
 		if err := i.Clear(); err != nil {
 			fmt.Printf("Error: %s\n", err)
 			return
@@ -209,14 +203,22 @@ func main() {
 		}
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		if err := listenToLedgerUpdates(ctx, client, i); err != nil {
-			fmt.Printf("Error: %s\n", err)
-		}
-		cancel()
-	}()
+	e := newEcho()
+	apiErrorHandler := server.ErrorHandler()
+	e.HTTPErrorHandler = func(err error, c echo.Context) {
+		fmt.Printf("Error: %s", err)
+		apiErrorHandler(err, c)
+	}
+
+	fmt.Println("Starting API server...")
 	server.NewIndexerServer(i, e.Group(""), protocolParams.NetworkPrefix(), config.Int(CfgIndexerMaxPageSize))
+	go func() {
+		if err := e.Start(config.String(CfgIndexerBindAddress)); err != nil {
+			if !errors.Is(err, http.ErrServerClosed) {
+				panic(err)
+			}
+		}
+	}()
 
 	bindAddressParts := strings.Split(config.String(CfgIndexerBindAddress), ":")
 	if len(bindAddressParts) != 2 {
@@ -251,6 +253,15 @@ func main() {
 		return
 	}
 
+	fmt.Println("Listening to ledger changes:")
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		if err := listenToLedgerUpdates(ctx, client, i); err != nil {
+			fmt.Printf("Error: %s\n", err)
+		}
+		cancel()
+	}()
+
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 	done := make(chan bool, 1)
@@ -269,7 +280,7 @@ func main() {
 	<-done
 	cancel()
 	e.Close()
-	fmt.Println("Removing API route")
+	fmt.Println("Removing API route...")
 	if _, err := client.UnregisterAPIRoute(context.Background(), apiReq); err != nil {
 		fmt.Printf("Error: %s\n", err)
 		return
