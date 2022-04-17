@@ -15,14 +15,14 @@ import (
 
 const (
 
-	// RouteOutputs is the route for getting outputs filtered by the given parameters.
+	// RouteBasicOutputs is the route for getting basic outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "address", "hasStorageReturnCondition", "storageReturnAddress", "hasExpirationCondition",
 	//					 "expiresBefore", "expiresAfter", "expiresBeforeMilestone", "expiresAfterMilestone",
 	//					 "hasTimelockCondition", "timelockedBefore", "timelockedAfter", "timelockedBeforeMilestone",
 	//					 "timelockedAfterMilestone", "sender", "tag", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
-	RouteOutputs = "/outputs"
+	RouteBasicOutputs = "/basic-outputs"
 
 	// RouteAliases is the route for getting aliases filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
@@ -59,8 +59,8 @@ const (
 
 func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 
-	routeGroup.GET(RouteOutputs, func(c echo.Context) error {
-		resp, err := s.outputsWithFilter(c)
+	routeGroup.GET(RouteBasicOutputs, func(c echo.Context) error {
+		resp, err := s.basicOutputsWithFilter(c)
 		if err != nil {
 			return err
 		}
@@ -123,7 +123,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 	})
 }
 
-func (s *IndexerServer) outputsWithFilter(c echo.Context) (*outputsResponse, error) {
+func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
 	filters := []indexer.BasicOutputFilterOption{indexer.BasicOutputPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {

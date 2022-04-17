@@ -57,6 +57,7 @@ func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
 	if err != nil {
 		return err
 	}
+
 	outputID := spent.GetOutput().GetOutputId().Unwrap()
 	switch iotaOutput.(type) {
 	case *iotago.BasicOutput:
@@ -76,6 +77,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 	if err != nil {
 		return err
 	}
+	
 	outputID := output.GetOutputId().Unwrap()
 	switch iotaOutput := unwrapped.(type) {
 	case *iotago.BasicOutput:
