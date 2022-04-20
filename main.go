@@ -30,7 +30,7 @@ import (
 
 var (
 	// Version of the app.
-	Version = "0.1.2"
+	Version = "0.1.3"
 )
 
 const (
@@ -84,7 +84,7 @@ func listenToLedgerUpdates(ctx context.Context, client inx.INXClient, indexer *i
 	if err != nil {
 		return err
 	}
-	req := &inx.LedgerUpdateRequest{
+	req := &inx.LedgerRequest{
 		StartMilestoneIndex: uint32(ledgerIndex + 1),
 	}
 	stream, err := client.ListenToLedgerUpdates(ctx, req)

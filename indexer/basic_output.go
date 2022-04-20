@@ -196,6 +196,7 @@ func basicOutputFilterOptions(optionalOptions []BasicOutputFilterOption) *BasicO
 	}
 	return result
 }
+
 func (i *Indexer) BasicOutputsWithFilters(filters ...BasicOutputFilterOption) *IndexerResult {
 	opts := basicOutputFilterOptions(filters)
 	query := i.db.Model(&basicOutput{})
