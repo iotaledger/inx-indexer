@@ -13,7 +13,7 @@ require (
 	github.com/labstack/echo/v4 v4.7.2
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
-	google.golang.org/grpc v1.45.0
+	google.golang.org/grpc v1.46.0
 	gorm.io/driver/sqlite v1.3.2
 	gorm.io/gorm v1.23.4
 )
