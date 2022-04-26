@@ -53,7 +53,7 @@ func (q queryResults) IDs() iotago.OutputIDs {
 }
 
 func addressBytesForAddress(addr iotago.Address) (addressBytes, error) {
-	return addr.Serialize(serializer.DeSeriModeNoValidation, iotago.ZeroRentParas)
+	return addr.Serialize(serializer.DeSeriModeNoValidation, nil)
 }
 
 type IndexerResult struct {
