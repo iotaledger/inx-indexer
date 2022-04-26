@@ -29,8 +29,10 @@ import (
 )
 
 var (
+	// AppName name of the app.
+	AppName = "inx-indexer"
 	// Version of the app.
-	Version = "0.1.3"
+	Version = "0.2.0"
 )
 
 const (
@@ -134,7 +136,7 @@ func retryBackoff(_ uint) time.Duration {
 }
 
 func main() {
-	fmt.Printf(">>>>> Starting Indexer %s <<<<<\n", Version)
+	fmt.Printf(">>>>> Starting %s v%s <<<<<\n", AppName, Version)
 
 	config, err := loadConfigFile("config.json")
 	if err != nil {
@@ -153,8 +155,8 @@ func main() {
 
 	client := inx.NewINXClient(conn)
 
-	fmt.Println("Connecting to node and reading protocol parameters...")
-	protocolParams, err := client.ReadProtocolParameters(context.Background(), &inx.NoParams{}, grpc_retry.WithMax(10), grpc_retry.WithBackoff(retryBackoff))
+	fmt.Println("Connecting to node and reading node configuration...")
+	nodeConfig, err := client.ReadNodeConfiguration(context.Background(), &inx.NoParams{}, grpc_retry.WithMax(10), grpc_retry.WithBackoff(retryBackoff))
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 		return
@@ -211,7 +213,7 @@ func main() {
 	}
 
 	fmt.Println("Starting API server...")
-	server.NewIndexerServer(i, e.Group(""), protocolParams.NetworkPrefix(), config.Int(CfgIndexerMaxPageSize))
+	server.NewIndexerServer(i, e.Group(""), nodeConfig.UnwrapProtocolParameters().Bech32HRP, config.Int(CfgIndexerMaxPageSize))
 	go func() {
 		if err := e.Start(config.String(CfgIndexerBindAddress)); err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {

@@ -53,7 +53,7 @@ func NewIndexer(dbPath string) (*Indexer, error) {
 }
 
 func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
-	iotaOutput, err := spent.GetOutput().UnwrapOutput(serializer.DeSeriModeNoValidation)
+	iotaOutput, err := spent.GetOutput().UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
 	if err != nil {
 		return err
 	}
@@ -73,11 +73,11 @@ func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
 }
 
 func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
-	unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation)
+	unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
 	if err != nil {
 		return err
 	}
-	
+
 	outputID := output.GetOutputId().Unwrap()
 	switch iotaOutput := unwrapped.(type) {
 	case *iotago.BasicOutput:
