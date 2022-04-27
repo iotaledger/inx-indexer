@@ -7,8 +7,8 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/iotaledger/hive.go v0.0.0-20220408130540-d344e455dd23
 	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-20220426085024-dfad09f16be5
-	github.com/iotaledger/inx/go v0.0.0-20220426134928-ea26015a5aad
-	github.com/iotaledger/iota.go/v3 v3.0.0-20220426124950-4b19bfb47f9a
+	github.com/iotaledger/inx/go v0.0.0-20220427114419-fc6a62931d38
+	github.com/iotaledger/iota.go/v3 v3.0.0-20220427112536-018935603721
 	github.com/labstack/echo-contrib v0.12.0
 	github.com/labstack/echo/v4 v4.7.2
 	github.com/pkg/errors v0.9.1
@@ -62,7 +62,7 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
-	google.golang.org/genproto v0.0.0-20220422154200-b37d22cd5731 // indirect
+	google.golang.org/genproto v0.0.0-20220426171045-31bebdecfb46 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
