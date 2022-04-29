@@ -8,7 +8,7 @@ require (
 	github.com/iotaledger/hive.go v0.0.0-20220428170023-7fb77d7475d8
 	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-20220428170023-7fb77d7475d8
 	github.com/iotaledger/inx/go v0.0.0-20220429132348-4229a45554c1
-	github.com/iotaledger/iota.go/v3 v3.0.0-20220429092212-d275a7831f6a
+	github.com/iotaledger/iota.go/v3 v3.0.0-20220429152429-63458675d51e
 	github.com/labstack/echo-contrib v0.12.0
 	github.com/labstack/echo/v4 v4.7.2
 	github.com/pelletier/go-toml/v2 v2.0.0
