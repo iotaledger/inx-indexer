@@ -322,8 +322,8 @@ github.com/iotaledger/inx/go v0.0.0-20220429132348-4229a45554c1 h1:JSHWG513J+xJe
 github.com/iotaledger/inx/go v0.0.0-20220429132348-4229a45554c1/go.mod h1:SIkGrxUe/QmXCM+fKfAsz82XVncgFKZxiAnl/Adyirc=
 github.com/iotaledger/iota.go v1.0.0 h1:tqm1FxJ/zOdzbrAaQ5BQpVF8dUy2eeGlSeWlNG8GoXY=
 github.com/iotaledger/iota.go v1.0.0/go.mod h1:RiKYwDyY7aCD1L0YRzHSjOsJ5mUR9yvQpvhZncNcGQI=
-github.com/iotaledger/iota.go/v3 v3.0.0-20220429092212-d275a7831f6a h1:PP0lBwm1jLsfoJHqo3IC2osQzZ8K8xdc31eVwGPOgEM=
-github.com/iotaledger/iota.go/v3 v3.0.0-20220429092212-d275a7831f6a/go.mod h1:wOFD+5h47EMj37r8hTql2icIBlnZoPHurrB3UXVPNIA=
+github.com/iotaledger/iota.go/v3 v3.0.0-20220429152429-63458675d51e h1:+azOxM6MIrbA7fktgJrox8OTjFFy4vxJ7an5pNX9fQ0=
+github.com/iotaledger/iota.go/v3 v3.0.0-20220429152429-63458675d51e/go.mod h1:wOFD+5h47EMj37r8hTql2icIBlnZoPHurrB3UXVPNIA=
 github.com/jackpal/go-nat-pmp v1.0.2/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
 github.com/jedisct1/go-minisign v0.0.0-20190909160543-45766022959e/go.mod h1:G1CVv03EnqU1wYL2dFwXxW2An0az9JTl/ZsqXQeBlkU=
 github.com/jinzhu/inflection v1.0.0 h1:K317FqzuhWc8YvSVlFMCCUb36O/S9MCKRDI7QkRKD/E=
