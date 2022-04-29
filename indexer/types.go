@@ -104,6 +104,11 @@ func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, 
 	var ledgerIndex uint32
 	if len(results) > 0 {
 		ledgerIndex = results[0].LedgerIndex
+	} else {
+		// Since we got no results for the query, return the current ledger index
+		if index, err := i.LedgerIndex(); err == nil {
+			ledgerIndex = index
+		}
 	}
 
 	var nextCursor *string
