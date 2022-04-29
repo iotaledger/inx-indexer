@@ -2,12 +2,10 @@ package indexer
 
 import (
 	"github.com/pkg/errors"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"path/filepath"
 
-	"github.com/iotaledger/hive.go/kvstore/utils"
+	"github.com/gohornet/inx-indexer/pkg/database"
 	"github.com/iotaledger/hive.go/serializer/v2"
 	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v3"
@@ -31,13 +29,7 @@ type Indexer struct {
 
 func NewIndexer(dbPath string) (*Indexer, error) {
 
-	if err := utils.CreateDirectory(dbPath, 0700); err != nil {
-		return nil, err
-	}
-
-	dbFile := filepath.Join(dbPath, "indexer.db")
-
-	db, err := gorm.Open(sqlite.Open(dbFile), &gorm.Config{})
+	db, err := database.DatabaseWithDefaultSettings(dbPath, true)
 	if err != nil {
 		return nil, err
 	}

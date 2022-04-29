@@ -1,0 +1,14 @@
+{
+  "inx": {
+    "address": "localhost:9029"
+  },
+  "indexer": {
+    "dbPath": "database",
+    "bindAddress": "localhost:9091",
+    "maxPageSize": 1000
+  },
+  "prometheus": {
+    "enabled": false,
+    "bindAddress": "localhost:9312"
+  }
+}

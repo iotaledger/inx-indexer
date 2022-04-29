@@ -1,8 +1,2 @@
 {
-  "indexer": {
-    "maxPageSize": 1000
-  },
-  "prometheus": {
-    "enabled": true
-  }
 }

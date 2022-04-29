@@ -22,8 +22,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/gohornet/inx-indexer/indexer"
-	"github.com/gohornet/inx-indexer/server"
+	"github.com/gohornet/inx-indexer/pkg/indexer"
+	"github.com/gohornet/inx-indexer/pkg/server"
 	"github.com/iotaledger/hive.go/configuration"
 	inx "github.com/iotaledger/inx/go"
 )
@@ -32,7 +32,7 @@ var (
 	// AppName name of the app.
 	AppName = "inx-indexer"
 	// Version of the app.
-	Version = "0.3.0"
+	Version = "0.3.1"
 )
 
 const (
@@ -40,6 +40,8 @@ const (
 
 	// CfgINXAddress the INX address to which to connect to.
 	CfgINXAddress = "inx.address"
+	// CfgIndexerDatabasePath the path to the database folder.
+	CfgIndexerDatabasePath = "indexer.dbPath"
 	// CfgIndexerBindAddress bind address on which the Indexer HTTP server listens.
 	CfgIndexerBindAddress = "indexer.bindAddress"
 	// CfgIndexerMaxPageSize the maximum number of results that may be returned for each page.
@@ -163,7 +165,7 @@ func main() {
 	}
 
 	fmt.Println("Setting up database...")
-	i, err := indexer.NewIndexer(".")
+	i, err := indexer.NewIndexer(config.String(CfgIndexerDatabasePath))
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 		return
@@ -222,6 +224,10 @@ func main() {
 		}
 	}()
 
+	if config.Bool(CfgPrometheusEnabled) {
+		setupPrometheus(config.String(CfgPrometheusBindAddress))
+	}
+
 	bindAddressParts := strings.Split(config.String(CfgIndexerBindAddress), ":")
 	if len(bindAddressParts) != 2 {
 		panic(fmt.Sprintf("Invalid %s", CfgIndexerBindAddress))
@@ -235,18 +241,6 @@ func main() {
 		Route: APIRoute,
 		Host:  bindAddressParts[0],
 		Port:  uint32(port),
-	}
-	if config.Bool(CfgPrometheusEnabled) {
-		prometheusBindAddressParts := strings.Split(config.String(CfgPrometheusBindAddress), ":")
-		if len(prometheusBindAddressParts) != 2 {
-			panic(fmt.Sprintf("Invalid %s", CfgPrometheusBindAddress))
-		}
-		prometheusPort, err := strconv.ParseInt(prometheusBindAddressParts[1], 10, 32)
-		if err != nil {
-			panic(err)
-		}
-		setupPrometheus(config.String(CfgPrometheusBindAddress))
-		apiReq.MetricsPort = uint32(prometheusPort)
 	}
 
 	fmt.Printf("Registering API route to http://%s:%d\n", apiReq.GetHost(), apiReq.GetPort())
@@ -293,6 +287,7 @@ func main() {
 func flagSet() *flag.FlagSet {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
 	fs.String(CfgINXAddress, "localhost:9029", "the INX address to which to connect to")
+	fs.String(CfgIndexerDatabasePath, "database", "the path to the database folder")
 	fs.String(CfgIndexerBindAddress, "localhost:9091", "bind address on which the Indexer HTTP server listens")
 	fs.Int(CfgIndexerMaxPageSize, 1000, "the maximum number of results that may be returned for each page")
 	fs.Bool(CfgPrometheusEnabled, false, "enable prometheus metrics")

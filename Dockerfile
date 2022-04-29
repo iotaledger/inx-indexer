@@ -32,7 +32,6 @@ COPY ./config.json /app/config.json
 FROM gcr.io/distroless/cc-debian11:nonroot
 
 EXPOSE 9091/tcp
-EXPOSE 9312/tcp
 
 # Copy the app dir into distroless image
 COPY --chown=nonroot:nonroot --from=build /app /app

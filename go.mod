@@ -7,10 +7,11 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/iotaledger/hive.go v0.0.0-20220428170023-7fb77d7475d8
 	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-20220428170023-7fb77d7475d8
-	github.com/iotaledger/inx/go v0.0.0-20220428154111-868c18cc2750
-	github.com/iotaledger/iota.go/v3 v3.0.0-20220427162019-fb89ca0738f2
+	github.com/iotaledger/inx/go v0.0.0-20220429132348-4229a45554c1
+	github.com/iotaledger/iota.go/v3 v3.0.0-20220429092212-d275a7831f6a
 	github.com/labstack/echo-contrib v0.12.0
 	github.com/labstack/echo/v4 v4.7.2
+	github.com/pelletier/go-toml/v2 v2.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
 	google.golang.org/grpc v1.46.0
@@ -22,7 +23,7 @@ require (
 	filippo.io/edwards25519 v1.0.0-rc.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.22.0-beta.0.20220111032746-97732e52810c // indirect
-	github.com/btcsuite/btcd/btcec/v2 v2.1.3 // indirect
+	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.3.5 // indirect
@@ -58,7 +59,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/crypto v0.0.0-20220427172511-eb4f295cb31f // indirect
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
-	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150 // indirect
+	golang.org/x/sys v0.0.0-20220429121018-84afa8d3f7b3 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
