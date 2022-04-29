@@ -40,6 +40,8 @@ const (
 
 	// CfgINXAddress the INX address to which to connect to.
 	CfgINXAddress = "inx.address"
+	// CfgIndexerDatabasePath the path to the database folder.
+	CfgIndexerDatabasePath = "indexer.dbPath"
 	// CfgIndexerBindAddress bind address on which the Indexer HTTP server listens.
 	CfgIndexerBindAddress = "indexer.bindAddress"
 	// CfgIndexerMaxPageSize the maximum number of results that may be returned for each page.
@@ -163,7 +165,7 @@ func main() {
 	}
 
 	fmt.Println("Setting up database...")
-	i, err := indexer.NewIndexer(".")
+	i, err := indexer.NewIndexer(config.String(CfgIndexerDatabasePath))
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 		return
@@ -240,7 +242,7 @@ func main() {
 		Host:  bindAddressParts[0],
 		Port:  uint32(port),
 	}
-	
+
 	fmt.Printf("Registering API route to http://%s:%d\n", apiReq.GetHost(), apiReq.GetPort())
 	if _, err := client.RegisterAPIRoute(context.Background(), apiReq); err != nil {
 		fmt.Printf("Error: %s\n", err)
@@ -285,6 +287,7 @@ func main() {
 func flagSet() *flag.FlagSet {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
 	fs.String(CfgINXAddress, "localhost:9029", "the INX address to which to connect to")
+	fs.String(CfgIndexerDatabasePath, "database", "the path to the database folder")
 	fs.String(CfgIndexerBindAddress, "localhost:9091", "bind address on which the Indexer HTTP server listens")
 	fs.Int(CfgIndexerMaxPageSize, 1000, "the maximum number of results that may be returned for each page")
 	fs.Bool(CfgPrometheusEnabled, false, "enable prometheus metrics")
