@@ -15,51 +15,51 @@ import (
 
 const (
 
-	// RouteBasicOutputs is the route for getting basic outputs filtered by the given parameters.
+	// RouteOutputsBasic is the route for getting basic outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "address", "hasStorageReturnCondition", "storageReturnAddress", "hasExpirationCondition",
 	//					 "expiresBefore", "expiresAfter", "expiresBeforeMilestone", "expiresAfterMilestone",
 	//					 "hasTimelockCondition", "timelockedBefore", "timelockedAfter", "timelockedBeforeMilestone",
 	//					 "timelockedAfterMilestone", "sender", "tag", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
-	RouteBasicOutputs = "/basic-outputs"
+	RouteOutputsBasic = "/outputs/basic"
 
-	// RouteAliases is the route for getting aliases filtered by the given parameters.
+	// RouteOutputsAliases is the route for getting aliases filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "stateController", "governor", "issuer", "sender", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
-	RouteAliases = "/aliases"
+	RouteOutputsAliases = "/outputs/alias"
 
-	// RouteAliasByID is the route for getting aliases by their aliasID.
+	// RouteOutputsAliasByID is the route for getting aliases by their aliasID.
 	// GET returns the outputIDs or 404 if no record is found.
-	RouteAliasByID = "/aliases/:" + ParameterAliasID
+	RouteOutputsAliasByID = "/outputs/alias/:" + ParameterAliasID
 
-	// RouteNFTs is the route for getting NFT filtered by the given parameters.
+	// RouteOutputsNFTs is the route for getting NFT filtered by the given parameters.
 	// Query parameters: "address", "hasStorageReturnCondition", "storageReturnAddress", "hasExpirationCondition",
 	//					 "expiresBefore", "expiresAfter", "expiresBeforeMilestone", "expiresAfterMilestone",
 	//					 "hasTimelockCondition", "timelockedBefore", "timelockedAfter", "timelockedBeforeMilestone",
 	//					 "timelockedAfterMilestone", "issuer", "sender", "tag", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
-	RouteNFTs = "/nfts"
+	RouteOutputsNFTs = "/outputs/nft"
 
-	// RouteNFTByID is the route for getting NFT by their nftID.
+	// RouteOutputsNFTByID is the route for getting NFT by their nftID.
 	// GET returns the outputIDs or 404 if no record is found.
-	RouteNFTByID = "/nfts/:" + ParameterNFTID
+	RouteOutputsNFTByID = "/outputs/nft/:" + ParameterNFTID
 
-	// RouteFoundries is the route for getting foundries filtered by the given parameters.
+	// RouteOutputsFoundries is the route for getting foundries filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "aliasAddress", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
-	RouteFoundries = "/foundries"
+	RouteOutputsFoundries = "/outputs/foundry"
 
-	// RouteFoundryByID is the route for getting foundries by their foundryID.
+	// RouteOutputsFoundryByID is the route for getting foundries by their foundryID.
 	// GET returns the outputIDs or 404 if no record is found.
-	RouteFoundryByID = "/foundries/:" + ParameterFoundryID
+	RouteOutputsFoundryByID = "/outputs/foundry/:" + ParameterFoundryID
 )
 
 func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 
-	routeGroup.GET(RouteBasicOutputs, func(c echo.Context) error {
+	routeGroup.GET(RouteOutputsBasic, func(c echo.Context) error {
 		resp, err := s.basicOutputsWithFilter(c)
 		if err != nil {
 			return err
@@ -68,7 +68,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return c.JSON(http.StatusOK, resp)
 	})
 
-	routeGroup.GET(RouteAliases, func(c echo.Context) error {
+	routeGroup.GET(RouteOutputsAliases, func(c echo.Context) error {
 		resp, err := s.aliasesWithFilter(c)
 		if err != nil {
 			return err
@@ -77,7 +77,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return c.JSON(http.StatusOK, resp)
 	})
 
-	routeGroup.GET(RouteAliasByID, func(c echo.Context) error {
+	routeGroup.GET(RouteOutputsAliasByID, func(c echo.Context) error {
 		resp, err := s.aliasByID(c)
 		if err != nil {
 			return err
@@ -86,7 +86,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return c.JSON(http.StatusOK, resp)
 	})
 
-	routeGroup.GET(RouteNFTs, func(c echo.Context) error {
+	routeGroup.GET(RouteOutputsNFTs, func(c echo.Context) error {
 		resp, err := s.nftsWithFilter(c)
 		if err != nil {
 			return err
@@ -95,7 +95,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return c.JSON(http.StatusOK, resp)
 	})
 
-	routeGroup.GET(RouteNFTByID, func(c echo.Context) error {
+	routeGroup.GET(RouteOutputsNFTByID, func(c echo.Context) error {
 		resp, err := s.nftByID(c)
 		if err != nil {
 			return err
@@ -104,7 +104,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return c.JSON(http.StatusOK, resp)
 	})
 
-	routeGroup.GET(RouteFoundries, func(c echo.Context) error {
+	routeGroup.GET(RouteOutputsFoundries, func(c echo.Context) error {
 		resp, err := s.foundriesWithFilter(c)
 		if err != nil {
 			return err
@@ -113,7 +113,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return c.JSON(http.StatusOK, resp)
 	})
 
-	routeGroup.GET(RouteFoundryByID, func(c echo.Context) error {
+	routeGroup.GET(RouteOutputsFoundryByID, func(c echo.Context) error {
 		resp, err := s.foundryByID(c)
 		if err != nil {
 			return err
