@@ -22,8 +22,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/gohornet/inx-indexer/indexer"
-	"github.com/gohornet/inx-indexer/server"
+	"github.com/gohornet/inx-indexer/pkg/indexer"
+	"github.com/gohornet/inx-indexer/pkg/server"
 	"github.com/iotaledger/hive.go/configuration"
 	inx "github.com/iotaledger/inx/go"
 )
