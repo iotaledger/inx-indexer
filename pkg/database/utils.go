@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/pelletier/go-toml/v2"
-
-	"github.com/iotaledger/hive.go/kvstore/utils"
+	
+	"github.com/iotaledger/hive.go/ioutils"
 )
 
 // ReadTOMLFromFile reads TOML data from the file named by filename to data.
@@ -65,7 +65,7 @@ func WriteTOMLToFile(filename string, data interface{}, perm os.FileMode, header
 // DatabaseExists checks if the database folder exists and is not empty.
 func DatabaseExists(dbPath string) (bool, error) {
 
-	dirExists, err := utils.PathExists(dbPath)
+	dirExists, err := ioutils.PathExists(dbPath)
 	if err != nil {
 		return false, fmt.Errorf("unable to check database path (%s): %w", dbPath, err)
 	}
