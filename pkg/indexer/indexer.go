@@ -73,15 +73,8 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 	outputID := output.GetOutputId().Unwrap()
 	switch iotaOutput := unwrapped.(type) {
 	case *iotago.BasicOutput:
-		features, err := iotaOutput.FeatureBlocks().Set()
-		if err != nil {
-			return err
-		}
-
-		conditions, err := iotaOutput.UnlockConditions().Set()
-		if err != nil {
-			return err
-		}
+		features := iotaOutput.FeaturesSet()
+		conditions := iotaOutput.UnlockConditionsSet()
 
 		basic := &basicOutput{
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
@@ -90,14 +83,14 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		}
 		copy(basic.OutputID, outputID[:])
 
-		if senderBlock := features.SenderFeatureBlock(); senderBlock != nil {
+		if senderBlock := features.SenderFeature(); senderBlock != nil {
 			basic.Sender, err = addressBytesForAddress(senderBlock.Address)
 			if err != nil {
 				return err
 			}
 		}
 
-		if tagBlock := features.TagFeatureBlock(); tagBlock != nil {
+		if tagBlock := features.TagFeature(); tagBlock != nil {
 			basic.Tag = make([]byte, len(tagBlock.Tag))
 			copy(basic.Tag, tagBlock.Tag)
 		}
@@ -154,15 +147,8 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 			aliasID = iotago.AliasIDFromOutputID(*outputID)
 		}
 
-		features, err := iotaOutput.FeatureBlocks().Set()
-		if err != nil {
-			return err
-		}
-
-		conditions, err := iotaOutput.UnlockConditions().Set()
-		if err != nil {
-			return err
-		}
+		features := iotaOutput.FeaturesSet()
+		conditions := iotaOutput.UnlockConditionsSet()
 
 		alias := &alias{
 			AliasID:          make(aliasIDBytes, iotago.AliasIDLength),
@@ -173,14 +159,14 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		copy(alias.AliasID, aliasID[:])
 		copy(alias.OutputID, outputID[:])
 
-		if issuerBlock := features.IssuerFeatureBlock(); issuerBlock != nil {
+		if issuerBlock := features.IssuerFeature(); issuerBlock != nil {
 			alias.Issuer, err = addressBytesForAddress(issuerBlock.Address)
 			if err != nil {
 				return err
 			}
 		}
 
-		if senderBlock := features.SenderFeatureBlock(); senderBlock != nil {
+		if senderBlock := features.SenderFeature(); senderBlock != nil {
 			alias.Sender, err = addressBytesForAddress(senderBlock.Address)
 			if err != nil {
 				return err
@@ -206,15 +192,8 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		}
 
 	case *iotago.NFTOutput:
-		features, err := iotaOutput.FeatureBlocks().Set()
-		if err != nil {
-			return err
-		}
-
-		conditions, err := iotaOutput.UnlockConditions().Set()
-		if err != nil {
-			return err
-		}
+		features := iotaOutput.FeaturesSet()
+		conditions := iotaOutput.UnlockConditionsSet()
 
 		nftID := iotaOutput.NFTID
 		if nftID.Empty() {
@@ -232,21 +211,21 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		copy(nft.NFTID, nftID[:])
 		copy(nft.OutputID, outputID[:])
 
-		if issuerBlock := features.IssuerFeatureBlock(); issuerBlock != nil {
+		if issuerBlock := features.IssuerFeature(); issuerBlock != nil {
 			nft.Issuer, err = addressBytesForAddress(issuerBlock.Address)
 			if err != nil {
 				return err
 			}
 		}
 
-		if senderBlock := features.SenderFeatureBlock(); senderBlock != nil {
+		if senderBlock := features.SenderFeature(); senderBlock != nil {
 			nft.Sender, err = addressBytesForAddress(senderBlock.Address)
 			if err != nil {
 				return err
 			}
 		}
 
-		if tagBlock := features.TagFeatureBlock(); tagBlock != nil {
+		if tagBlock := features.TagFeature(); tagBlock != nil {
 			nft.Tag = make([]byte, len(tagBlock.Tag))
 			copy(nft.Tag, tagBlock.Tag)
 		}
@@ -297,10 +276,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		}
 
 	case *iotago.FoundryOutput:
-		conditions, err := iotaOutput.UnlockConditions().Set()
-		if err != nil {
-			return err
-		}
+		conditions := iotaOutput.UnlockConditionsSet()
 
 		foundryID, err := iotaOutput.ID()
 		if err != nil {
