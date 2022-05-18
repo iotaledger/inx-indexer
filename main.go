@@ -32,7 +32,7 @@ var (
 	// AppName name of the app.
 	AppName = "inx-indexer"
 	// Version of the app.
-	Version = "0.5.0"
+	Version = "0.6.0"
 )
 
 const (
@@ -96,7 +96,7 @@ func listenToLedgerUpdates(ctx context.Context, client inx.INXClient, indexer *i
 		panic(err)
 	}
 	for {
-		message, err := stream.Recv()
+		update, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
@@ -104,10 +104,10 @@ func listenToLedgerUpdates(ctx context.Context, client inx.INXClient, indexer *i
 			return err
 		}
 
-		if err := indexer.UpdatedLedger(message); err != nil {
+		if err := indexer.UpdatedLedger(update); err != nil {
 			return err
 		}
-		fmt.Printf("> Updated ledgerIndex to %d with %d created and %d consumed outputs\n", message.GetMilestoneIndex(), len(message.GetCreated()), len(message.GetConsumed()))
+		fmt.Printf("> Updated ledgerIndex to %d with %d created and %d consumed outputs\n", update.GetMilestoneIndex(), len(update.GetCreated()), len(update.GetConsumed()))
 	}
 	return nil
 }
