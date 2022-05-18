@@ -144,7 +144,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		aliasID := iotaOutput.AliasID
 		if aliasID.Empty() {
 			// Use implicit AliasID
-			aliasID = iotago.AliasIDFromOutputID(*outputID)
+			aliasID = iotago.AliasIDFromOutputID(outputID)
 		}
 
 		features := iotaOutput.FeaturesSet()
@@ -198,7 +198,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		nftID := iotaOutput.NFTID
 		if nftID.Empty() {
 			// Use implicit NFTID
-			nftAddr := iotago.NFTAddressFromOutputID(*outputID)
+			nftAddr := iotago.NFTAddressFromOutputID(outputID)
 			nftID = nftAddr.NFTID()
 		}
 
