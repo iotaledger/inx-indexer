@@ -11,7 +11,7 @@ require (
 	github.com/iotaledger/iota.go/v3 v3.0.0-20220518073052-2790196ba70a
 	github.com/labstack/echo-contrib v0.12.0
 	github.com/labstack/echo/v4 v4.7.2
-	github.com/pelletier/go-toml/v2 v2.0.0
+	github.com/pelletier/go-toml/v2 v2.0.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
 	google.golang.org/grpc v1.46.2
