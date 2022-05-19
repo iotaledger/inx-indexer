@@ -32,7 +32,7 @@ var (
 	// AppName name of the app.
 	AppName = "inx-indexer"
 	// Version of the app.
-	Version = "0.6.0"
+	Version = "0.6.1"
 )
 
 const (
