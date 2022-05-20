@@ -6,7 +6,6 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
@@ -22,23 +21,9 @@ type NodeBridge struct {
 	// the logger used to log events.
 	*logger.WrappedLogger
 
-	Client     inx.INXClient
-	NodeConfig *inx.NodeConfiguration
-
-	isSyncedMutex      sync.RWMutex
-	latestMilestone    *inx.MilestoneInfo
-	confirmedMilestone *inx.MilestoneInfo
-	pruningIndex       uint32
-
-	latestTreasuryOutput *inx.TreasuryOutput
-}
-
-func INXBlockMetadataCaller(handler interface{}, params ...interface{}) {
-	handler.(func(metadata *inx.BlockMetadata))(params[0].(*inx.BlockMetadata))
-}
-
-func INXMilestoneCaller(handler interface{}, params ...interface{}) {
-	handler.(func(metadata *inx.Milestone))(params[0].(*inx.Milestone))
+	client       inx.INXClient
+	NodeConfig   *inx.NodeConfiguration
+	pruningIndex uint32
 }
 
 func NewNodeBridge(ctx context.Context, client inx.INXClient, log *logger.Logger) (*NodeBridge, error) {
@@ -60,7 +45,7 @@ func NewNodeBridge(ctx context.Context, client inx.INXClient, log *logger.Logger
 
 	return &NodeBridge{
 		WrappedLogger: logger.NewWrappedLogger(log),
-		Client:        client,
+		client:        client,
 		NodeConfig:    nodeConfig,
 		pruningIndex:  nodeStatus.GetPruningIndex(),
 	}, nil
@@ -77,7 +62,7 @@ func (n *NodeBridge) PruningIndex() uint32 {
 func (n *NodeBridge) FillIndexer(ctx context.Context, indexer *indexer.Indexer) error {
 	importer := indexer.ImportTransaction()
 
-	stream, err := n.Client.ReadUnspentOutputs(ctx, &inx.NoParams{})
+	stream, err := n.client.ReadUnspentOutputs(ctx, &inx.NoParams{})
 	if err != nil {
 		return err
 	}
@@ -113,7 +98,7 @@ func (n *NodeBridge) ListenToLedgerUpdates(ctx context.Context, startIndex uint3
 		StartMilestoneIndex: uint32(startIndex),
 	}
 
-	stream, err := n.Client.ListenToLedgerUpdates(ctx, req)
+	stream, err := n.client.ListenToLedgerUpdates(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -156,7 +141,7 @@ func (n *NodeBridge) RegisterAPIRoute(route string, bindAddress string) error {
 	if err != nil {
 		return err
 	}
-	_, err = n.Client.RegisterAPIRoute(context.Background(), apiReq)
+	_, err = n.client.RegisterAPIRoute(context.Background(), apiReq)
 	return err
 }
 
@@ -164,6 +149,6 @@ func (n *NodeBridge) UnregisterAPIRoute(route string) error {
 	apiReq := &inx.APIRouteRequest{
 		Route: route,
 	}
-	_, err := n.Client.UnregisterAPIRoute(context.Background(), apiReq)
+	_, err := n.client.UnregisterAPIRoute(context.Background(), apiReq)
 	return err
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/dig"
-	"google.golang.org/grpc"
 
 	"github.com/gohornet/inx-indexer/pkg/daemon"
 	"github.com/gohornet/inx-indexer/pkg/indexer"
@@ -40,7 +39,6 @@ func init() {
 type dependencies struct {
 	dig.In
 	NodeBridge      *nodebridge.NodeBridge
-	Connection      *grpc.ClientConn
 	Indexer         *indexer.Indexer
 	ShutdownHandler *shutdown.ShutdownHandler
 }
@@ -51,12 +49,6 @@ var (
 )
 
 func provide(c *dig.Container) error {
-
-	type inxDepsOut struct {
-		dig.Out
-		Connection *grpc.ClientConn
-		INXClient  inx.INXClient
-	}
 
 	if err := c.Provide(func() (*indexer.Indexer, error) {
 		CoreComponent.LogInfo("Setting up database...")
@@ -104,9 +96,9 @@ func run() error {
 				CoreComponent.LogPanicf("Filling Indexer failed! Error: %s", err)
 				return
 			}
-			CoreComponent.LogInfo("Imported initial ledger at index %d", ledgerIndex)
+			CoreComponent.LogInfof("Imported initial ledger at index %d", ledgerIndex)
 		} else {
-			CoreComponent.LogInfo("> Indexer started at ledgerIndex %d", ledgerIndex)
+			CoreComponent.LogInfof("> Indexer started at ledgerIndex %d", ledgerIndex)
 		}
 
 		CoreComponent.LogInfo("Starting LedgerUpdates ... done")
@@ -151,14 +143,14 @@ func run() error {
 		}()
 
 		if err := deps.NodeBridge.RegisterAPIRoute(APIRoute, ParamsIndexer.BindAddress); err != nil {
-			CoreComponent.LogPanicf("Error registering INX api route (%s)", err)
+			CoreComponent.LogPanicf("Registering INX api route failed, error: %s", err)
 		}
 
 		<-ctx.Done()
 		CoreComponent.LogInfo("Stopping API ...")
 
 		if err := deps.NodeBridge.UnregisterAPIRoute(APIRoute); err != nil {
-			CoreComponent.LogWarnf("Error unregistering INX api route (%s)", err)
+			CoreComponent.LogWarnf("Unregistering INX api route failed, error: %s", err)
 		}
 
 		shutdownCtx, shutdownCtxCancel := context.WithTimeout(context.Background(), 5*time.Second)
