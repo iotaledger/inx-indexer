@@ -1,14 +1,27 @@
 {
+  "app": {
+    "checkForUpdates": true,
+    "disablePlugins": [],
+    "enablePlugins": [],
+    "stopGracePeriod": "5m"
+  },
   "inx": {
     "address": "localhost:9029"
   },
   "indexer": {
-    "dbPath": "database",
+    "db": {
+      "path": "database"
+    },
     "bindAddress": "localhost:9091",
     "maxPageSize": 1000
   },
+  "profiling": {
+    "bindAddress": "localhost:6060"
+  },
   "prometheus": {
-    "enabled": false,
-    "bindAddress": "localhost:9312"
+    "bindAddress": "localhost:9312",
+    "goMetrics": false,
+    "processMetrics": false,
+    "promhttpMetrics": false
   }
 }
