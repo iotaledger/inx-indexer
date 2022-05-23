@@ -9,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+
+	"github.com/iotaledger/hive.go/ioutils"
 )
 
 type Engine string
@@ -152,7 +154,7 @@ func LoadDatabaseEngineFromFile(path string) (Engine, error) {
 
 	var info databaseInfo
 
-	if err := ReadTOMLFromFile(path, &info); err != nil {
+	if err := ioutils.ReadTOMLFromFile(path, &info); err != nil {
 		return "", fmt.Errorf("unable to read database info file: %w", err)
 	}
 
@@ -171,7 +173,7 @@ func storeDatabaseInfoToFile(filePath string, engine Engine) error {
 		Engine: string(engine),
 	}
 
-	return WriteTOMLToFile(filePath, info, 0660, "# auto-generated\n# !!! do not modify this file !!!")
+	return ioutils.WriteTOMLToFile(filePath, info, 0660, "# auto-generated\n# !!! do not modify this file !!!")
 }
 
 func DatabaseWithDefaultSettings(path string, createDatabaseIfNotExists bool) (*gorm.DB, error) {
