@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -11,9 +12,9 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/dig"
 
+	"github.com/gohornet/inx-app/nodebridge"
 	"github.com/gohornet/inx-indexer/pkg/daemon"
 	"github.com/gohornet/inx-indexer/pkg/indexer"
-	"github.com/gohornet/inx-indexer/pkg/nodebridge"
 	"github.com/gohornet/inx-indexer/pkg/server"
 	"github.com/iotaledger/hive.go/app"
 	"github.com/iotaledger/hive.go/app/core/shutdown"
@@ -66,44 +67,15 @@ func run() error {
 		CoreComponent.LogInfo("Starting Indexer")
 		defer deps.Indexer.CloseDatabase()
 
-		fillIndexer := false
-
-		// Checking initial indexer state
-		ledgerIndex, err := deps.Indexer.LedgerIndex()
+		ledgerIndex, err := checkIndexerState(ctx)
 		if err != nil {
-			if !errors.Is(err, indexer.ErrNotFound) {
-				CoreComponent.LogPanicf("Reading ledger index from Indexer failed! Error: %s", err)
-				return
-			}
-			CoreComponent.LogInfo("Indexer is empty, so import initial ledger...")
-			fillIndexer = true
-		}
-
-		if !fillIndexer && deps.NodeBridge.LedgerPruningIndex() > ledgerIndex {
-			CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
-			CoreComponent.LogInfo("Re-import initial ledger...")
-
-			if err := deps.Indexer.Clear(); err != nil {
-				CoreComponent.LogPanicf("Clearing Indexer failed! Error: %s", err)
-				return
-			}
-			fillIndexer = true
-		}
-
-		if fillIndexer {
-			// Indexer is empty, so import initial ledger state from the node
-			if err := deps.NodeBridge.FillIndexer(ctx, deps.Indexer); err != nil {
-				CoreComponent.LogPanicf("Filling Indexer failed! Error: %s", err)
-				return
-			}
-			CoreComponent.LogInfof("Imported initial ledger at index %d", ledgerIndex)
-		} else {
-			CoreComponent.LogInfof("> Indexer started at ledgerIndex %d", ledgerIndex)
+			CoreComponent.LogPanicf("Checking initial Indexer state failed: %s", err.Error())
+			return
 		}
 
 		CoreComponent.LogInfo("Starting LedgerUpdates ... done")
 
-		if err := deps.NodeBridge.ListenToLedgerUpdates(ctx, ledgerIndex+1, func(update *inx.LedgerUpdate) error {
+		if err := deps.NodeBridge.ListenToLedgerUpdates(ctx, ledgerIndex+1, 0, func(update *inx.LedgerUpdate) error {
 			ts := time.Now()
 			if err := deps.Indexer.UpdatedLedger(update); err != nil {
 				return err
@@ -171,4 +143,79 @@ func newEcho() *echo.Echo {
 	e.HideBanner = true
 	e.Use(middleware.Recover())
 	return e
+}
+
+func checkIndexerState(ctx context.Context) (uint32, error) {
+	needsToFillIndexer := false
+
+	// Checking initial indexer state
+	ledgerIndex, err := deps.Indexer.LedgerIndex()
+	if err != nil {
+		if !errors.Is(err, indexer.ErrNotFound) {
+			return 0, fmt.Errorf("reading ledger index from Indexer failed! Error: %s", err)
+		}
+		CoreComponent.LogInfo("Indexer is empty, so import initial ledger...")
+		needsToFillIndexer = true
+	}
+
+	nodeStatus, err := deps.NodeBridge.NodeStatus()
+	if err != nil {
+		return 0, fmt.Errorf("error loading pruning index: %s", err)
+	}
+
+	if !needsToFillIndexer && nodeStatus.GetLedgerPruningIndex() > ledgerIndex {
+		CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
+		CoreComponent.LogInfo("Re-import initial ledger...")
+
+		if err := deps.Indexer.Clear(); err != nil {
+			return 0, fmt.Errorf("clearing Indexer failed! Error: %w", err)
+		}
+		needsToFillIndexer = true
+	}
+
+	if needsToFillIndexer {
+		// Indexer is empty, so import initial ledger state from the node
+		if err := fillIndexer(ctx, deps.Indexer); err != nil {
+			return 0, fmt.Errorf("filling Indexer failed! Error: %w", err)
+		}
+		// Read new ledgerIndex after filling up the indexer
+		ledgerIndex, err = deps.Indexer.LedgerIndex()
+		if err != nil {
+			return 0, fmt.Errorf("reading ledger index from Indexer failed! Error: %s", err)
+		}
+		CoreComponent.LogInfof("Imported initial ledger at index %d", ledgerIndex)
+	} else {
+		CoreComponent.LogInfof("> Indexer started at ledgerIndex %d", ledgerIndex)
+	}
+
+	return ledgerIndex, nil
+}
+
+func fillIndexer(ctx context.Context, indexer *indexer.Indexer) error {
+	importer := indexer.ImportTransaction()
+
+	stream, err := deps.NodeBridge.Client().ReadUnspentOutputs(ctx, &inx.NoParams{})
+	if err != nil {
+		return err
+	}
+
+	var ledgerIndex uint32
+	for {
+		unspentOutput, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if err := importer.AddOutput(unspentOutput.GetOutput()); err != nil {
+			return err
+		}
+		outputLedgerIndex := unspentOutput.GetLedgerIndex()
+		if ledgerIndex < outputLedgerIndex {
+			ledgerIndex = outputLedgerIndex
+		}
+	}
+
+	return importer.Finalize(ledgerIndex)
 }

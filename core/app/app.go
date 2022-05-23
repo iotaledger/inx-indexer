@@ -5,8 +5,8 @@ import (
 	"github.com/iotaledger/hive.go/app/core/shutdown"
 	"github.com/iotaledger/hive.go/app/plugins/profiling"
 
+	"github.com/gohornet/inx-app/inx"
 	"github.com/gohornet/inx-indexer/core/indexer"
-	"github.com/gohornet/inx-indexer/core/inx"
 	"github.com/gohornet/inx-indexer/plugins/prometheus"
 )
 
