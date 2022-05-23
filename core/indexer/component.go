@@ -79,7 +79,7 @@ func run() error {
 			fillIndexer = true
 		}
 
-		if !fillIndexer && deps.NodeBridge.PruningIndex() > ledgerIndex {
+		if !fillIndexer && deps.NodeBridge.LedgerPruningIndex() > ledgerIndex {
 			CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
 			CoreComponent.LogInfo("Re-import initial ledger...")
 

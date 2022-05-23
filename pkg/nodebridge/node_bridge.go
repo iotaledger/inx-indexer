@@ -21,9 +21,9 @@ type NodeBridge struct {
 	// the logger used to log events.
 	*logger.WrappedLogger
 
-	client       inx.INXClient
-	NodeConfig   *inx.NodeConfiguration
-	pruningIndex uint32
+	client             inx.INXClient
+	NodeConfig         *inx.NodeConfiguration
+	ledgerPruningIndex uint32
 }
 
 func NewNodeBridge(ctx context.Context, client inx.INXClient, log *logger.Logger) (*NodeBridge, error) {
@@ -44,10 +44,10 @@ func NewNodeBridge(ctx context.Context, client inx.INXClient, log *logger.Logger
 	}
 
 	return &NodeBridge{
-		WrappedLogger: logger.NewWrappedLogger(log),
-		client:        client,
-		NodeConfig:    nodeConfig,
-		pruningIndex:  nodeStatus.GetPruningIndex(),
+		WrappedLogger:      logger.NewWrappedLogger(log),
+		client:             client,
+		NodeConfig:         nodeConfig,
+		ledgerPruningIndex: nodeStatus.GetLedgerPruningIndex(),
 	}, nil
 }
 
@@ -55,8 +55,8 @@ func (n *NodeBridge) Run(ctx context.Context) {
 	<-ctx.Done()
 }
 
-func (n *NodeBridge) PruningIndex() uint32 {
-	return n.pruningIndex
+func (n *NodeBridge) LedgerPruningIndex() uint32 {
+	return n.ledgerPruningIndex
 }
 
 func (n *NodeBridge) FillIndexer(ctx context.Context, indexer *indexer.Indexer) error {
@@ -94,7 +94,7 @@ func (n *NodeBridge) FillIndexer(ctx context.Context, indexer *indexer.Indexer) 
 
 func (n *NodeBridge) ListenToLedgerUpdates(ctx context.Context, startIndex uint32, consume func(update *inx.LedgerUpdate) error) error {
 
-	req := &inx.LedgerRequest{
+	req := &inx.MilestoneRangeRequest{
 		StartMilestoneIndex: uint32(startIndex),
 	}
 

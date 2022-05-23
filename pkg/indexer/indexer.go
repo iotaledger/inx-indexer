@@ -73,8 +73,8 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 	outputID := output.GetOutputId().Unwrap()
 	switch iotaOutput := unwrapped.(type) {
 	case *iotago.BasicOutput:
-		features := iotaOutput.FeaturesSet()
-		conditions := iotaOutput.UnlockConditionsSet()
+		features := iotaOutput.FeatureSet()
+		conditions := iotaOutput.UnlockConditionSet()
 
 		basic := &basicOutput{
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
@@ -147,8 +147,8 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 			aliasID = iotago.AliasIDFromOutputID(outputID)
 		}
 
-		features := iotaOutput.FeaturesSet()
-		conditions := iotaOutput.UnlockConditionsSet()
+		features := iotaOutput.FeatureSet()
+		conditions := iotaOutput.UnlockConditionSet()
 
 		alias := &alias{
 			AliasID:          make(aliasIDBytes, iotago.AliasIDLength),
@@ -192,8 +192,8 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		}
 
 	case *iotago.NFTOutput:
-		features := iotaOutput.FeaturesSet()
-		conditions := iotaOutput.UnlockConditionsSet()
+		features := iotaOutput.FeatureSet()
+		conditions := iotaOutput.UnlockConditionSet()
 
 		nftID := iotaOutput.NFTID
 		if nftID.Empty() {
@@ -276,7 +276,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		}
 
 	case *iotago.FoundryOutput:
-		conditions := iotaOutput.UnlockConditionsSet()
+		conditions := iotaOutput.UnlockConditionSet()
 
 		foundryID, err := iotaOutput.ID()
 		if err != nil {
