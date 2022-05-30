@@ -5,8 +5,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/gohornet/inx-indexer/pkg/database"
 	"github.com/iotaledger/hive.go/serializer/v2"
+	"github.com/iotaledger/inx-indexer/pkg/database"
 	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v3"
 )

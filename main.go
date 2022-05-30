@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/gohornet/inx-indexer/core/app"
+	"github.com/iotaledger/inx-indexer/core/app"
 )
 
 func main() {
