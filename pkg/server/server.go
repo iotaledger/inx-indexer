@@ -3,7 +3,7 @@ package server
 import (
 	"github.com/labstack/echo/v4"
 
-	"github.com/gohornet/inx-indexer/pkg/indexer"
+	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 

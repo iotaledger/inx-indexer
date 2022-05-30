@@ -5,9 +5,9 @@ import (
 	"github.com/iotaledger/hive.go/app/core/shutdown"
 	"github.com/iotaledger/hive.go/app/plugins/profiling"
 
-	"github.com/gohornet/inx-app/inx"
-	"github.com/gohornet/inx-indexer/core/indexer"
-	"github.com/gohornet/inx-indexer/plugins/prometheus"
+	"github.com/iotaledger/inx-app/inx"
+	"github.com/iotaledger/inx-indexer/core/indexer"
+	"github.com/iotaledger/inx-indexer/plugins/prometheus"
 )
 
 var (
@@ -15,7 +15,7 @@ var (
 	Name = "inx-indexer"
 
 	// Version of the app.
-	Version = "0.7.1"
+	Version = "0.8.0"
 )
 
 func App() *app.App {

@@ -12,12 +12,12 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/dig"
 
-	"github.com/gohornet/inx-app/nodebridge"
-	"github.com/gohornet/inx-indexer/pkg/daemon"
-	"github.com/gohornet/inx-indexer/pkg/indexer"
-	"github.com/gohornet/inx-indexer/pkg/server"
 	"github.com/iotaledger/hive.go/app"
 	"github.com/iotaledger/hive.go/app/core/shutdown"
+	"github.com/iotaledger/inx-app/nodebridge"
+	"github.com/iotaledger/inx-indexer/pkg/daemon"
+	"github.com/iotaledger/inx-indexer/pkg/indexer"
+	"github.com/iotaledger/inx-indexer/pkg/server"
 	inx "github.com/iotaledger/inx/go"
 )
 

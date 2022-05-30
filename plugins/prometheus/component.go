@@ -13,8 +13,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/dig"
 
-	"github.com/gohornet/inx-indexer/pkg/daemon"
 	"github.com/iotaledger/hive.go/app"
+	"github.com/iotaledger/inx-indexer/pkg/daemon"
 )
 
 func init() {
