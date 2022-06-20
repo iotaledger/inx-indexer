@@ -12,7 +12,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.2
 	go.uber.org/dig v1.14.1
-	gorm.io/driver/sqlite v1.3.2
+	gorm.io/driver/sqlite v1.3.4
 	gorm.io/gorm v1.23.6
 )
 
