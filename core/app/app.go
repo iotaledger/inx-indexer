@@ -15,7 +15,7 @@ var (
 	Name = "inx-indexer"
 
 	// Version of the app.
-	Version = "0.8.0"
+	Version = "0.8.1"
 )
 
 func App() *app.App {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -62,6 +63,10 @@ func provide(c *dig.Container) error {
 }
 
 func run() error {
+
+	indexerInitWaitGroup := &sync.WaitGroup{}
+	indexerInitWaitGroup.Add(1)
+
 	// create a background worker that handles the indexer events
 	CoreComponent.Daemon().BackgroundWorker("Indexer", func(ctx context.Context) {
 		CoreComponent.LogInfo("Starting Indexer")
@@ -72,6 +77,7 @@ func run() error {
 			CoreComponent.LogPanicf("Checking initial Indexer state failed: %s", err.Error())
 			return
 		}
+		indexerInitWaitGroup.Done()
 
 		CoreComponent.LogInfo("Starting LedgerUpdates ... done")
 
@@ -93,6 +99,10 @@ func run() error {
 
 	// create a background worker that handles the API
 	if err := CoreComponent.Daemon().BackgroundWorker("API", func(ctx context.Context) {
+		CoreComponent.LogInfo("Starting API")
+
+		// we need to wait until the indexer is initialized before starting the API
+		indexerInitWaitGroup.Wait()
 		CoreComponent.LogInfo("Starting API ... done")
 
 		e := newEcho()
