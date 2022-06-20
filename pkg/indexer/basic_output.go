@@ -14,9 +14,7 @@ type basicOutput struct {
 	Address                     addressBytes  `gorm:"notnull;index:basic_outputs_address"`
 	StorageDepositReturn        *uint64
 	StorageDepositReturnAddress addressBytes
-	TimelockMilestone           *uint32
 	TimelockTime                *time.Time
-	ExpirationMilestone         *uint32
 	ExpirationTime              *time.Time
 	ExpirationReturnAddress     addressBytes
 	CreatedAt                   time.Time `gorm:"notnull"`
@@ -33,13 +31,9 @@ type BasicOutputFilterOptions struct {
 	expirationReturnAddress          *iotago.Address
 	expiresBefore                    *time.Time
 	expiresAfter                     *time.Time
-	expiresBeforeMilestone           *uint32
-	expiresAfterMilestone            *uint32
 	hasTimelockCondition             *bool
 	timelockedBefore                 *time.Time
 	timelockedAfter                  *time.Time
-	timelockedBeforeMilestone        *uint32
-	timelockedAfterMilestone         *uint32
 	sender                           *iotago.Address
 	tag                              []byte
 	pageSize                         uint32
@@ -104,18 +98,6 @@ func BasicOutputExpiresAfter(time time.Time) BasicOutputFilterOption {
 	}
 }
 
-func BasicOutputExpiresBeforeMilestone(index uint32) BasicOutputFilterOption {
-	return func(args *BasicOutputFilterOptions) {
-		args.expiresBeforeMilestone = &index
-	}
-}
-
-func BasicOutputExpiresAfterMilestone(index uint32) BasicOutputFilterOption {
-	return func(args *BasicOutputFilterOptions) {
-		args.expiresAfterMilestone = &index
-	}
-}
-
 func BasicOutputHasTimelockCondition(value bool) BasicOutputFilterOption {
 	return func(args *BasicOutputFilterOptions) {
 		args.hasTimelockCondition = &value
@@ -131,18 +113,6 @@ func BasicOutputTimelockedBefore(time time.Time) BasicOutputFilterOption {
 func BasicOutputTimelockedAfter(time time.Time) BasicOutputFilterOption {
 	return func(args *BasicOutputFilterOptions) {
 		args.timelockedAfter = &time
-	}
-}
-
-func BasicOutputTimelockedBeforeMilestone(index uint32) BasicOutputFilterOption {
-	return func(args *BasicOutputFilterOptions) {
-		args.timelockedBeforeMilestone = &index
-	}
-}
-
-func BasicOutputTimelockedAfterMilestone(index uint32) BasicOutputFilterOption {
-	return func(args *BasicOutputFilterOptions) {
-		args.timelockedAfterMilestone = &index
 	}
 }
 
@@ -265,19 +235,11 @@ func (i *Indexer) BasicOutputsWithFilters(filters ...BasicOutputFilterOption) *I
 		query = query.Where("expiration_time > ?", *opts.expiresAfter)
 	}
 
-	if opts.expiresBeforeMilestone != nil {
-		query = query.Where("expiration_milestone < ?", *opts.expiresBeforeMilestone)
-	}
-
-	if opts.expiresAfterMilestone != nil {
-		query = query.Where("expiration_milestone > ?", *opts.expiresAfterMilestone)
-	}
-
 	if opts.hasTimelockCondition != nil {
 		if *opts.hasTimelockCondition {
-			query = query.Where("(timelock_time IS NOT NULL OR timelock_milestone IS NOT NULL)")
+			query = query.Where("timelock_time IS NOT NULL")
 		} else {
-			query = query.Where("timelock_time IS NULL").Where("timelock_milestone IS NULL")
+			query = query.Where("timelock_time IS NULL")
 		}
 	}
 
@@ -287,14 +249,6 @@ func (i *Indexer) BasicOutputsWithFilters(filters ...BasicOutputFilterOption) *I
 
 	if opts.timelockedAfter != nil {
 		query = query.Where("timelock_time > ?", *opts.timelockedAfter)
-	}
-
-	if opts.timelockedBeforeMilestone != nil {
-		query = query.Where("timelock_milestone < ?", *opts.timelockedBeforeMilestone)
-	}
-
-	if opts.timelockedAfterMilestone != nil {
-		query = query.Where("timelock_milestone > ?", *opts.timelockedAfterMilestone)
 	}
 
 	if opts.sender != nil {

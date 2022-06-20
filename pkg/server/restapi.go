@@ -53,12 +53,6 @@ const (
 	// QueryParameterExpiresAfter is used to filter for outputs that expire after a certain unix time.
 	QueryParameterExpiresAfter = "expiresAfter"
 
-	// QueryParameterExpiresBeforeMilestone is used to filter for outputs that expire before a certain milestone index.
-	QueryParameterExpiresBeforeMilestone = "expiresBeforeMilestone"
-
-	// QueryParameterExpiresAfterMilestone is used to filter for outputs that expire after a certain milestone index.
-	QueryParameterExpiresAfterMilestone = "expiresAfterMilestone"
-
 	// QueryParameterExpirationReturnAddress is used to filter for outputs with a certain expiration return address.
 	QueryParameterExpirationReturnAddress = "expirationReturnAddress"
 
@@ -70,12 +64,6 @@ const (
 
 	// QueryParameterTimelockedAfter is used to filter for outputs that are timelocked after a certain unix time.
 	QueryParameterTimelockedAfter = "timelockedAfter"
-
-	// QueryParameterTimelockedBeforeMilestone is used to filter for outputs that are timelocked before a certain milestone index.
-	QueryParameterTimelockedBeforeMilestone = "timelockedBeforeMilestone"
-
-	// QueryParameterTimelockedAfterMilestone is used to filter for outputs that are timelocked after a certain milestone index.
-	QueryParameterTimelockedAfterMilestone = "timelockedAfterMilestone"
 
 	// QueryParameterStateController is used to filter for a certain state controller address.
 	QueryParameterStateController = "stateController"

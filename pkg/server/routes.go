@@ -19,8 +19,8 @@ const (
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "address", "hasStorageReturnCondition", "storageReturnAddress", "hasExpirationCondition",
 	//					 "expiresBefore", "expiresAfter", "expiresBeforeMilestone", "expiresAfterMilestone",
-	//					 "hasTimelockCondition", "timelockedBefore", "timelockedAfter", "timelockedBeforeMilestone",
-	//					 "timelockedAfterMilestone", "sender", "tag", "createdBefore", "createdAfter"
+	//					 "hasTimelockCondition", "timelockedBefore", "timelockedAfter", "sender", "tag",
+	//					 "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsBasic = "/outputs/basic"
 
@@ -37,8 +37,8 @@ const (
 	// RouteOutputsNFTs is the route for getting NFT filtered by the given parameters.
 	// Query parameters: "address", "hasStorageReturnCondition", "storageReturnAddress", "hasExpirationCondition",
 	//					 "expiresBefore", "expiresAfter", "expiresBeforeMilestone", "expiresAfterMilestone",
-	//					 "hasTimelockCondition", "timelockedBefore", "timelockedAfter", "timelockedBeforeMilestone",
-	//					 "timelockedAfterMilestone", "issuer", "sender", "tag", "createdBefore", "createdAfter"
+	//					 "hasTimelockCondition", "timelockedBefore", "timelockedAfter", "issuer", "sender",
+	//					 "tag", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsNFTs = "/outputs/nft"
 
@@ -206,22 +206,6 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		filters = append(filters, indexer.BasicOutputExpiresAfter(timestamp))
 	}
 
-	if len(c.QueryParam(QueryParameterExpiresBeforeMilestone)) > 0 {
-		msIndex, err := ParseUint32QueryParam(c, QueryParameterExpiresBeforeMilestone)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.BasicOutputExpiresBeforeMilestone(msIndex))
-	}
-
-	if len(c.QueryParam(QueryParameterExpiresAfterMilestone)) > 0 {
-		msIndex, err := ParseUint32QueryParam(c, QueryParameterExpiresAfterMilestone)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.BasicOutputExpiresAfterMilestone(msIndex))
-	}
-
 	if len(c.QueryParam(QueryParameterHasTimelockCondition)) > 0 {
 		value, err := ParseBoolQueryParam(c, QueryParameterHasTimelockCondition)
 		if err != nil {
@@ -244,22 +228,6 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 			return nil, err
 		}
 		filters = append(filters, indexer.BasicOutputTimelockedAfter(timestamp))
-	}
-
-	if len(c.QueryParam(QueryParameterTimelockedBeforeMilestone)) > 0 {
-		msIndex, err := ParseUint32QueryParam(c, QueryParameterTimelockedBeforeMilestone)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.BasicOutputTimelockedBeforeMilestone(msIndex))
-	}
-
-	if len(c.QueryParam(QueryParameterTimelockedAfterMilestone)) > 0 {
-		msIndex, err := ParseUint32QueryParam(c, QueryParameterTimelockedAfterMilestone)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.BasicOutputTimelockedAfterMilestone(msIndex))
 	}
 
 	if len(c.QueryParam(QueryParameterSender)) > 0 {
@@ -490,22 +458,6 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 		filters = append(filters, indexer.NFTExpiresAfter(timestamp))
 	}
 
-	if len(c.QueryParam(QueryParameterExpiresBeforeMilestone)) > 0 {
-		msIndex, err := ParseUint32QueryParam(c, QueryParameterExpiresBeforeMilestone)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.NFTExpiresBeforeMilestone(msIndex))
-	}
-
-	if len(c.QueryParam(QueryParameterExpiresAfterMilestone)) > 0 {
-		msIndex, err := ParseUint32QueryParam(c, QueryParameterExpiresAfterMilestone)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.NFTExpiresAfterMilestone(msIndex))
-	}
-
 	if len(c.QueryParam(QueryParameterHasTimelockCondition)) > 0 {
 		value, err := ParseBoolQueryParam(c, QueryParameterHasTimelockCondition)
 		if err != nil {
@@ -528,22 +480,6 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 			return nil, err
 		}
 		filters = append(filters, indexer.NFTTimelockedAfter(timestamp))
-	}
-
-	if len(c.QueryParam(QueryParameterTimelockedBeforeMilestone)) > 0 {
-		msIndex, err := ParseUint32QueryParam(c, QueryParameterTimelockedBeforeMilestone)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.NFTTimelockedBeforeMilestone(msIndex))
-	}
-
-	if len(c.QueryParam(QueryParameterTimelockedAfterMilestone)) > 0 {
-		msIndex, err := ParseUint32QueryParam(c, QueryParameterTimelockedAfterMilestone)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.NFTTimelockedAfterMilestone(msIndex))
 	}
 
 	if len(c.QueryParam(QueryParameterIssuer)) > 0 {
