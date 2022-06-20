@@ -111,25 +111,13 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
-			if timelock.MilestoneIndex > 0 {
-				idx := timelock.MilestoneIndex
-				basic.TimelockMilestone = &idx
-			}
-			if timelock.UnixTime > 0 {
-				time := unixTime(timelock.UnixTime)
-				basic.TimelockTime = &time
-			}
+			time := unixTime(timelock.UnixTime)
+			basic.TimelockTime = &time
 		}
 
 		if expiration := conditions.Expiration(); expiration != nil {
-			if expiration.MilestoneIndex > 0 {
-				idx := expiration.MilestoneIndex
-				basic.ExpirationMilestone = &idx
-			}
-			if expiration.UnixTime > 0 {
-				time := unixTime(expiration.UnixTime)
-				basic.ExpirationTime = &time
-			}
+			time := unixTime(expiration.UnixTime)
+			basic.ExpirationTime = &time
 			basic.ExpirationReturnAddress, err = addressBytesForAddress(expiration.ReturnAddress)
 			if err != nil {
 				return err
@@ -246,25 +234,13 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
-			if timelock.MilestoneIndex > 0 {
-				idx := timelock.MilestoneIndex
-				nft.TimelockMilestone = &idx
-			}
-			if timelock.UnixTime > 0 {
-				time := unixTime(timelock.UnixTime)
-				nft.TimelockTime = &time
-			}
+			time := unixTime(timelock.UnixTime)
+			nft.TimelockTime = &time
 		}
 
 		if expiration := conditions.Expiration(); expiration != nil {
-			if expiration.MilestoneIndex > 0 {
-				idx := expiration.MilestoneIndex
-				nft.ExpirationMilestone = &idx
-			}
-			if expiration.UnixTime > 0 {
-				time := unixTime(expiration.UnixTime)
-				nft.ExpirationTime = &time
-			}
+			time := unixTime(expiration.UnixTime)
+			nft.ExpirationTime = &time
 			nft.ExpirationReturnAddress, err = addressBytesForAddress(expiration.ReturnAddress)
 			if err != nil {
 				return err
