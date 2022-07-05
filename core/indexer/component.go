@@ -72,7 +72,7 @@ func run() error {
 		CoreComponent.LogInfo("Starting Indexer")
 		defer deps.Indexer.CloseDatabase()
 
-		ledgerIndex, err := checkIndexerState(ctx)
+		ledgerIndex, err := checkProtocolAndIndexerState(ctx)
 		if err != nil {
 			CoreComponent.LogPanicf("Checking initial Indexer state failed: %s", err.Error())
 			return
@@ -155,8 +155,15 @@ func newEcho() *echo.Echo {
 	return e
 }
 
-func checkIndexerState(ctx context.Context) (uint32, error) {
+func checkProtocolAndIndexerState(ctx context.Context) (uint32, error) {
 	needsToFillIndexer := false
+
+	// check protocol parameters
+	protocolParams := deps.NodeBridge.ProtocolParameters()
+	needsCreateProtocolTable, err := deps.Indexer.IsProtocolUpdated(protocolParams)
+	if err != nil {
+		return 0, fmt.Errorf("error loading ProtocolParameters: %s", err)
+	}
 
 	// Checking initial indexer state
 	ledgerIndex, err := deps.Indexer.LedgerIndex()
@@ -173,7 +180,16 @@ func checkIndexerState(ctx context.Context) (uint32, error) {
 		return 0, fmt.Errorf("error loading pruning index: %s", err)
 	}
 
-	if !needsToFillIndexer && nodeStatus.GetLedgerPruningIndex() > ledgerIndex {
+	if !needsToFillIndexer && nodeStatus.LedgerIndex < ledgerIndex {
+		CoreComponent.LogInfo("> Network has been reset: indexer index > ledger index")
+		CoreComponent.LogInfo("Re-import initial ledger...")
+
+		if err := deps.Indexer.Clear(); err != nil {
+			return 0, fmt.Errorf("clearing Indexer failed! Error: %w", err)
+		}
+		needsToFillIndexer = true
+		needsCreateProtocolTable = true
+	} else if !needsToFillIndexer && nodeStatus.GetLedgerPruningIndex() > ledgerIndex {
 		CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
 		CoreComponent.LogInfo("Re-import initial ledger...")
 
@@ -181,6 +197,13 @@ func checkIndexerState(ctx context.Context) (uint32, error) {
 			return 0, fmt.Errorf("clearing Indexer failed! Error: %w", err)
 		}
 		needsToFillIndexer = true
+		needsCreateProtocolTable = true
+	}
+
+	if needsCreateProtocolTable {
+		if err := deps.Indexer.CreateProtocolTable(protocolParams); err != nil {
+			return 0, fmt.Errorf("create protocol table failed! Error: %w", err)
+		}
 	}
 
 	if needsToFillIndexer {

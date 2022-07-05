@@ -1,6 +1,8 @@
 package indexer
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -20,6 +22,7 @@ var (
 		&nft{},
 		&foundry{},
 		&alias{},
+		&protocol{},
 	}
 )
 
@@ -340,6 +343,61 @@ func (i *Indexer) LedgerIndex() (uint32, error) {
 		return 0, err
 	}
 	return status.LedgerIndex, nil
+}
+
+func (i *Indexer) CreateProtocolTable(networkProtocol *iotago.ProtocolParameters) error {
+	tx := i.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		return err
+	}
+	// the table not found, create it
+	parameters := &protocol{
+		ID:          1,
+		Version:     networkProtocol.Version,
+		NetworkName: networkProtocol.NetworkName,
+		Bech32HRP:   string(networkProtocol.Bech32HRP),
+	}
+
+	tx.Clauses(clause.OnConflict{
+		UpdateAll: true,
+	}).Create(&parameters)
+
+	return tx.Commit().Error
+}
+
+// check if protocol has been updated
+func (i *Indexer) IsProtocolUpdated(networkProtocol *iotago.ProtocolParameters) (bool, error) {
+
+	currentProtocol := &protocol{}
+	if err := i.db.Take(&currentProtocol).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// database is empty, create the protocol table
+			return false, i.CreateProtocolTable(networkProtocol)
+		}
+		return false, err
+	}
+
+	// should keep or drop current database?
+	// TODO: should check Bech32HRP too?
+	if networkProtocol.Version != currentProtocol.Version {
+		if err := i.Clear(); err != nil {
+			return true, fmt.Errorf("clearing Indexer failed! Error: %w", err)
+		}
+		return true, nil
+	} else if networkProtocol.NetworkName != currentProtocol.NetworkName {
+		if err := i.Clear(); err != nil {
+			return true, fmt.Errorf("clearing Indexer failed! Error: %w", err)
+		}
+		return true, nil
+	}
+	// keeps current database
+	return false, nil
 }
 
 func (i *Indexer) Clear() error {
