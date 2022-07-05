@@ -3,7 +3,7 @@ module github.com/iotaledger/inx-indexer
 go 1.18
 
 require (
-	github.com/iotaledger/hive.go v0.0.0-20220531132324-8347a155e220
+	github.com/iotaledger/hive.go v0.0.0-20220623193802-86a373581cc1
 	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-20220531132324-8347a155e220
 	github.com/iotaledger/inx-app v0.0.0-20220621112154-a10fe25839ed
 	github.com/iotaledger/inx/go v0.0.0-20220615123503-f64096762c65
