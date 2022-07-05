@@ -26,6 +26,10 @@ const (
 	APIRoute = "indexer/v1"
 )
 
+// Supported protocol version
+// the application will exit if the node protocol version is not matched
+const IndexerProtocolVersion = 2
+
 func init() {
 	CoreComponent = &app.CoreComponent{
 		Component: &app.Component{
@@ -74,7 +78,7 @@ func run() error {
 
 		ledgerIndex, err := checkProtocolAndIndexerState(ctx)
 		if err != nil {
-			CoreComponent.LogPanicf("Checking initial Indexer state failed: %s", err.Error())
+			CoreComponent.LogErrorfAndExit("Checking initial Indexer state failed: %s", err.Error())
 			return
 		}
 		indexerInitWaitGroup.Done()
@@ -158,8 +162,12 @@ func newEcho() *echo.Echo {
 func checkProtocolAndIndexerState(ctx context.Context) (uint32, error) {
 	needsToFillIndexer := false
 
-	// check protocol parameters
 	protocolParams := deps.NodeBridge.ProtocolParameters()
+	// check protocol version
+	if protocolParams.Version != IndexerProtocolVersion {
+		return 0, fmt.Errorf("the supported protocol version is %d but the node protocol is %d", IndexerProtocolVersion, protocolParams.Version)
+	}
+
 	needsCreateProtocolTable, err := deps.Indexer.IsProtocolUpdated(protocolParams)
 	if err != nil {
 		return 0, fmt.Errorf("error loading ProtocolParameters: %s", err)

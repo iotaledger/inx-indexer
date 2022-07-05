@@ -32,12 +32,8 @@ type status struct {
 
 type protocol struct {
 	ID uint `gorm:"primaryKey;notnull"`
-	// The version of the protocol running
-	Version byte
 	// The network name
 	NetworkName string
-	// The HRP prefix used for Bech32 addresses in the network
-	Bech32HRP string
 }
 
 type queryResult struct {

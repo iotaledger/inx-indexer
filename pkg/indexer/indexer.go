@@ -359,9 +359,7 @@ func (i *Indexer) CreateProtocolTable(networkProtocol *iotago.ProtocolParameters
 	// the table not found, create it
 	parameters := &protocol{
 		ID:          1,
-		Version:     networkProtocol.Version,
 		NetworkName: networkProtocol.NetworkName,
-		Bech32HRP:   string(networkProtocol.Bech32HRP),
 	}
 
 	tx.Clauses(clause.OnConflict{
@@ -384,13 +382,7 @@ func (i *Indexer) IsProtocolUpdated(networkProtocol *iotago.ProtocolParameters) 
 	}
 
 	// should keep or drop current database?
-	// TODO: should check Bech32HRP too?
-	if networkProtocol.Version != currentProtocol.Version {
-		if err := i.Clear(); err != nil {
-			return true, fmt.Errorf("clearing Indexer failed! Error: %w", err)
-		}
-		return true, nil
-	} else if networkProtocol.NetworkName != currentProtocol.NetworkName {
+	if networkProtocol.NetworkName != currentProtocol.NetworkName {
 		if err := i.Clear(); err != nil {
 			return true, fmt.Errorf("clearing Indexer failed! Error: %w", err)
 		}
