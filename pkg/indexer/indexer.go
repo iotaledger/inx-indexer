@@ -3,7 +3,6 @@ package indexer
 import (
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
 	"github.com/iotaledger/hive.go/serializer/v2"
 	"github.com/iotaledger/inx-indexer/pkg/database"
@@ -15,7 +14,7 @@ var (
 	ErrNotFound = errors.New("output not found for given filter")
 
 	tables = []interface{}{
-		&status{},
+		&Status{},
 		&basicOutput{},
 		&nft{},
 		&foundry{},
@@ -319,27 +318,20 @@ func (i *Indexer) UpdatedLedger(update *inx.LedgerUpdate) error {
 		}
 	}
 
-	// Update the ledger index
-	status := &status{
-		ID:          1,
-		LedgerIndex: update.GetMilestoneIndex(),
-	}
-	tx.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(&status)
+	tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.GetMilestoneIndex())
 
 	return tx.Commit().Error
 }
 
-func (i *Indexer) LedgerIndex() (uint32, error) {
-	status := &status{}
+func (i *Indexer) Status() (*Status, error) {
+	status := &Status{}
 	if err := i.db.Take(&status).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return 0, ErrNotFound
+			return nil, ErrNotFound
 		}
-		return 0, err
+		return nil, err
 	}
-	return status.LedgerIndex, nil
+	return status, nil
 }
 
 func (i *Indexer) Clear() error {

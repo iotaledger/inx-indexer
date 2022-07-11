@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm/clause"
 
 	inx "github.com/iotaledger/inx/go"
+	iotago "github.com/iotaledger/iota.go/v3"
 )
 
 func (i *Indexer) ImportTransaction() *ImportTransaction {
@@ -29,11 +30,13 @@ func (i *ImportTransaction) AddOutput(output *inx.LedgerOutput) error {
 	return nil
 }
 
-func (i *ImportTransaction) Finalize(ledgerIndex uint32) error {
-	// Update the ledger index
-	status := &status{
-		ID:          1,
-		LedgerIndex: ledgerIndex,
+func (i *ImportTransaction) Finalize(ledgerIndex uint32, protoParams *iotago.ProtocolParameters) error {
+	// Update the indexer status
+	status := &Status{
+		ID:              1,
+		LedgerIndex:     ledgerIndex,
+		ProtocolVersion: protoParams.Version,
+		NetworkName:     protoParams.NetworkName,
 	}
 	i.tx.Clauses(clause.OnConflict{
 		UpdateAll: true,
