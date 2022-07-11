@@ -172,7 +172,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 
 	nodeStatus, err := deps.NodeBridge.NodeStatus()
 	if err != nil {
-		return nil, fmt.Errorf("error loading pruning index: %s", err)
+		return nil, fmt.Errorf("error loading node status: %s", err)
 	}
 
 	// Checking initial indexer state
