@@ -1,11 +1,8 @@
 package indexer
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
 	"github.com/iotaledger/hive.go/serializer/v2"
 	"github.com/iotaledger/inx-indexer/pkg/database"
@@ -17,12 +14,11 @@ var (
 	ErrNotFound = errors.New("output not found for given filter")
 
 	tables = []interface{}{
-		&status{},
+		&Status{},
 		&basicOutput{},
 		&nft{},
 		&foundry{},
 		&alias{},
-		&protocol{},
 	}
 )
 
@@ -322,74 +318,20 @@ func (i *Indexer) UpdatedLedger(update *inx.LedgerUpdate) error {
 		}
 	}
 
-	// Update the ledger index
-	status := &status{
-		ID:          1,
-		LedgerIndex: update.GetMilestoneIndex(),
-	}
-	tx.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(&status)
+	tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.GetMilestoneIndex())
 
 	return tx.Commit().Error
 }
 
-func (i *Indexer) LedgerIndex() (uint32, error) {
-	status := &status{}
+func (i *Indexer) Status() (*Status, error) {
+	status := &Status{}
 	if err := i.db.Take(&status).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return 0, ErrNotFound
+			return nil, ErrNotFound
 		}
-		return 0, err
+		return nil, err
 	}
-	return status.LedgerIndex, nil
-}
-
-func (i *Indexer) CreateProtocolTable(networkProtocol *iotago.ProtocolParameters) error {
-	tx := i.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	if err := tx.Error; err != nil {
-		return err
-	}
-	// the table not found, create it
-	parameters := &protocol{
-		ID:          1,
-		NetworkName: networkProtocol.NetworkName,
-	}
-
-	tx.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(&parameters)
-
-	return tx.Commit().Error
-}
-
-// check if protocol has been updated
-func (i *Indexer) IsProtocolUpdated(networkProtocol *iotago.ProtocolParameters) (bool, error) {
-
-	currentProtocol := &protocol{}
-	if err := i.db.Take(&currentProtocol).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// database is empty, create the protocol table
-			return false, i.CreateProtocolTable(networkProtocol)
-		}
-		return false, err
-	}
-
-	// should keep or drop current database?
-	if networkProtocol.NetworkName != currentProtocol.NetworkName {
-		if err := i.Clear(); err != nil {
-			return true, fmt.Errorf("clearing Indexer failed! Error: %w", err)
-		}
-		return true, nil
-	}
-	// keeps current database
-	return false, nil
+	return status, nil
 }
 
 func (i *Indexer) Clear() error {

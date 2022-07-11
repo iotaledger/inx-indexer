@@ -25,15 +25,11 @@ type nftIDBytes []byte
 type aliasIDBytes []byte
 type foundryIDBytes []byte
 
-type status struct {
-	ID          uint `gorm:"primaryKey;notnull"`
-	LedgerIndex uint32
-}
-
-type protocol struct {
-	ID uint `gorm:"primaryKey;notnull"`
-	// The network name
-	NetworkName string
+type Status struct {
+	ID              uint `gorm:"primaryKey;notnull"`
+	LedgerIndex     uint32
+	ProtocolVersion byte
+	NetworkName     string
 }
 
 type queryResult struct {
@@ -97,7 +93,7 @@ func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, 
 	// This combines the query with a second query that checks for the current ledger_index.
 	// This way we do not need to lock anything and we know the index matches the results.
 	//TODO: measure performance for big datasets
-	ledgerIndexQuery := i.db.Model(&status{}).Select("ledger_index")
+	ledgerIndexQuery := i.db.Model(&Status{}).Select("ledger_index")
 	joinedQuery := i.db.Table("(?), (?)", query, ledgerIndexQuery)
 
 	var results queryResults
@@ -112,8 +108,8 @@ func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, 
 		ledgerIndex = results[0].LedgerIndex
 	} else {
 		// Since we got no results for the query, return the current ledger index
-		if index, err := i.LedgerIndex(); err == nil {
-			ledgerIndex = index
+		if status, err := i.Status(); err == nil {
+			ledgerIndex = status.LedgerIndex
 		}
 	}
 

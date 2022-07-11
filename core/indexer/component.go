@@ -20,6 +20,7 @@ import (
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	"github.com/iotaledger/inx-indexer/pkg/server"
 	inx "github.com/iotaledger/inx/go"
+	iotago "github.com/iotaledger/iota.go/v3"
 )
 
 const (
@@ -76,7 +77,7 @@ func run() error {
 		CoreComponent.LogInfo("Starting Indexer")
 		defer deps.Indexer.CloseDatabase()
 
-		ledgerIndex, err := checkProtocolAndIndexerState(ctx)
+		indexerStatus, err := checkIndexerStatus(ctx)
 		if err != nil {
 			CoreComponent.LogErrorfAndExit("Checking initial Indexer state failed: %s", err.Error())
 			return
@@ -85,7 +86,7 @@ func run() error {
 
 		CoreComponent.LogInfo("Starting LedgerUpdates ... done")
 
-		if err := deps.NodeBridge.ListenToLedgerUpdates(ctx, ledgerIndex+1, 0, func(update *inx.LedgerUpdate) error {
+		if err := deps.NodeBridge.ListenToLedgerUpdates(ctx, indexerStatus.LedgerIndex+1, 0, func(update *inx.LedgerUpdate) error {
 			ts := time.Now()
 			if err := deps.Indexer.UpdatedLedger(update); err != nil {
 				return err
@@ -159,80 +160,72 @@ func newEcho() *echo.Echo {
 	return e
 }
 
-func checkProtocolAndIndexerState(ctx context.Context) (uint32, error) {
+func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 	needsToFillIndexer := false
+	needsToClearIndexer := false
 
 	protocolParams := deps.NodeBridge.ProtocolParameters()
 	// check protocol version
 	if protocolParams.Version != IndexerProtocolVersion {
-		return 0, fmt.Errorf("the supported protocol version is %d but the node protocol is %d", IndexerProtocolVersion, protocolParams.Version)
-	}
-
-	needsCreateProtocolTable, err := deps.Indexer.IsProtocolUpdated(protocolParams)
-	if err != nil {
-		return 0, fmt.Errorf("error loading ProtocolParameters: %s", err)
-	}
-
-	// Checking initial indexer state
-	ledgerIndex, err := deps.Indexer.LedgerIndex()
-	if err != nil {
-		if !errors.Is(err, indexer.ErrNotFound) {
-			return 0, fmt.Errorf("reading ledger index from Indexer failed! Error: %s", err)
-		}
-		CoreComponent.LogInfo("Indexer is empty, so import initial ledger...")
-		needsToFillIndexer = true
+		return nil, fmt.Errorf("the supported protocol version is %d but the node protocol is %d", IndexerProtocolVersion, protocolParams.Version)
 	}
 
 	nodeStatus, err := deps.NodeBridge.NodeStatus()
 	if err != nil {
-		return 0, fmt.Errorf("error loading pruning index: %s", err)
+		return nil, fmt.Errorf("error loading pruning index: %s", err)
 	}
 
-	if !needsToFillIndexer && nodeStatus.LedgerIndex < ledgerIndex {
-		CoreComponent.LogInfo("> Network has been reset: indexer index > ledger index")
-		CoreComponent.LogInfo("Re-import initial ledger...")
-
-		if err := deps.Indexer.Clear(); err != nil {
-			return 0, fmt.Errorf("clearing Indexer failed! Error: %w", err)
+	// Checking initial indexer state
+	indexerStatus, err := deps.Indexer.Status()
+	if err != nil {
+		if !errors.Is(err, indexer.ErrNotFound) {
+			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %s", err)
 		}
+		CoreComponent.LogInfo("Indexer is empty, so import initial ledger...")
 		needsToFillIndexer = true
-		needsCreateProtocolTable = true
-	} else if !needsToFillIndexer && nodeStatus.GetLedgerPruningIndex() > ledgerIndex {
-		CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
-		CoreComponent.LogInfo("Re-import initial ledger...")
-
-		if err := deps.Indexer.Clear(); err != nil {
-			return 0, fmt.Errorf("clearing Indexer failed! Error: %w", err)
+	} else {
+		if indexerStatus.ProtocolVersion != protocolParams.Version {
+			CoreComponent.LogInfof("> Network protocol version changed: %d vs %d", indexerStatus.ProtocolVersion, protocolParams.Version)
+			needsToClearIndexer = true
+		} else if indexerStatus.NetworkName != protocolParams.NetworkName {
+			CoreComponent.LogInfof("> Network name changed: %s vs %s", indexerStatus.NetworkName, protocolParams.NetworkName)
+			needsToClearIndexer = true
+		} else if nodeStatus.LedgerIndex < indexerStatus.LedgerIndex {
+			CoreComponent.LogInfo("> Network has been reset: indexer index > ledger index")
+			needsToClearIndexer = true
+		} else if nodeStatus.GetLedgerPruningIndex() > indexerStatus.LedgerIndex {
+			CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
+			needsToClearIndexer = true
 		}
-		needsToFillIndexer = true
-		needsCreateProtocolTable = true
 	}
 
-	if needsCreateProtocolTable {
-		if err := deps.Indexer.CreateProtocolTable(protocolParams); err != nil {
-			return 0, fmt.Errorf("create protocol table failed! Error: %w", err)
+	if needsToClearIndexer {
+		CoreComponent.LogInfo("Re-import initial ledger...")
+		if err := deps.Indexer.Clear(); err != nil {
+			return nil, fmt.Errorf("clearing Indexer failed! Error: %w", err)
 		}
+		needsToFillIndexer = true
 	}
 
 	if needsToFillIndexer {
 		// Indexer is empty, so import initial ledger state from the node
-		if err := fillIndexer(ctx, deps.Indexer); err != nil {
-			return 0, fmt.Errorf("filling Indexer failed! Error: %w", err)
+		if err := fillIndexer(ctx, deps.Indexer, protocolParams); err != nil {
+			return nil, fmt.Errorf("filling Indexer failed! Error: %w", err)
 		}
 		// Read new ledgerIndex after filling up the indexer
-		ledgerIndex, err = deps.Indexer.LedgerIndex()
+		indexerStatus, err = deps.Indexer.Status()
 		if err != nil {
-			return 0, fmt.Errorf("reading ledger index from Indexer failed! Error: %s", err)
+			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %s", err)
 		}
-		CoreComponent.LogInfof("Imported initial ledger at index %d", ledgerIndex)
+		CoreComponent.LogInfof("Imported initial ledger at index %d", indexerStatus.LedgerIndex)
 	} else {
-		CoreComponent.LogInfof("> Indexer started at ledgerIndex %d", ledgerIndex)
+		CoreComponent.LogInfof("> Indexer started at ledgerIndex %d", indexerStatus.LedgerIndex)
 	}
 
-	return ledgerIndex, nil
+	return indexerStatus, nil
 }
 
-func fillIndexer(ctx context.Context, indexer *indexer.Indexer) error {
+func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iotago.ProtocolParameters) error {
 	importer := indexer.ImportTransaction()
 
 	stream, err := deps.NodeBridge.Client().ReadUnspentOutputs(ctx, &inx.NoParams{})
@@ -258,5 +251,5 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) error {
 		}
 	}
 
-	return importer.Finalize(ledgerIndex)
+	return importer.Finalize(ledgerIndex, protoParams)
 }
