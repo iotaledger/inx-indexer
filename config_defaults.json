@@ -1,8 +1,6 @@
 {
   "app": {
     "checkForUpdates": true,
-    "disablePlugins": [],
-    "enablePlugins": [],
     "stopGracePeriod": "5m"
   },
   "inx": {
@@ -16,9 +14,11 @@
     "maxPageSize": 1000
   },
   "profiling": {
+    "enabled": false,
     "bindAddress": "localhost:6060"
   },
   "prometheus": {
+    "enabled": false,
     "bindAddress": "localhost:9312",
     "goMetrics": false,
     "processMetrics": false,
