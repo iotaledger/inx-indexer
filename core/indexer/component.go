@@ -92,7 +92,7 @@ func run() error {
 				return err
 			}
 
-			CoreComponent.LogInfof("Applying milestone %d with %d new and %d outputs took %s", update.GetMilestoneIndex(), len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
+			CoreComponent.LogInfof("Applying milestone %d with %d new and %d consumed outputs took %s", update.GetMilestoneIndex(), len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
 			return nil
 		}); err != nil {
 			deps.ShutdownHandler.SelfShutdown(fmt.Sprintf("Listening to LedgerUpdates failed, error: %s", err), false)
