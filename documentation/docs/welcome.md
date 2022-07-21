@@ -25,8 +25,9 @@ These images are also used in our [HORNET recommended setup using Docker](http:/
 
 ## Configuration
 
-The indexer is configured by default to connect to your HORNET instance.<br />
-You can find all the configuration options [here](configuration.md).
+The indexer is configured by default to connect to your HORNET instance.
+
+You can find all the configuration options in the [configuration section](configuration.md).
 
 ## API
 
