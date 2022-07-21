@@ -31,8 +31,9 @@ You can find all the configuration options in the [configuration section](config
 
 ## API
 
-The indexer exposes a custom set of REST APIs that can be used by wallets and applications to find UTXO in the ledger with a given query.<br />
-You can find more information about the API [here](api_reference.md).
+The indexer exposes a custom set of REST APIs that can be used by wallets and applications to find UTXO in the ledger with a given query.
+
+You can find more information about the API in the [API reference section](api_reference.md).
 
 ## Source Code
 
