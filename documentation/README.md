@@ -4,7 +4,7 @@ The documentation is built using [Docusaurus 2](https://docusaurus.io/). The dep
 
 ## Prerequisites
 
-- [Node.js v14.14+](https://nodejs.org/en/)
+- [Node.js v16.10+](https://nodejs.org/en/) and run `corepack enable` to enable modern Yarn.
 - [yarn](https://yarnpkg.com/getting-started/install)
 
 ## Installation
