@@ -120,7 +120,7 @@ func run() error {
 
 		CoreComponent.LogInfo("Starting API server...")
 
-		_ = server.NewIndexerServer(deps.Indexer, e.Group(""), deps.NodeBridge.NodeConfig.UnwrapProtocolParameters().Bech32HRP, ParamsIndexer.MaxPageSize)
+		_ = server.NewIndexerServer(deps.Indexer, e.Group(""), deps.NodeBridge.ProtocolParameters().Bech32HRP, ParamsIndexer.MaxPageSize)
 
 		go func() {
 			CoreComponent.LogInfof("You can now access the API using: http://%s", ParamsIndexer.BindAddress)
