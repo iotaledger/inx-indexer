@@ -5,12 +5,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	gormLogger "gorm.io/gorm/logger"
 
 	"github.com/iotaledger/hive.go/ioutils"
+	"github.com/iotaledger/hive.go/logger"
 )
 
 type Engine string
@@ -176,7 +179,21 @@ func storeDatabaseInfoToFile(filePath string, engine Engine) error {
 	return ioutils.WriteTOMLToFile(filePath, info, 0660, "# auto-generated\n# !!! do not modify this file !!!")
 }
 
-func DatabaseWithDefaultSettings(path string, createDatabaseIfNotExists bool) (*gorm.DB, error) {
+type sqliteLogger struct {
+	*logger.WrappedLogger
+}
+
+func newLogger(log *logger.Logger) *sqliteLogger {
+	return &sqliteLogger{
+		WrappedLogger: logger.NewWrappedLogger(log),
+	}
+}
+
+func (l *sqliteLogger) Printf(t string, args ...interface{}) {
+	l.LogWarnf(t, args...)
+}
+
+func DatabaseWithDefaultSettings(path string, createDatabaseIfNotExists bool, log *logger.Logger) (*gorm.DB, error) {
 
 	targetEngine, err := CheckDatabaseEngine(path, createDatabaseIfNotExists, EngineSQLite)
 	if err != nil {
@@ -186,7 +203,14 @@ func DatabaseWithDefaultSettings(path string, createDatabaseIfNotExists bool) (*
 	switch targetEngine {
 	case EngineSQLite:
 		dbFile := filepath.Join(path, "indexer.db")
-		return gorm.Open(sqlite.Open(dbFile), &gorm.Config{})
+		return gorm.Open(sqlite.Open(dbFile), &gorm.Config{
+			Logger: gormLogger.New(newLogger(log), gormLogger.Config{
+				SlowThreshold:             100 * time.Millisecond,
+				LogLevel:                  gormLogger.Warn,
+				IgnoreRecordNotFoundError: true,
+				Colorful:                  false,
+			}),
+		})
 	default:
 		return nil, fmt.Errorf("unknown database engine: %s, supported engines: sqlite", targetEngine)
 	}
