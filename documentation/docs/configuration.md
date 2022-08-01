@@ -65,11 +65,12 @@ Example:
 
 ## <a id="indexer"></a> 3. Indexer
 
-| Name              | Description                                                      | Type   | Default value    |
-| ----------------- | ---------------------------------------------------------------- | ------ | ---------------- |
-| [db](#indexer_db) | Configuration for Database                                       | object |                  |
-| bindAddress       | The bind address on which the Indexer HTTP server listens        | string | "localhost:9091" |
-| maxPageSize       | The maximum number of results that may be returned for each page | int    | 1000             |
+| Name                      | Description                                                      | Type    | Default value    |
+| ------------------------- | ---------------------------------------------------------------- | ------- | ---------------- |
+| [db](#indexer_db)         | Configuration for Database                                       | object  |                  |
+| bindAddress               | The bind address on which the Indexer HTTP server listens        | string  | "localhost:9091" |
+| maxPageSize               | The maximum number of results that may be returned for each page | int     | 1000             |
+| debugRequestLoggerEnabled | Whether the debug logging for requests should be enabled         | boolean | false            |
 
 ### <a id="indexer_db"></a> Database
 
@@ -86,7 +87,8 @@ Example:
         "path": "database"
       },
       "bindAddress": "localhost:9091",
-      "maxPageSize": 1000
+      "maxPageSize": 1000,
+      "debugRequestLoggerEnabled": false
     }
   }
 ```

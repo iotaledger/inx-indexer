@@ -15,6 +15,9 @@ type ParametersIndexer struct {
 
 	// MaxPageSize defines the maximum number of results that may be returned for each page
 	MaxPageSize int `default:"1000" usage:"the maximum number of results that may be returned for each page"`
+
+	// DebugRequestLoggerEnabled defines whether the debug logging for requests should be enabled
+	DebugRequestLoggerEnabled bool `default:"false" usage:"whether the debug logging for requests should be enabled"`
 }
 
 var ParamsIndexer = &ParametersIndexer{}

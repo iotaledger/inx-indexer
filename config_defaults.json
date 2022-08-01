@@ -11,7 +11,8 @@
       "path": "database"
     },
     "bindAddress": "localhost:9091",
-    "maxPageSize": 1000
+    "maxPageSize": 1000,
+    "debugRequestLoggerEnabled": false
   },
   "profiling": {
     "enabled": false,
