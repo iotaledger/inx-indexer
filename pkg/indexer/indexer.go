@@ -4,6 +4,7 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
+	"github.com/iotaledger/hive.go/logger"
 	"github.com/iotaledger/hive.go/serializer/v2"
 	"github.com/iotaledger/inx-indexer/pkg/database"
 	inx "github.com/iotaledger/inx/go"
@@ -23,12 +24,13 @@ var (
 )
 
 type Indexer struct {
+	*logger.WrappedLogger
 	db *gorm.DB
 }
 
-func NewIndexer(dbPath string) (*Indexer, error) {
+func NewIndexer(dbPath string, log *logger.Logger) (*Indexer, error) {
 
-	db, err := database.DatabaseWithDefaultSettings(dbPath, true)
+	db, err := database.DatabaseWithDefaultSettings(dbPath, true, log)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +41,8 @@ func NewIndexer(dbPath string) (*Indexer, error) {
 	}
 
 	return &Indexer{
-		db: db,
+		WrappedLogger: logger.NewWrappedLogger(log),
+		db:            db,
 	}, nil
 }
 
