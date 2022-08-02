@@ -119,6 +119,8 @@ Example:
 | bindAddress     | The bind address on which the Prometheus HTTP server listens on | string  | "localhost:9312" |
 | goMetrics       | Whether to include go metrics                                   | boolean | false            |
 | processMetrics  | Whether to include process metrics                              | boolean | false            |
+| restAPIMetrics  | Whether to include restAPI metrics                              | boolean | true             |
+| inxMetrics      | Whether to include INX metrics                                  | boolean | true             |
 | promhttpMetrics | Whether to include promhttp metrics                             | boolean | false            |
 
 Example:
@@ -130,6 +132,8 @@ Example:
       "bindAddress": "localhost:9312",
       "goMetrics": false,
       "processMetrics": false,
+      "restAPIMetrics": true,
+      "inxMetrics": true,
       "promhttpMetrics": false
     }
   }

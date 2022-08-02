@@ -23,6 +23,8 @@
     "bindAddress": "localhost:9312",
     "goMetrics": false,
     "processMetrics": false,
+    "restAPIMetrics": true,
+    "inxMetrics": true,
     "promhttpMetrics": false
   }
 }

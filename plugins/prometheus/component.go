@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	grpcprometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	echoprometheus "github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/errors"
@@ -35,6 +37,7 @@ func init() {
 
 type dependencies struct {
 	dig.In
+	Echo           *echo.Echo
 	PrometheusEcho *echo.Echo `name:"prometheusEcho"`
 }
 
@@ -115,8 +118,21 @@ func registerMetrics() *prometheus.Registry {
 	if ParamsPrometheus.GoMetrics {
 		registry.MustRegister(collectors.NewGoCollector())
 	}
+
 	if ParamsPrometheus.ProcessMetrics {
 		registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	}
+
+	if ParamsPrometheus.INXMetrics {
+		registry.MustRegister(grpcprometheus.DefaultClientMetrics)
+	}
+
+	if ParamsPrometheus.RestAPIMetrics {
+		p := echoprometheus.NewPrometheus("iota_restapi", nil)
+		for _, m := range p.MetricsList {
+			registry.MustRegister(m.MetricCollector)
+		}
+		deps.Echo.Use(p.HandlerFunc)
 	}
 
 	return registry

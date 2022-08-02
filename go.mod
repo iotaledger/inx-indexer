@@ -3,11 +3,13 @@ module github.com/iotaledger/inx-indexer
 go 1.18
 
 require (
+	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/iotaledger/hive.go v0.0.0-20220714075325-11202fe498d6
 	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-20220714075325-11202fe498d6
 	github.com/iotaledger/inx-app v1.0.0-beta.4
 	github.com/iotaledger/inx/go v1.0.0-beta.3
 	github.com/iotaledger/iota.go/v3 v3.0.0-beta.4
+	github.com/labstack/echo-contrib v0.13.0
 	github.com/labstack/echo/v4 v4.7.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.2
@@ -35,7 +37,6 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
-	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/iotaledger/iota.go v1.0.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
