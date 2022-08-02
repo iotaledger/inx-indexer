@@ -14,6 +14,10 @@ type ParametersPrometheus struct {
 	GoMetrics bool `default:"false" usage:"whether to include go metrics"`
 	// ProcessMetrics defines whether to include process metrics.
 	ProcessMetrics bool `default:"false" usage:"whether to include process metrics"`
+	// RestAPIMetrics include restAPI metrics.
+	RestAPIMetrics bool `default:"true" usage:"whether to include restAPI metrics"`
+	// INXMetrics defines whether to include INXMetrics metrics.
+	INXMetrics bool `name:"inxMetrics" default:"true" usage:"whether to include INX metrics"`
 	// PromhttpMetrics defines whether to include promhttp metrics.
 	PromhttpMetrics bool `default:"false" usage:"whether to include promhttp metrics"`
 }

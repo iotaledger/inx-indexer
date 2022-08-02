@@ -20,6 +20,7 @@ import (
 	"github.com/iotaledger/inx-indexer/pkg/server"
 	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v3"
+	"github.com/labstack/echo/v4"
 )
 
 const (
@@ -47,6 +48,7 @@ type dependencies struct {
 	NodeBridge      *nodebridge.NodeBridge
 	Indexer         *indexer.Indexer
 	ShutdownHandler *shutdown.ShutdownHandler
+	Echo            *echo.Echo
 }
 
 var (
@@ -59,6 +61,16 @@ func provide(c *dig.Container) error {
 	if err := c.Provide(func() (*indexer.Indexer, error) {
 		CoreComponent.LogInfo("Setting up database...")
 		return indexer.NewIndexer(ParamsIndexer.Database.Path, CoreComponent.Logger())
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Provide(func() *echo.Echo {
+		return httpserver.NewEcho(
+			CoreComponent.Logger(),
+			nil,
+			ParamsIndexer.DebugRequestLoggerEnabled,
+		)
 	}); err != nil {
 		return err
 	}
@@ -109,19 +121,13 @@ func run() error {
 		indexerInitWaitGroup.Wait()
 		CoreComponent.LogInfo("Starting API ... done")
 
-		e := httpserver.NewEcho(
-			CoreComponent.Logger(),
-			nil,
-			ParamsIndexer.DebugRequestLoggerEnabled,
-		)
-
 		CoreComponent.LogInfo("Starting API server...")
 
-		_ = server.NewIndexerServer(deps.Indexer, e.Group(""), deps.NodeBridge.ProtocolParameters().Bech32HRP, ParamsIndexer.MaxPageSize)
+		_ = server.NewIndexerServer(deps.Indexer, deps.Echo.Group(""), deps.NodeBridge.ProtocolParameters().Bech32HRP, ParamsIndexer.MaxPageSize)
 
 		go func() {
 			CoreComponent.LogInfof("You can now access the API using: http://%s", ParamsIndexer.BindAddress)
-			if err := e.Start(ParamsIndexer.BindAddress); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			if err := deps.Echo.Start(ParamsIndexer.BindAddress); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				CoreComponent.LogPanicf("Stopped REST-API server due to an error (%s)", err)
 			}
 		}()
@@ -138,7 +144,7 @@ func run() error {
 		}
 
 		shutdownCtx, shutdownCtxCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		if err := e.Shutdown(shutdownCtx); err != nil {
+		if err := deps.Echo.Shutdown(shutdownCtx); err != nil {
 			CoreComponent.LogWarn(err)
 		}
 		shutdownCtxCancel()
