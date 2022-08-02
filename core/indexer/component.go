@@ -9,12 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/dig"
 
 	"github.com/iotaledger/hive.go/app"
 	"github.com/iotaledger/hive.go/app/core/shutdown"
+	"github.com/iotaledger/inx-app/httpserver"
 	"github.com/iotaledger/inx-app/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/daemon"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
@@ -110,13 +109,11 @@ func run() error {
 		indexerInitWaitGroup.Wait()
 		CoreComponent.LogInfo("Starting API ... done")
 
-		e := newEcho()
-
-		apiErrorHandler := server.ErrorHandler()
-		e.HTTPErrorHandler = func(err error, c echo.Context) {
-			CoreComponent.LogDebugf("Error: %s", err)
-			apiErrorHandler(err, c)
-		}
+		e := httpserver.NewEcho(
+			CoreComponent.Logger(),
+			nil,
+			ParamsIndexer.DebugRequestLoggerEnabled,
+		)
 
 		CoreComponent.LogInfo("Starting API server...")
 
@@ -151,13 +148,6 @@ func run() error {
 	}
 
 	return nil
-}
-
-func newEcho() *echo.Echo {
-	e := echo.New()
-	e.HideBanner = true
-	e.Use(middleware.Recover())
-	return e
 }
 
 func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {

@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 
+	"github.com/iotaledger/inx-app/httpserver"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v3"
 )
@@ -127,7 +128,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	filters := []indexer.BasicOutputFilterOption{indexer.BasicOutputPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
-		value, err := ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
 		if err != nil {
 			return nil, err
 		}
@@ -135,7 +136,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
 		if err != nil {
 			return nil, err
 		}
@@ -143,7 +144,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +152,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterAddress)) > 0 {
-		addr, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAddress)
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -159,7 +160,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterHasStorageReturnCondition)) > 0 {
-		value, err := ParseBoolQueryParam(c, QueryParameterHasStorageReturnCondition)
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasStorageReturnCondition)
 		if err != nil {
 			return nil, err
 		}
@@ -167,7 +168,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterStorageReturnAddress)) > 0 {
-		addr, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStorageReturnAddress)
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStorageReturnAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -175,7 +176,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterHasExpirationCondition)) > 0 {
-		value, err := ParseBoolQueryParam(c, QueryParameterHasExpirationCondition)
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasExpirationCondition)
 		if err != nil {
 			return nil, err
 		}
@@ -183,7 +184,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterExpirationReturnAddress)) > 0 {
-		addr, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterExpirationReturnAddress)
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterExpirationReturnAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -191,7 +192,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresBefore)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterExpiresBefore)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterExpiresBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -199,7 +200,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresAfter)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterExpiresAfter)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterExpiresAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +208,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterHasTimelockCondition)) > 0 {
-		value, err := ParseBoolQueryParam(c, QueryParameterHasTimelockCondition)
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasTimelockCondition)
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +216,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedBefore)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterTimelockedBefore)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterTimelockedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -223,7 +224,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedAfter)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterTimelockedAfter)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterTimelockedAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -231,7 +232,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterSender)) > 0 {
-		addr, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterSender)
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterSender)
 		if err != nil {
 			return nil, err
 		}
@@ -239,7 +240,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterTag)) > 0 {
-		tagBytes, err := ParseHexQueryParam(c, QueryParameterTag, iotago.MaxTagLength)
+		tagBytes, err := httpserver.ParseHexQueryParam(c, QueryParameterTag, iotago.MaxTagLength)
 		if err != nil {
 			return nil, err
 		}
@@ -255,7 +256,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterCreatedBefore)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -263,7 +264,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterCreatedAfter)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -274,7 +275,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 }
 
 func (s *IndexerServer) aliasByID(c echo.Context) (*outputsResponse, error) {
-	aliasID, err := ParseAliasIDParam(c)
+	aliasID, err := httpserver.ParseAliasIDParam(c, ParameterAliasID)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +286,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 	filters := []indexer.AliasFilterOption{indexer.AliasPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
-		value, err := ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
 		if err != nil {
 			return nil, err
 		}
@@ -293,7 +294,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 	}
 
 	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
 		if err != nil {
 			return nil, err
 		}
@@ -301,7 +302,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 	}
 
 	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
 		if err != nil {
 			return nil, err
 		}
@@ -309,7 +310,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 	}
 
 	if len(c.QueryParam(QueryParameterStateController)) > 0 {
-		stateController, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStateController)
+		stateController, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStateController)
 		if err != nil {
 			return nil, err
 		}
@@ -317,7 +318,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 	}
 
 	if len(c.QueryParam(QueryParameterGovernor)) > 0 {
-		governor, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterGovernor)
+		governor, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterGovernor)
 		if err != nil {
 			return nil, err
 		}
@@ -325,7 +326,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 	}
 
 	if len(c.QueryParam(QueryParameterIssuer)) > 0 {
-		issuer, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterIssuer)
+		issuer, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterIssuer)
 		if err != nil {
 			return nil, err
 		}
@@ -333,7 +334,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 	}
 
 	if len(c.QueryParam(QueryParameterSender)) > 0 {
-		sender, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterSender)
+		sender, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterSender)
 		if err != nil {
 			return nil, err
 		}
@@ -349,7 +350,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterCreatedBefore)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -357,7 +358,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterCreatedAfter)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -368,7 +369,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 }
 
 func (s *IndexerServer) nftByID(c echo.Context) (*outputsResponse, error) {
-	nftID, err := ParseNFTIDParam(c)
+	nftID, err := httpserver.ParseNFTIDParam(c, ParameterNFTID)
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +380,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	filters := []indexer.NFTFilterOption{indexer.NFTPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
-		value, err := ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
 		if err != nil {
 			return nil, err
 		}
@@ -387,7 +388,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
 		if err != nil {
 			return nil, err
 		}
@@ -395,7 +396,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
 		if err != nil {
 			return nil, err
 		}
@@ -403,7 +404,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterAddress)) > 0 {
-		addr, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAddress)
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -411,7 +412,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterHasStorageReturnCondition)) > 0 {
-		value, err := ParseBoolQueryParam(c, QueryParameterHasStorageReturnCondition)
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasStorageReturnCondition)
 		if err != nil {
 			return nil, err
 		}
@@ -419,7 +420,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterStorageReturnAddress)) > 0 {
-		addr, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStorageReturnAddress)
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStorageReturnAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -427,7 +428,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterHasExpirationCondition)) > 0 {
-		value, err := ParseBoolQueryParam(c, QueryParameterHasExpirationCondition)
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasExpirationCondition)
 		if err != nil {
 			return nil, err
 		}
@@ -435,7 +436,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterExpirationReturnAddress)) > 0 {
-		addr, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterExpirationReturnAddress)
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterExpirationReturnAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -443,7 +444,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresBefore)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterExpiresBefore)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterExpiresBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -451,7 +452,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresAfter)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterExpiresAfter)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterExpiresAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -459,7 +460,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterHasTimelockCondition)) > 0 {
-		value, err := ParseBoolQueryParam(c, QueryParameterHasTimelockCondition)
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasTimelockCondition)
 		if err != nil {
 			return nil, err
 		}
@@ -467,7 +468,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedBefore)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterTimelockedBefore)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterTimelockedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -475,7 +476,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedAfter)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterTimelockedAfter)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterTimelockedAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -483,7 +484,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterIssuer)) > 0 {
-		addr, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterIssuer)
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterIssuer)
 		if err != nil {
 			return nil, err
 		}
@@ -491,7 +492,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterSender)) > 0 {
-		addr, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterSender)
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterSender)
 		if err != nil {
 			return nil, err
 		}
@@ -499,7 +500,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterTag)) > 0 {
-		tagBytes, err := ParseHexQueryParam(c, QueryParameterTag, iotago.MaxTagLength)
+		tagBytes, err := httpserver.ParseHexQueryParam(c, QueryParameterTag, iotago.MaxTagLength)
 		if err != nil {
 			return nil, err
 		}
@@ -515,7 +516,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterCreatedBefore)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -523,7 +524,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterCreatedAfter)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -534,7 +535,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 }
 
 func (s *IndexerServer) foundryByID(c echo.Context) (*outputsResponse, error) {
-	foundryID, err := ParseFoundryIDParam(c)
+	foundryID, err := httpserver.ParseFoundryIDParam(c, ParameterFoundryID)
 	if err != nil {
 		return nil, err
 	}
@@ -545,7 +546,7 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 	filters := []indexer.FoundryFilterOption{indexer.FoundryPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
-		value, err := ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
 		if err != nil {
 			return nil, err
 		}
@@ -553,7 +554,7 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 	}
 
 	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
 		if err != nil {
 			return nil, err
 		}
@@ -561,7 +562,7 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 	}
 
 	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
 		if err != nil {
 			return nil, err
 		}
@@ -569,12 +570,12 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 	}
 
 	if len(c.QueryParam(QueryParameterAliasAddress)) > 0 {
-		address, err := ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAliasAddress)
+		address, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAliasAddress)
 		if err != nil {
 			return nil, err
 		}
 		if address.Type() != iotago.AddressAlias {
-			return nil, errors.WithMessagef(ErrInvalidParameter, "invalid address: %s, not an alias address", address.Bech32(s.Bech32HRP))
+			return nil, errors.WithMessagef(httpserver.ErrInvalidParameter, "invalid address: %s, not an alias address", address.Bech32(s.Bech32HRP))
 		}
 		filters = append(filters, indexer.FoundryWithAliasAddress(address.(*iotago.AliasAddress)))
 	}
@@ -588,7 +589,7 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterCreatedBefore)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -596,7 +597,7 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
-		timestamp, err := ParseUnixTimestampQueryParam(c, QueryParameterCreatedAfter)
+		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -641,16 +642,16 @@ func (s *IndexerServer) parseCursorQueryParameter(c echo.Context) (string, uint3
 
 	components := strings.Split(cursorWithPageSize, ".")
 	if len(components) != 2 {
-		return "", 0, errors.WithMessage(ErrInvalidParameter, fmt.Sprintf("query parameter %s has wrong format", QueryParameterCursor))
+		return "", 0, errors.WithMessage(httpserver.ErrInvalidParameter, fmt.Sprintf("query parameter %s has wrong format", QueryParameterCursor))
 	}
 
 	if len(components[0]) != indexer.CursorLength {
-		return "", 0, errors.WithMessage(ErrInvalidParameter, fmt.Sprintf("query parameter %s has wrong format", QueryParameterCursor))
+		return "", 0, errors.WithMessage(httpserver.ErrInvalidParameter, fmt.Sprintf("query parameter %s has wrong format", QueryParameterCursor))
 	}
 
 	size, err := strconv.ParseUint(components[1], 10, 32)
 	if err != nil {
-		return "", 0, errors.WithMessage(ErrInvalidParameter, fmt.Sprintf("query parameter %s has wrong format", QueryParameterCursor))
+		return "", 0, errors.WithMessage(httpserver.ErrInvalidParameter, fmt.Sprintf("query parameter %s has wrong format", QueryParameterCursor))
 	}
 
 	pageSize := uint32(size)
@@ -664,7 +665,7 @@ func (s *IndexerServer) parseCursorQueryParameter(c echo.Context) (string, uint3
 func (s *IndexerServer) pageSizeFromContext(c echo.Context) uint32 {
 	pageSize := uint32(s.RestAPILimitsMaxResults)
 	if len(c.QueryParam(QueryParameterPageSize)) > 0 {
-		i, err := ParseUint32QueryParam(c, QueryParameterPageSize, pageSize)
+		i, err := httpserver.ParseUint32QueryParam(c, QueryParameterPageSize, pageSize)
 		if err != nil {
 			return pageSize
 		}
