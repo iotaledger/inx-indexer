@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/labstack/echo/v4"
 	"go.uber.org/dig"
 
 	"github.com/iotaledger/hive.go/app"
@@ -20,7 +21,6 @@ import (
 	"github.com/iotaledger/inx-indexer/pkg/server"
 	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v3"
-	"github.com/labstack/echo/v4"
 )
 
 const (
@@ -97,13 +97,13 @@ func run() error {
 
 		CoreComponent.LogInfo("Starting LedgerUpdates ... done")
 
-		if err := deps.NodeBridge.ListenToLedgerUpdates(ctx, indexerStatus.LedgerIndex+1, 0, func(update *inx.LedgerUpdate) error {
+		if err := deps.NodeBridge.ListenToLedgerUpdates(ctx, indexerStatus.LedgerIndex+1, 0, func(update *nodebridge.LedgerUpdate) error {
 			ts := time.Now()
 			if err := deps.Indexer.UpdatedLedger(update); err != nil {
 				return err
 			}
 
-			CoreComponent.LogInfof("Applying milestone %d with %d new and %d consumed outputs took %s", update.GetMilestoneIndex(), len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
+			CoreComponent.LogInfof("Applying milestone %d with %d new and %d consumed outputs took %s", update.MilestoneIndex, len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
 			return nil
 		}); err != nil {
 			deps.ShutdownHandler.SelfShutdown(fmt.Sprintf("Listening to LedgerUpdates failed, error: %s", err), false)

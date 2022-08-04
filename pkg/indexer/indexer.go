@@ -6,6 +6,7 @@ import (
 
 	"github.com/iotaledger/hive.go/logger"
 	"github.com/iotaledger/hive.go/serializer/v2"
+	"github.com/iotaledger/inx-app/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/database"
 	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v3"
@@ -287,7 +288,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 	return nil
 }
 
-func (i *Indexer) UpdatedLedger(update *inx.LedgerUpdate) error {
+func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
 
 	tx := i.db.Begin()
 	defer func() {
@@ -301,7 +302,7 @@ func (i *Indexer) UpdatedLedger(update *inx.LedgerUpdate) error {
 	}
 
 	spentOutputs := make(map[string]struct{})
-	for _, spent := range update.GetConsumed() {
+	for _, spent := range update.Consumed {
 		outputID := spent.GetOutput().GetOutputId().GetId()
 		spentOutputs[string(outputID)] = struct{}{}
 		if err := processSpent(spent, tx); err != nil {
@@ -310,7 +311,7 @@ func (i *Indexer) UpdatedLedger(update *inx.LedgerUpdate) error {
 		}
 	}
 
-	for _, output := range update.GetCreated() {
+	for _, output := range update.Created {
 		if _, wasSpentInSameMilestone := spentOutputs[string(output.GetOutputId().GetId())]; wasSpentInSameMilestone {
 			// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
 			continue
@@ -321,7 +322,7 @@ func (i *Indexer) UpdatedLedger(update *inx.LedgerUpdate) error {
 		}
 	}
 
-	tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.GetMilestoneIndex())
+	tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.MilestoneIndex)
 
 	return tx.Commit().Error
 }
