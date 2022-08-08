@@ -18,8 +18,9 @@ const (
 
 	// RouteOutputsBasic is the route for getting basic outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "address", "hasStorageReturnCondition", "storageReturnAddress", "hasExpirationCondition",
-	//					 "expiresBefore", "expiresAfter", "expiresBeforeMilestone", "expiresAfterMilestone",
+	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
+	//					 "address", "hasStorageReturnCondition", "storageReturnAddress",
+	// 					 "hasExpirationCondition", "expiresBefore", "expiresAfter", "expirationReturnAddress",
 	//					 "hasTimelockCondition", "timelockedBefore", "timelockedAfter", "sender", "tag",
 	//					 "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
@@ -27,7 +28,10 @@ const (
 
 	// RouteOutputsAliases is the route for getting aliases filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "stateController", "governor", "issuer", "sender", "createdBefore", "createdAfter"
+	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
+	//					 "stateController", "governor", "issuer", "sender",
+	//					 "createdBefore", "createdAfter"
+	// Query parameters:
 	// Returns an empty list if no results are found.
 	RouteOutputsAliases = "/outputs/alias"
 
@@ -36,10 +40,11 @@ const (
 	RouteOutputsAliasByID = "/outputs/alias/:" + ParameterAliasID
 
 	// RouteOutputsNFTs is the route for getting NFT filtered by the given parameters.
-	// Query parameters: "address", "hasStorageReturnCondition", "storageReturnAddress", "hasExpirationCondition",
-	//					 "expiresBefore", "expiresAfter", "expiresBeforeMilestone", "expiresAfterMilestone",
-	//					 "hasTimelockCondition", "timelockedBefore", "timelockedAfter", "issuer", "sender",
-	//					 "tag", "createdBefore", "createdAfter"
+	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
+	//					 "address", "hasStorageReturnCondition", "storageReturnAddress",
+	// 					 "hasExpirationCondition", "expiresBefore", "expiresAfter", "expirationReturnAddress",
+	//					 "hasTimelockCondition", "timelockedBefore", "timelockedAfter", "issuer", "sender", "tag",
+	//					 "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsNFTs = "/outputs/nft"
 
@@ -49,7 +54,8 @@ const (
 
 	// RouteOutputsFoundries is the route for getting foundries filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "aliasAddress", "createdBefore", "createdAfter"
+	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
+	//					 "aliasAddress", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsFoundries = "/outputs/foundry"
 
