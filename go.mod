@@ -12,7 +12,7 @@ require (
 	github.com/labstack/echo-contrib v0.13.0
 	github.com/labstack/echo/v4 v4.7.2
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.12.2
+	github.com/prometheus/client_golang v1.13.0
 	go.uber.org/dig v1.15.0
 	gorm.io/driver/sqlite v1.3.6
 	gorm.io/gorm v1.23.8
