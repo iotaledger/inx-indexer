@@ -1,6 +1,6 @@
 module github.com/iotaledger/inx-indexer
 
-go 1.18
+go 1.19
 
 require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
