@@ -4,7 +4,7 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
-	"github.com/iotaledger/hive.go/logger"
+	"github.com/iotaledger/hive.go/core/logger"
 	"github.com/iotaledger/hive.go/serializer/v2"
 	"github.com/iotaledger/inx-app/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/database"
