@@ -25,14 +25,14 @@ const (
 	// QueryParameterTag is used to filter for a certain tag.
 	QueryParameterTag = "tag"
 
-	// QueryParameterHasStorageReturnCondition is used to filter for outputs having a storage deposit return unlock condition.
-	QueryParameterHasStorageReturnCondition = "hasStorageReturnCondition"
+	// QueryParameterHasStorageDepositReturn is used to filter for outputs having a storage deposit return unlock condition.
+	QueryParameterHasStorageDepositReturn = "hasStorageDepositReturn"
 
-	// QueryParameterStorageReturnAddress is used to filter for outputs with a certain storage deposit return address.
-	QueryParameterStorageReturnAddress = "storageReturnAddress"
+	// QueryParameterStorageDepositReturnAddress is used to filter for outputs with a certain storage deposit return address.
+	QueryParameterStorageDepositReturnAddress = "storageDepositReturnAddress"
 
-	// QueryParameterHasExpirationCondition is used to filter for outputs having an expiration unlock condition.
-	QueryParameterHasExpirationCondition = "hasExpirationCondition"
+	// QueryParameterHasExpiration is used to filter for outputs having an expiration unlock condition.
+	QueryParameterHasExpiration = "hasExpiration"
 
 	// QueryParameterExpiresBefore is used to filter for outputs that expire before a certain unix time.
 	QueryParameterExpiresBefore = "expiresBefore"
@@ -43,8 +43,8 @@ const (
 	// QueryParameterExpirationReturnAddress is used to filter for outputs with a certain expiration return address.
 	QueryParameterExpirationReturnAddress = "expirationReturnAddress"
 
-	// QueryParameterHasTimelockCondition is used to filter for outputs having a timelock unlock condition.
-	QueryParameterHasTimelockCondition = "hasTimelockCondition"
+	// QueryParameterHasTimelock is used to filter for outputs having a timelock unlock condition.
+	QueryParameterHasTimelock = "hasTimelock"
 
 	// QueryParameterTimelockedBefore is used to filter for outputs that are timelocked before a certain unix time.
 	QueryParameterTimelockedBefore = "timelockedBefore"

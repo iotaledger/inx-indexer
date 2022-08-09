@@ -19,9 +19,9 @@ const (
 	// RouteOutputsBasic is the route for getting basic outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "address", "hasStorageReturnCondition", "storageReturnAddress",
-	// 					 "hasExpirationCondition", "expiresBefore", "expiresAfter", "expirationReturnAddress",
-	//					 "hasTimelockCondition", "timelockedBefore", "timelockedAfter", "sender", "tag",
+	//					 "address", "hasStorageDepositReturn", "storageDepositReturnAddress",
+	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
+	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "sender", "tag",
 	//					 "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsBasic = "/outputs/basic"
@@ -41,9 +41,9 @@ const (
 
 	// RouteOutputsNFTs is the route for getting NFT filtered by the given parameters.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "address", "hasStorageReturnCondition", "storageReturnAddress",
-	// 					 "hasExpirationCondition", "expiresBefore", "expiresAfter", "expirationReturnAddress",
-	//					 "hasTimelockCondition", "timelockedBefore", "timelockedAfter", "issuer", "sender", "tag",
+	//					 "address", "hasStorageDepositReturn", "storageDepositReturnAddress",
+	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
+	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "issuer", "sender", "tag",
 	//					 "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsNFTs = "/outputs/nft"
@@ -165,24 +165,24 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		filters = append(filters, indexer.BasicOutputUnlockableByAddress(addr))
 	}
 
-	if len(c.QueryParam(QueryParameterHasStorageReturnCondition)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasStorageReturnCondition)
+	if len(c.QueryParam(QueryParameterHasStorageDepositReturn)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasStorageDepositReturn)
 		if err != nil {
 			return nil, err
 		}
 		filters = append(filters, indexer.BasicOutputHasStorageDepositReturnCondition(value))
 	}
 
-	if len(c.QueryParam(QueryParameterStorageReturnAddress)) > 0 {
-		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStorageReturnAddress)
+	if len(c.QueryParam(QueryParameterStorageDepositReturnAddress)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStorageDepositReturnAddress)
 		if err != nil {
 			return nil, err
 		}
 		filters = append(filters, indexer.BasicOutputStorageDepositReturnAddress(addr))
 	}
 
-	if len(c.QueryParam(QueryParameterHasExpirationCondition)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasExpirationCondition)
+	if len(c.QueryParam(QueryParameterHasExpiration)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasExpiration)
 		if err != nil {
 			return nil, err
 		}
@@ -213,8 +213,8 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		filters = append(filters, indexer.BasicOutputExpiresAfter(timestamp))
 	}
 
-	if len(c.QueryParam(QueryParameterHasTimelockCondition)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasTimelockCondition)
+	if len(c.QueryParam(QueryParameterHasTimelock)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasTimelock)
 		if err != nil {
 			return nil, err
 		}
@@ -417,24 +417,24 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 		filters = append(filters, indexer.NFTUnlockableByAddress(addr))
 	}
 
-	if len(c.QueryParam(QueryParameterHasStorageReturnCondition)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasStorageReturnCondition)
+	if len(c.QueryParam(QueryParameterHasStorageDepositReturn)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasStorageDepositReturn)
 		if err != nil {
 			return nil, err
 		}
 		filters = append(filters, indexer.NFTHasStorageDepositReturnCondition(value))
 	}
 
-	if len(c.QueryParam(QueryParameterStorageReturnAddress)) > 0 {
-		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStorageReturnAddress)
+	if len(c.QueryParam(QueryParameterStorageDepositReturnAddress)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStorageDepositReturnAddress)
 		if err != nil {
 			return nil, err
 		}
 		filters = append(filters, indexer.NFTStorageDepositReturnAddress(addr))
 	}
 
-	if len(c.QueryParam(QueryParameterHasExpirationCondition)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasExpirationCondition)
+	if len(c.QueryParam(QueryParameterHasExpiration)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasExpiration)
 		if err != nil {
 			return nil, err
 		}
@@ -465,8 +465,8 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 		filters = append(filters, indexer.NFTExpiresAfter(timestamp))
 	}
 
-	if len(c.QueryParam(QueryParameterHasTimelockCondition)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasTimelockCondition)
+	if len(c.QueryParam(QueryParameterHasTimelock)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasTimelock)
 		if err != nil {
 			return nil, err
 		}
