@@ -641,7 +641,7 @@ func outputsResponseFromResult(result *indexer.IndexerResult) (*outputsResponse,
 
 	return &outputsResponse{
 		LedgerIndex: result.LedgerIndex,
-		PageSize:    uint32(result.PageSize),
+		PageSize:    result.PageSize,
 		Cursor:      cursor,
 		Items:       result.OutputIDs.ToHex(),
 	}, nil
