@@ -189,18 +189,24 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		CoreComponent.LogInfo("Indexer is empty, so import initial ledger...")
 		needsToFillIndexer = true
 	} else {
-		if indexerStatus.ProtocolVersion != protocolParams.Version {
+		switch {
+
+		case indexerStatus.ProtocolVersion != protocolParams.Version:
 			CoreComponent.LogInfof("> Network protocol version changed: %d vs %d", indexerStatus.ProtocolVersion, protocolParams.Version)
 			needsToClearIndexer = true
-		} else if indexerStatus.NetworkName != protocolParams.NetworkName {
+
+		case indexerStatus.NetworkName != protocolParams.NetworkName:
 			CoreComponent.LogInfof("> Network name changed: %s vs %s", indexerStatus.NetworkName, protocolParams.NetworkName)
 			needsToClearIndexer = true
-		} else if nodeStatus.LedgerIndex < indexerStatus.LedgerIndex {
+
+		case nodeStatus.LedgerIndex < indexerStatus.LedgerIndex:
 			CoreComponent.LogInfo("> Network has been reset: indexer index > ledger index")
 			needsToClearIndexer = true
-		} else if nodeStatus.GetLedgerPruningIndex() > indexerStatus.LedgerIndex {
+
+		case nodeStatus.GetLedgerPruningIndex() > indexerStatus.LedgerIndex:
 			CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
 			needsToClearIndexer = true
+
 		}
 	}
 
