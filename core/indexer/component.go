@@ -177,14 +177,14 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 
 	nodeStatus, err := deps.NodeBridge.NodeStatus()
 	if err != nil {
-		return nil, fmt.Errorf("error loading node status: %s", err)
+		return nil, fmt.Errorf("error loading node status: %w", err)
 	}
 
 	// Checking initial indexer state
 	indexerStatus, err := deps.Indexer.Status()
 	if err != nil {
 		if !errors.Is(err, indexer.ErrNotFound) {
-			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %s", err)
+			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
 		}
 		CoreComponent.LogInfo("Indexer is empty, so import initial ledger...")
 		needsToFillIndexer = true
@@ -223,7 +223,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		// Read new ledgerIndex after filling up the indexer
 		indexerStatus, err = deps.Indexer.Status()
 		if err != nil {
-			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %s", err)
+			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
 		}
 		CoreComponent.LogInfof("Importing initial ledger with %d outputs at index %d took %s", count, indexerStatus.LedgerIndex, duration.Truncate(time.Millisecond))
 	} else {
@@ -245,7 +245,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 	var ledgerIndex uint32
 	for {
 		unspentOutput, err := stream.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
