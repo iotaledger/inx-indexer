@@ -28,7 +28,7 @@ const (
 )
 
 // supportedProtocolVersion is the supported protocol version
-// the application will exit if the node protocol version is not matched
+// the application will exit if the node protocol version is not matched.
 const supportedProtocolVersion = 2
 
 func init() {
