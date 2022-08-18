@@ -85,9 +85,13 @@ func run() error {
 	indexerInitWaitGroup.Add(1)
 
 	// create a background worker that handles the indexer events
-	CoreComponent.Daemon().BackgroundWorker("Indexer", func(ctx context.Context) {
+	if err := CoreComponent.Daemon().BackgroundWorker("Indexer", func(ctx context.Context) {
 		CoreComponent.LogInfo("Starting Indexer")
-		defer deps.Indexer.CloseDatabase()
+		defer func() {
+			if err := deps.Indexer.CloseDatabase(); err != nil {
+				CoreComponent.LogErrorf("Failed to close database: %s", err.Error())
+			}
+		}()
 
 		indexerStatus, err := checkIndexerStatus(ctx)
 		if err != nil {
@@ -114,7 +118,9 @@ func run() error {
 
 		CoreComponent.LogInfo("Stopping LedgerUpdates ... done")
 		CoreComponent.LogInfo("Stopped Indexer")
-	}, daemon.PriorityStopIndexer)
+	}, daemon.PriorityStopIndexer); err != nil {
+		CoreComponent.LogPanicf("failed to start worker: %s", err)
+	}
 
 	// create a background worker that handles the API
 	if err := CoreComponent.Daemon().BackgroundWorker("API", func(ctx context.Context) {
