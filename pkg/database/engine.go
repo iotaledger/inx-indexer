@@ -34,6 +34,7 @@ func EngineFromString(engineStr string) (Engine, error) {
 
 	dbEngine := Engine(strings.ToLower(engineStr))
 
+	//nolint:exhaustive // false positive
 	switch dbEngine {
 	case "":
 		// no engine specified
@@ -66,7 +67,9 @@ func EngineAllowed(dbEngine Engine, allowedEngines ...Engine) (Engine, error) {
 		return "", fmt.Errorf("unknown database engine: %s, supported engines: %s", dbEngine, supportedEngines)
 	}
 
+	//nolint:exhaustive // false positive
 	switch dbEngine {
+	case EngineAuto:
 	case EngineSQLite:
 	default:
 		return "", fmt.Errorf("unknown database engine: %s, supported engines: sqlite", dbEngine)
@@ -201,8 +204,9 @@ func NewWithDefaultSettings(path string, createDatabaseIfNotExists bool, log *lo
 		return nil, err
 	}
 
+	//nolint:exhaustive // false positive
 	switch targetEngine {
-	case EngineSQLite:
+	case EngineSQLite, EngineAuto:
 		dbFile := filepath.Join(path, "indexer.db")
 
 		return gorm.Open(sqlite.Open(dbFile), &gorm.Config{
