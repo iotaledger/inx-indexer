@@ -60,6 +60,7 @@ func addressBytesForAddress(addr iotago.Address) (addressBytes, error) {
 	return addr.Serialize(serializer.DeSeriModeNoValidation, nil)
 }
 
+//nolint:revive // better be explicit here
 type IndexerResult struct {
 	OutputIDs   iotago.OutputIDs
 	LedgerIndex uint32

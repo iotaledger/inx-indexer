@@ -31,7 +31,7 @@ type Indexer struct {
 
 func NewIndexer(dbPath string, log *logger.Logger) (*Indexer, error) {
 
-	db, err := database.DatabaseWithDefaultSettings(dbPath, true, log)
+	db, err := database.NewWithDefaultSettings(dbPath, true, log)
 	if err != nil {
 		return nil, err
 	}
