@@ -586,6 +586,8 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 		if address.Type() != iotago.AddressAlias {
 			return nil, errors.WithMessagef(httpserver.ErrInvalidParameter, "invalid address: %s, not an alias address", address.Bech32(s.Bech32HRP))
 		}
+
+		//nolint:forcetypeassert // we already checked the type
 		filters = append(filters, indexer.FoundryWithAliasAddress(address.(*iotago.AliasAddress)))
 	}
 
