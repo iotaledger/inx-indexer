@@ -25,8 +25,10 @@ func newImportTransaction(db *gorm.DB) *ImportTransaction {
 func (i *ImportTransaction) AddOutput(output *inx.LedgerOutput) error {
 	if err := processOutput(output, i.tx); err != nil {
 		i.tx.Rollback()
+
 		return err
 	}
+
 	return nil
 }
 

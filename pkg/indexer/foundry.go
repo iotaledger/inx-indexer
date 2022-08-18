@@ -81,6 +81,7 @@ func foundryFilterOptions(optionalOptions []FoundryFilterOption) *FoundryFilterO
 	for _, optionalOption := range optionalOptions {
 		optionalOption(result)
 	}
+
 	return result
 }
 

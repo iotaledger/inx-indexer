@@ -164,6 +164,7 @@ func basicOutputFilterOptions(optionalOptions []BasicOutputFilterOption) *BasicO
 	for _, optionalOption := range optionalOptions {
 		optionalOption(result)
 	}
+
 	return result
 }
 

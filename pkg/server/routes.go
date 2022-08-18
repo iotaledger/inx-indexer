@@ -285,6 +285,7 @@ func (s *IndexerServer) aliasByID(c echo.Context) (*outputsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return singleOutputResponseFromResult(s.Indexer.AliasOutput(aliasID))
 }
 
@@ -379,6 +380,7 @@ func (s *IndexerServer) nftByID(c echo.Context) (*outputsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return singleOutputResponseFromResult(s.Indexer.NFTOutput(nftID))
 }
 
@@ -545,6 +547,7 @@ func (s *IndexerServer) foundryByID(c echo.Context) (*outputsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return singleOutputResponseFromResult(s.Indexer.FoundryOutput(foundryID))
 }
 
@@ -620,6 +623,7 @@ func singleOutputResponseFromResult(result *indexer.IndexerResult) (*outputsResp
 	if len(result.OutputIDs) == 0 {
 		return nil, errors.WithMessage(echo.ErrNotFound, "record not found")
 	}
+
 	return outputsResponseFromResult(result)
 }
 
@@ -677,5 +681,6 @@ func (s *IndexerServer) pageSizeFromContext(c echo.Context) uint32 {
 		}
 		pageSize = i
 	}
+
 	return pageSize
 }

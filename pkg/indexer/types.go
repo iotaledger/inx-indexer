@@ -41,6 +41,7 @@ type queryResult struct {
 func (o outputIDBytes) ID() iotago.OutputID {
 	id := iotago.OutputID{}
 	copy(id[:], o)
+
 	return id
 }
 
@@ -51,6 +52,7 @@ func (q queryResults) IDs() iotago.OutputIDs {
 	for _, r := range q {
 		outputIDs = append(outputIDs, r.OutputID.ID())
 	}
+
 	return outputIDs
 }
 

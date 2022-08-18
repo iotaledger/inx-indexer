@@ -60,6 +60,7 @@ func provide(c *dig.Container) error {
 
 	if err := c.Provide(func() (*indexer.Indexer, error) {
 		CoreComponent.LogInfo("Setting up database...")
+
 		return indexer.NewIndexer(ParamsIndexer.Database.Path, CoreComponent.Logger())
 	}); err != nil {
 		return err
@@ -91,6 +92,7 @@ func run() error {
 		indexerStatus, err := checkIndexerStatus(ctx)
 		if err != nil {
 			CoreComponent.LogErrorfAndExit("Checking initial Indexer state failed: %s", err.Error())
+
 			return
 		}
 		indexerInitWaitGroup.Done()
@@ -104,6 +106,7 @@ func run() error {
 			}
 
 			CoreComponent.LogInfof("Applying milestone %d with %d new and %d consumed outputs took %s", update.MilestoneIndex, len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
+
 			return nil
 		}); err != nil {
 			deps.ShutdownHandler.SelfShutdown(fmt.Sprintf("Listening to LedgerUpdates failed, error: %s", err), false)

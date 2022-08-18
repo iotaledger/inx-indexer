@@ -20,5 +20,6 @@ func NewIndexerServer(indexer *indexer.Indexer, group *echo.Group, prefix iotago
 		RestAPILimitsMaxResults: maxPageSize,
 	}
 	s.configureRoutes(group)
+
 	return s
 }
