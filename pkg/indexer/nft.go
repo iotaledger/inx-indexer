@@ -173,6 +173,7 @@ func nftFilterOptions(optionalOptions []NFTFilterOption) *NFTFilterOptions {
 	for _, optionalOption := range optionalOptions {
 		optionalOption(result)
 	}
+
 	return result
 }
 

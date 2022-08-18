@@ -31,7 +31,7 @@ type Indexer struct {
 
 func NewIndexer(dbPath string, log *logger.Logger) (*Indexer, error) {
 
-	db, err := database.DatabaseWithDefaultSettings(dbPath, true, log)
+	db, err := database.NewWithDefaultSettings(dbPath, true, log)
 	if err != nil {
 		return nil, err
 	}
@@ -64,6 +64,7 @@ func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
 	case *iotago.FoundryOutput:
 		return tx.Where("output_id = ?", outputID[:]).Delete(&foundry{}).Error
 	}
+
 	return nil
 }
 
@@ -307,6 +308,7 @@ func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
 		spentOutputs[string(outputID)] = struct{}{}
 		if err := processSpent(spent, tx); err != nil {
 			tx.Rollback()
+
 			return err
 		}
 	}
@@ -318,6 +320,7 @@ func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
 		}
 		if err := processOutput(output, tx); err != nil {
 			tx.Rollback()
+
 			return err
 		}
 	}
@@ -333,8 +336,10 @@ func (i *Indexer) Status() (*Status, error) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
 		}
+
 		return nil, err
 	}
+
 	return status, nil
 }
 
@@ -354,5 +359,6 @@ func (i *Indexer) CloseDatabase() error {
 	if err != nil {
 		return err
 	}
+
 	return sqlDB.Close()
 }

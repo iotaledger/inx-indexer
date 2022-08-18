@@ -28,7 +28,7 @@ const (
 )
 
 // supportedProtocolVersion is the supported protocol version
-// the application will exit if the node protocol version is not matched
+// the application will exit if the node protocol version is not matched.
 const supportedProtocolVersion = 2
 
 func init() {
@@ -60,6 +60,7 @@ func provide(c *dig.Container) error {
 
 	if err := c.Provide(func() (*indexer.Indexer, error) {
 		CoreComponent.LogInfo("Setting up database...")
+
 		return indexer.NewIndexer(ParamsIndexer.Database.Path, CoreComponent.Logger())
 	}); err != nil {
 		return err
@@ -84,13 +85,18 @@ func run() error {
 	indexerInitWaitGroup.Add(1)
 
 	// create a background worker that handles the indexer events
-	CoreComponent.Daemon().BackgroundWorker("Indexer", func(ctx context.Context) {
+	if err := CoreComponent.Daemon().BackgroundWorker("Indexer", func(ctx context.Context) {
 		CoreComponent.LogInfo("Starting Indexer")
-		defer deps.Indexer.CloseDatabase()
+		defer func() {
+			if err := deps.Indexer.CloseDatabase(); err != nil {
+				CoreComponent.LogErrorf("Failed to close database: %s", err.Error())
+			}
+		}()
 
 		indexerStatus, err := checkIndexerStatus(ctx)
 		if err != nil {
 			CoreComponent.LogErrorfAndExit("Checking initial Indexer state failed: %s", err.Error())
+
 			return
 		}
 		indexerInitWaitGroup.Done()
@@ -104,6 +110,7 @@ func run() error {
 			}
 
 			CoreComponent.LogInfof("Applying milestone %d with %d new and %d consumed outputs took %s", update.MilestoneIndex, len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
+
 			return nil
 		}); err != nil {
 			deps.ShutdownHandler.SelfShutdown(fmt.Sprintf("Listening to LedgerUpdates failed, error: %s", err), false)
@@ -111,7 +118,9 @@ func run() error {
 
 		CoreComponent.LogInfo("Stopping LedgerUpdates ... done")
 		CoreComponent.LogInfo("Stopped Indexer")
-	}, daemon.PriorityStopIndexer)
+	}, daemon.PriorityStopIndexer); err != nil {
+		CoreComponent.LogPanicf("failed to start worker: %s", err)
+	}
 
 	// create a background worker that handles the API
 	if err := CoreComponent.Daemon().BackgroundWorker("API", func(ctx context.Context) {
@@ -168,30 +177,36 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 
 	nodeStatus, err := deps.NodeBridge.NodeStatus()
 	if err != nil {
-		return nil, fmt.Errorf("error loading node status: %s", err)
+		return nil, fmt.Errorf("error loading node status: %w", err)
 	}
 
 	// Checking initial indexer state
 	indexerStatus, err := deps.Indexer.Status()
 	if err != nil {
 		if !errors.Is(err, indexer.ErrNotFound) {
-			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %s", err)
+			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
 		}
 		CoreComponent.LogInfo("Indexer is empty, so import initial ledger...")
 		needsToFillIndexer = true
 	} else {
-		if indexerStatus.ProtocolVersion != protocolParams.Version {
+		switch {
+
+		case indexerStatus.ProtocolVersion != protocolParams.Version:
 			CoreComponent.LogInfof("> Network protocol version changed: %d vs %d", indexerStatus.ProtocolVersion, protocolParams.Version)
 			needsToClearIndexer = true
-		} else if indexerStatus.NetworkName != protocolParams.NetworkName {
+
+		case indexerStatus.NetworkName != protocolParams.NetworkName:
 			CoreComponent.LogInfof("> Network name changed: %s vs %s", indexerStatus.NetworkName, protocolParams.NetworkName)
 			needsToClearIndexer = true
-		} else if nodeStatus.LedgerIndex < indexerStatus.LedgerIndex {
+
+		case nodeStatus.LedgerIndex < indexerStatus.LedgerIndex:
 			CoreComponent.LogInfo("> Network has been reset: indexer index > ledger index")
 			needsToClearIndexer = true
-		} else if nodeStatus.GetLedgerPruningIndex() > indexerStatus.LedgerIndex {
+
+		case nodeStatus.GetLedgerPruningIndex() > indexerStatus.LedgerIndex:
 			CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
 			needsToClearIndexer = true
+
 		}
 	}
 
@@ -214,7 +229,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		// Read new ledgerIndex after filling up the indexer
 		indexerStatus, err = deps.Indexer.Status()
 		if err != nil {
-			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %s", err)
+			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
 		}
 		CoreComponent.LogInfof("Importing initial ledger with %d outputs at index %d took %s", count, indexerStatus.LedgerIndex, duration.Truncate(time.Millisecond))
 	} else {
@@ -236,7 +251,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 	var ledgerIndex uint32
 	for {
 		unspentOutput, err := stream.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

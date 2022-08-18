@@ -285,6 +285,7 @@ func (s *IndexerServer) aliasByID(c echo.Context) (*outputsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return singleOutputResponseFromResult(s.Indexer.AliasOutput(aliasID))
 }
 
@@ -379,6 +380,7 @@ func (s *IndexerServer) nftByID(c echo.Context) (*outputsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return singleOutputResponseFromResult(s.Indexer.NFTOutput(nftID))
 }
 
@@ -545,6 +547,7 @@ func (s *IndexerServer) foundryByID(c echo.Context) (*outputsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return singleOutputResponseFromResult(s.Indexer.FoundryOutput(foundryID))
 }
 
@@ -583,6 +586,8 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 		if address.Type() != iotago.AddressAlias {
 			return nil, errors.WithMessagef(httpserver.ErrInvalidParameter, "invalid address: %s, not an alias address", address.Bech32(s.Bech32HRP))
 		}
+
+		//nolint:forcetypeassert // we already checked the type
 		filters = append(filters, indexer.FoundryWithAliasAddress(address.(*iotago.AliasAddress)))
 	}
 
@@ -620,6 +625,7 @@ func singleOutputResponseFromResult(result *indexer.IndexerResult) (*outputsResp
 	if len(result.OutputIDs) == 0 {
 		return nil, errors.WithMessage(echo.ErrNotFound, "record not found")
 	}
+
 	return outputsResponseFromResult(result)
 }
 
@@ -637,7 +643,7 @@ func outputsResponseFromResult(result *indexer.IndexerResult) (*outputsResponse,
 
 	return &outputsResponse{
 		LedgerIndex: result.LedgerIndex,
-		PageSize:    uint32(result.PageSize),
+		PageSize:    result.PageSize,
 		Cursor:      cursor,
 		Items:       result.OutputIDs.ToHex(),
 	}, nil
@@ -677,5 +683,6 @@ func (s *IndexerServer) pageSizeFromContext(c echo.Context) uint32 {
 		}
 		pageSize = i
 	}
+
 	return pageSize
 }
