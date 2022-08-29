@@ -141,22 +141,32 @@ func run() error {
 			}
 		}()
 
-		if err := deps.NodeBridge.RegisterAPIRoute(APIRoute, ParamsIndexer.BindAddress); err != nil {
+		ctxRegister, cancelRegister := context.WithTimeout(ctx, 5*time.Second)
+		defer cancelRegister()
+
+		if err := deps.NodeBridge.RegisterAPIRoute(ctxRegister, APIRoute, ParamsIndexer.BindAddress); err != nil {
 			CoreComponent.LogPanicf("Registering INX api route failed, error: %s", err)
 		}
 
 		<-ctx.Done()
 		CoreComponent.LogInfo("Stopping API ...")
 
-		if err := deps.NodeBridge.UnregisterAPIRoute(APIRoute); err != nil {
+		ctxUnregister, cancelUnregister := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelUnregister()
+
+		//nolint:contextcheck // false positive
+		if err := deps.NodeBridge.UnregisterAPIRoute(ctxUnregister, APIRoute); err != nil {
 			CoreComponent.LogWarnf("Unregistering INX api route failed, error: %s", err)
 		}
 
 		shutdownCtx, shutdownCtxCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCtxCancel()
+
+		//nolint:contextcheck // false positive
 		if err := deps.Echo.Shutdown(shutdownCtx); err != nil {
 			CoreComponent.LogWarn(err)
 		}
-		shutdownCtxCancel()
+
 		CoreComponent.LogInfo("Stopping API ... done")
 	}, daemon.PriorityStopIndexerAPI); err != nil {
 		CoreComponent.LogPanicf("failed to start worker: %s", err)
@@ -175,7 +185,10 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		return nil, fmt.Errorf("the supported protocol version is %d but the node protocol is %d", supportedProtocolVersion, protocolParams.Version)
 	}
 
-	nodeStatus, err := deps.NodeBridge.NodeStatus()
+	ctxStatus, cancelStatus := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelStatus()
+
+	nodeStatus, err := deps.NodeBridge.NodeStatus(ctxStatus)
 	if err != nil {
 		return nil, fmt.Errorf("error loading node status: %w", err)
 	}
