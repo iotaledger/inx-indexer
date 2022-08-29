@@ -145,7 +145,7 @@ func run() error {
 		defer cancelRegister()
 
 		if err := deps.NodeBridge.RegisterAPIRoute(ctxRegister, APIRoute, ParamsIndexer.BindAddress); err != nil {
-			CoreComponent.LogPanicf("Registering INX api route failed, error: %s", err)
+			CoreComponent.LogPanicf("Registering INX api route failed: %s", err)
 		}
 
 		<-ctx.Done()
@@ -156,7 +156,7 @@ func run() error {
 
 		//nolint:contextcheck // false positive
 		if err := deps.NodeBridge.UnregisterAPIRoute(ctxUnregister, APIRoute); err != nil {
-			CoreComponent.LogWarnf("Unregistering INX api route failed, error: %s", err)
+			CoreComponent.LogWarnf("Unregistering INX api route failed: %s", err)
 		}
 
 		shutdownCtx, shutdownCtxCancel := context.WithTimeout(context.Background(), 5*time.Second)
