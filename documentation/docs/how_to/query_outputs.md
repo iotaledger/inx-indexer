@@ -12,30 +12,46 @@ keywords:
 - how to
 ---
 
+# Querying Basic Outputs
 
-# Query the Indexer for Outputs
+While the protocol offers different [kinds of outputs](https://github.com/lzpap/tips/blob/master/tips/TIP-0018/tip-0018.md#output-design) and [ways to manage](https://wiki.iota.org/introduction/develop/explanations/what_is_stardust/unlock_conditions) them, most of the time token owners would simply want to know how many tokens they have at their unrestricted disposal. For that you would have to query outputs that satisfy the following limitations:
 
-Outputs support a wide range of unlock conditions. Some of them are time-based or require to issue a transaction to claim final ownership of the outputs. Some usecases might want to skip these kind of outputs to avoid the required complexity of comparing time or issuing claiming transactions. The indexer allows you to filter out these outputs by using simple query filters.
+1. The output must be [basic](https://github.com/lzpap/tips/blob/master/tips/TIP-0018/tip-0018.md#basic-output).
+2. The output must have an address unlock condition that matches your address (in this example it will be `rms1qrnspqhq6jhkujxak8aw9vult5uaa38hj8fv9klsvnvchdsf2q06wmr2c7j`).
+3. The output must not have any other conditions.
+
+## Construct the Query
+
+To query data from the Shimmer test network, you can use the public node that is run by IOTA Foundation. Its [indexer extension API](https://editor.swagger.io/?url=https://raw.githubusercontent.com/iotaledger/tips/indexer-api/tips/TIP-0026/indexer-rest-api.yaml) is exposed at the following URL:
+
+`https://api.testnet.shimmer.network/api/indexer/v1/outputs/basic`
+
+It returns a thousand basic outputs as there are no any query parameters yet. These parameters would be:
 
 
-## "Simple Outputs"
+|The Parameter                                                              |Its Meaning                                                  |
+|---                                                                        |---                                                          |
+|`address=rms1qrnspqhq6jhkujxak8aw9vult5uaa38hj8fv9klsvnvchdsf2q06wmr2c7j`  | Has an address unlock condition with the specified address. |
+|`hasStorageDepositReturn=false`                                            | Does not have a storage deposit return unlock condition.    |
+|`hasExpiration=false`                                                      | Does not have an expiration unlock condition.               |
+|`hasTimelock=false`                                                        | And does not a timelock unlock condition.                   |
+|---                                                                        |---                                                          |
 
-We can define "Simple Outputs" to be the ones that can be unlocked by a single address, have no timelock or expiration and have no storage deposit return conditions. These ouputs are 100% owned by the given address and can be spent without any constraints.
+Combining everything into the query:
 
-### Example
+```
+https://api.testnet.shimmer.network/api/indexer/v1/outputs/basic?address=rms1qrnspqhq6jhkujxak8aw9vult5uaa38hj8fv9klsvnvchdsf2q06wmr2c7j&hasStorageDepositReturn=false&hasExpiration=false&hasTimelock=false
+```
 
-An example indexer query for such simple outputs could be:
+The result will be a JSON with the list of output IDs in the `items` array:
 
-`https://api.testnet.shimmer.network/api/indexer/v1/outputs/basic?address=rms1qrnspqhq6jhkujxak8aw9vult5uaa38hj8fv9klsvnvchdsf2q06wmr2c7j&hasStorageDepositReturn=false&hasExpiration=false&hasTimelock=false`
-
-Let's break it down into the components:
-
-* `/api/indexer/v1/outputs/basic`: we are asking the indexer for outputs of type `BasicOutput`. These are normal outputs that carry value in form of the base token and optionally a set of native tokens. You can check [TIP-18](https://github.com/lzpap/tips/blob/master/tips/TIP-0018/tip-0018.md) for more information about the outputs that are supported by the network.
-
-* `address=rms1qrnspqhq6jhkujxak8aw9vult5uaa38hj8fv9klsvnvchdsf2q06wmr2c7j` : we are asking the indexer to only return the outputs, where the `Address Unlock Condition` matches the given address `rms1qrnspqhq6jhkujxak8aw9vult5uaa38hj8fv9klsvnvchdsf2q06wmr2c7j`
-
-* `hasStorageDepositReturn=false`: by adding the `hasStorageDepositReturn` query parameter we are explicitely asking the indexer to look at the `Storage Deposit Return Unlock Condition` of the outputs. By passing `false` we tell the indexer to only return outputs that have no such condition.
-
-* `hasExpiration=false`: by adding the `hasExpiration` query parameter, we can tell the indexer to look for `Expiration Unlock Condition` and by passing `false` we can ask it to only return outputs that have no expiration condition.
-
-* `hasTimelock=false`: by adding the `hasTimelock` query parameter, we are asking the indexer to look for `Timelock Unlock Condition` and by passing `false` we tell it to only return outputs that have no timelock condition.
+```json
+{
+  "ledgerIndex": 101,
+  "items": [
+    "0x0c78e998f5177834ecb3bae1596d5056af76e487386eecb19727465b4be86a790000",
+    "0x0c78e998f5177834ecb3bae1596d5056af76e487386eecb19727465b4be86a790100",
+    "0x0c78e998f5177834ecb3bae1596d5056af76e487386eecb19727465b4be86a790200"
+  ]
+}
+```

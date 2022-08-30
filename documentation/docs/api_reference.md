@@ -13,6 +13,6 @@ keywords:
 
 # API Reference
 
-You can find specifications of the API exposed by INX-Indexer in the links below:
+You can find the specifications of the INX-Indexer API by following the link below:
 
 - [UTXO Indexer API](https://github.com/iotaledger/tips/blob/main/tips/TIP-0026/tip-0026.md)

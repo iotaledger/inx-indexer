@@ -17,7 +17,7 @@ module.exports = {
         },
         {
             type: 'category',
-            label: 'How to',
+            label: 'How To',
             items: [
                 {
                     type: 'doc',
@@ -28,7 +28,7 @@ module.exports = {
         },
         {
             type: 'category',
-            label: 'References',
+            label: 'Reference',
             items: [
                 {
                     type: 'doc',
