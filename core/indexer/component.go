@@ -59,7 +59,7 @@ var (
 func provide(c *dig.Container) error {
 
 	if err := c.Provide(func() (*indexer.Indexer, error) {
-		CoreComponent.LogInfo("Setting up database...")
+		CoreComponent.LogInfo("Setting up database ...")
 
 		return indexer.NewIndexer(ParamsIndexer.Database.Path, CoreComponent.Logger())
 	}); err != nil {
@@ -130,33 +130,44 @@ func run() error {
 		indexerInitWaitGroup.Wait()
 		CoreComponent.LogInfo("Starting API ... done")
 
-		CoreComponent.LogInfo("Starting API server...")
+		CoreComponent.LogInfo("Starting API server ...")
 
 		_ = server.NewIndexerServer(deps.Indexer, deps.Echo.Group(""), deps.NodeBridge.ProtocolParameters().Bech32HRP, ParamsIndexer.MaxPageSize)
 
 		go func() {
 			CoreComponent.LogInfof("You can now access the API using: http://%s", ParamsIndexer.BindAddress)
 			if err := deps.Echo.Start(ParamsIndexer.BindAddress); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				CoreComponent.LogPanicf("Stopped REST-API server due to an error (%s)", err)
+				CoreComponent.LogErrorfAndExit("Stopped REST-API server due to an error (%s)", err)
 			}
 		}()
 
-		if err := deps.NodeBridge.RegisterAPIRoute(APIRoute, ParamsIndexer.BindAddress); err != nil {
-			CoreComponent.LogPanicf("Registering INX api route failed, error: %s", err)
-		}
+		ctxRegister, cancelRegister := context.WithTimeout(ctx, 5*time.Second)
 
+		if err := deps.NodeBridge.RegisterAPIRoute(ctxRegister, APIRoute, ParamsIndexer.BindAddress); err != nil {
+			CoreComponent.LogErrorfAndExit("Registering INX api route failed: %s", err)
+		}
+		cancelRegister()
+
+		CoreComponent.LogInfo("Starting API server ... done")
 		<-ctx.Done()
 		CoreComponent.LogInfo("Stopping API ...")
 
-		if err := deps.NodeBridge.UnregisterAPIRoute(APIRoute); err != nil {
-			CoreComponent.LogWarnf("Unregistering INX api route failed, error: %s", err)
+		ctxUnregister, cancelUnregister := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelUnregister()
+
+		//nolint:contextcheck // false positive
+		if err := deps.NodeBridge.UnregisterAPIRoute(ctxUnregister, APIRoute); err != nil {
+			CoreComponent.LogWarnf("Unregistering INX api route failed: %s", err)
 		}
 
 		shutdownCtx, shutdownCtxCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCtxCancel()
+
+		//nolint:contextcheck // false positive
 		if err := deps.Echo.Shutdown(shutdownCtx); err != nil {
 			CoreComponent.LogWarn(err)
 		}
-		shutdownCtxCancel()
+
 		CoreComponent.LogInfo("Stopping API ... done")
 	}, daemon.PriorityStopIndexerAPI); err != nil {
 		CoreComponent.LogPanicf("failed to start worker: %s", err)
@@ -175,7 +186,10 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		return nil, fmt.Errorf("the supported protocol version is %d but the node protocol is %d", supportedProtocolVersion, protocolParams.Version)
 	}
 
-	nodeStatus, err := deps.NodeBridge.NodeStatus()
+	ctxStatus, cancelStatus := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelStatus()
+
+	nodeStatus, err := deps.NodeBridge.NodeStatus(ctxStatus)
 	if err != nil {
 		return nil, fmt.Errorf("error loading node status: %w", err)
 	}
