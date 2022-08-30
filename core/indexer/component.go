@@ -59,7 +59,7 @@ var (
 func provide(c *dig.Container) error {
 
 	if err := c.Provide(func() (*indexer.Indexer, error) {
-		CoreComponent.LogInfo("Setting up database...")
+		CoreComponent.LogInfo("Setting up database ...")
 
 		return indexer.NewIndexer(ParamsIndexer.Database.Path, CoreComponent.Logger())
 	}); err != nil {
@@ -130,24 +130,25 @@ func run() error {
 		indexerInitWaitGroup.Wait()
 		CoreComponent.LogInfo("Starting API ... done")
 
-		CoreComponent.LogInfo("Starting API server...")
+		CoreComponent.LogInfo("Starting API server ...")
 
 		_ = server.NewIndexerServer(deps.Indexer, deps.Echo.Group(""), deps.NodeBridge.ProtocolParameters().Bech32HRP, ParamsIndexer.MaxPageSize)
 
 		go func() {
 			CoreComponent.LogInfof("You can now access the API using: http://%s", ParamsIndexer.BindAddress)
 			if err := deps.Echo.Start(ParamsIndexer.BindAddress); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				CoreComponent.LogPanicf("Stopped REST-API server due to an error (%s)", err)
+				CoreComponent.LogErrorfAndExit("Stopped REST-API server due to an error (%s)", err)
 			}
 		}()
 
 		ctxRegister, cancelRegister := context.WithTimeout(ctx, 5*time.Second)
-		defer cancelRegister()
 
 		if err := deps.NodeBridge.RegisterAPIRoute(ctxRegister, APIRoute, ParamsIndexer.BindAddress); err != nil {
-			CoreComponent.LogPanicf("Registering INX api route failed: %s", err)
+			CoreComponent.LogErrorfAndExit("Registering INX api route failed: %s", err)
 		}
+		cancelRegister()
 
+		CoreComponent.LogInfo("Starting API server ... done")
 		<-ctx.Done()
 		CoreComponent.LogInfo("Stopping API ...")
 
