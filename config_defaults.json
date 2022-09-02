@@ -27,8 +27,11 @@
     "db": {
       "path": "database"
     },
+    "maxPageSize": 1000
+  },
+  "restAPI": {
     "bindAddress": "localhost:9091",
-    "maxPageSize": 1000,
+    "advertiseAddress": "",
     "debugRequestLoggerEnabled": false
   },
   "profiling": {

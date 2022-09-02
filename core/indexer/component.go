@@ -70,7 +70,7 @@ func provide(c *dig.Container) error {
 		return httpserver.NewEcho(
 			CoreComponent.Logger(),
 			nil,
-			ParamsIndexer.DebugRequestLoggerEnabled,
+			ParamsRestAPI.DebugRequestLoggerEnabled,
 		)
 	}); err != nil {
 		return err
@@ -135,15 +135,20 @@ func run() error {
 		_ = server.NewIndexerServer(deps.Indexer, deps.Echo.Group(""), deps.NodeBridge.ProtocolParameters().Bech32HRP, ParamsIndexer.MaxPageSize)
 
 		go func() {
-			CoreComponent.LogInfof("You can now access the API using: http://%s", ParamsIndexer.BindAddress)
-			if err := deps.Echo.Start(ParamsIndexer.BindAddress); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			CoreComponent.LogInfof("You can now access the API using: http://%s", ParamsRestAPI.BindAddress)
+			if err := deps.Echo.Start(ParamsRestAPI.BindAddress); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				CoreComponent.LogErrorfAndExit("Stopped REST-API server due to an error (%s)", err)
 			}
 		}()
 
 		ctxRegister, cancelRegister := context.WithTimeout(ctx, 5*time.Second)
 
-		if err := deps.NodeBridge.RegisterAPIRoute(ctxRegister, APIRoute, ParamsIndexer.BindAddress); err != nil {
+		advertisedAddress := ParamsRestAPI.BindAddress
+		if ParamsRestAPI.AdvertiseAddress != "" {
+			advertisedAddress = ParamsRestAPI.AdvertiseAddress
+		}
+
+		if err := deps.NodeBridge.RegisterAPIRoute(ctxRegister, APIRoute, advertisedAddress); err != nil {
 			CoreComponent.LogErrorfAndExit("Registering INX api route failed: %s", err)
 		}
 		cancelRegister()
