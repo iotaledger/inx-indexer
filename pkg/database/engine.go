@@ -227,7 +227,7 @@ func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, log
 		dbFile := filepath.Join(dbParams.Path, "indexer.db")
 		dbDialector = sqlite.Open(dbFile)
 	case EnginePostgres:
-		dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d", dbParams.Host, dbParams.Username, dbParams.Password, dbParams.Database, dbParams.Port)
+		dsn := fmt.Sprintf("host='%s' user='%s' password='%s' dbname='%s' port=%d", dbParams.Host, dbParams.Username, dbParams.Password, dbParams.Database, dbParams.Port)
 		dbDialector = postgres.Open(dsn)
 	case EngineUnknown:
 		fallthrough
