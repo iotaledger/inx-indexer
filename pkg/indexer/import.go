@@ -4,7 +4,6 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
@@ -16,20 +15,14 @@ type ImportTransaction struct {
 	tx *gorm.DB
 }
 
+func (i *ImportTransaction) GetTx() *gorm.DB {
+	return i.tx
+}
+
 func newImportTransaction(db *gorm.DB) *ImportTransaction {
 	return &ImportTransaction{
 		tx: db.Begin(),
 	}
-}
-
-func (i *ImportTransaction) AddOutput(output *inx.LedgerOutput) error {
-	if err := processOutput(output, i.tx); err != nil {
-		i.tx.Rollback()
-
-		return err
-	}
-
-	return nil
 }
 
 func (i *ImportTransaction) Finalize(ledgerIndex uint32, protoParams *iotago.ProtocolParameters) error {

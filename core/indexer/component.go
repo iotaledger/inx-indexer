@@ -18,7 +18,7 @@ import (
 	"github.com/iotaledger/inx-app/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/daemon"
 	"github.com/iotaledger/inx-indexer/pkg/database"
-	"github.com/iotaledger/inx-indexer/pkg/indexer"
+	indexerpkg "github.com/iotaledger/inx-indexer/pkg/indexer"
 	"github.com/iotaledger/inx-indexer/pkg/server"
 	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v3"
@@ -47,7 +47,7 @@ func init() {
 type dependencies struct {
 	dig.In
 	NodeBridge      *nodebridge.NodeBridge
-	Indexer         *indexer.Indexer
+	Indexer         *indexerpkg.Indexer
 	ShutdownHandler *shutdown.ShutdownHandler
 	Echo            *echo.Echo
 }
@@ -59,7 +59,7 @@ var (
 
 func provide(c *dig.Container) error {
 
-	if err := c.Provide(func() (*indexer.Indexer, error) {
+	if err := c.Provide(func() (*indexerpkg.Indexer, error) {
 		CoreComponent.LogInfo("Setting up database ...")
 
 		engine, err := database.EngineFromString(ParamsIndexer.Database.Engine)
@@ -67,7 +67,7 @@ func provide(c *dig.Container) error {
 			return nil, err
 		}
 
-		return indexer.NewIndexer(database.Params{
+		return indexerpkg.NewIndexer(database.Params{
 			Engine:   engine,
 			Path:     ParamsIndexer.Database.Sqlite.Path,
 			Host:     ParamsIndexer.Database.Postgres.Host,
@@ -190,7 +190,7 @@ func run() error {
 	return nil
 }
 
-func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
+func checkIndexerStatus(ctx context.Context) (*indexerpkg.Status, error) {
 	needsToFillIndexer := false
 	needsToClearIndexer := false
 
@@ -211,7 +211,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 	// Checking initial indexer state
 	indexerStatus, err := deps.Indexer.Status()
 	if err != nil {
-		if !errors.Is(err, indexer.ErrNotFound) {
+		if !errors.Is(err, indexerpkg.ErrNotFound) {
 			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
 		}
 		CoreComponent.LogInfo("Indexer is empty, so import initial ledger...")
@@ -267,7 +267,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 	return indexerStatus, nil
 }
 
-func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iotago.ProtocolParameters) (int, error) {
+func fillIndexer(ctx context.Context, indexer *indexerpkg.Indexer, protoParams *iotago.ProtocolParameters) (int, error) {
 	importer := indexer.ImportTransaction()
 
 	stream, err := deps.NodeBridge.Client().ReadUnspentOutputs(ctx, &inx.NoParams{})
@@ -277,6 +277,8 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 
 	var count int
 	var ledgerIndex uint32
+
+	bulkUpdater := indexerpkg.NewBulkUpdater(importer.GetTx(), 10000)
 	for {
 		unspentOutput, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
@@ -285,14 +287,23 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 		if err != nil {
 			return 0, err
 		}
-		if err := importer.AddOutput(unspentOutput.GetOutput()); err != nil {
+
+		if err := bulkUpdater.AddOutput(unspentOutput.GetOutput()); err != nil {
 			return 0, err
 		}
 		count++
+		if count%100000 == 0 {
+			CoreComponent.LogInfof("imported %d ...", count)
+		}
 		outputLedgerIndex := unspentOutput.GetLedgerIndex()
 		if ledgerIndex < outputLedgerIndex {
 			ledgerIndex = outputLedgerIndex
 		}
+	}
+
+	// process last chunk
+	if err := bulkUpdater.Process(); err != nil {
+		return 0, err
 	}
 
 	return count, importer.Finalize(ledgerIndex, protoParams)

@@ -29,6 +29,76 @@ type Indexer struct {
 	db *gorm.DB
 }
 
+type BulkUpdater struct {
+	basicOutputs []*basicOutput
+	nfts         []*nft
+	foundries    []*foundry
+	aliases      []*alias
+	bulkSize     int
+	tx           *gorm.DB
+	counter      int
+}
+
+func (b *BulkUpdater) reset() {
+	b.basicOutputs = []*basicOutput{}
+	b.nfts = []*nft{}
+	b.foundries = []*foundry{}
+	b.aliases = []*alias{}
+	b.counter = 0
+}
+
+func NewBulkUpdater(tx *gorm.DB, bulkSize int) *BulkUpdater {
+	bulkUpdater := &BulkUpdater{bulkSize: bulkSize, tx: tx}
+	bulkUpdater.reset()
+	return bulkUpdater
+}
+
+func (b *BulkUpdater) Process() error {
+	if err := b.tx.CreateInBatches(b.basicOutputs, b.bulkSize).Error; err != nil {
+		return b.tx.Error
+	}
+	if err := b.tx.CreateInBatches(b.nfts, b.bulkSize).Error; err != nil {
+		return b.tx.Error
+	}
+	if err := b.tx.CreateInBatches(b.foundries, b.bulkSize).Error; err != nil {
+		return b.tx.Error
+	}
+	if err := b.tx.CreateInBatches(b.aliases, b.bulkSize).Error; err != nil {
+		return b.tx.Error
+	}
+	b.reset()
+	return nil
+}
+
+func (b *BulkUpdater) addBasicOutput(output *basicOutput) {
+	b.basicOutputs = append(b.basicOutputs, output)
+}
+
+func (b *BulkUpdater) addAlias(output *alias) {
+	b.aliases = append(b.aliases, output)
+}
+
+func (b *BulkUpdater) addNFT(output *nft) {
+	b.nfts = append(b.nfts, output)
+}
+
+func (b *BulkUpdater) addFoundry(output *foundry) {
+	b.foundries = append(b.foundries, output)
+}
+
+func (b *BulkUpdater) AddOutput(output *inx.LedgerOutput) error {
+	if err := processOutput(output, b); err != nil {
+		return err
+	}
+
+	b.counter += 1
+	if b.counter < b.bulkSize {
+		return nil
+	}
+
+	return b.Process()
+}
+
 func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) {
 
 	db, err := database.NewWithDefaultSettings(dbParams, true, log)
@@ -68,7 +138,7 @@ func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
 	return nil
 }
 
-func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
+func processOutput(output *inx.LedgerOutput, bulkUpdater *BulkUpdater) error {
 	unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
 	if err != nil {
 		return err
@@ -127,11 +197,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 				return err
 			}
 		}
-
-		if err := tx.Create(basic).Error; err != nil {
-			return err
-		}
-
+		bulkUpdater.addBasicOutput(basic)
 	case *iotago.AliasOutput:
 		aliasID := iotaOutput.AliasID
 		if aliasID.Empty() {
@@ -178,11 +244,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 				return err
 			}
 		}
-
-		if err := tx.Create(alias).Error; err != nil {
-			return err
-		}
-
+		bulkUpdater.addAlias(alias)
 	case *iotago.NFTOutput:
 		features := iotaOutput.FeatureSet()
 		conditions := iotaOutput.UnlockConditionSet()
@@ -250,11 +312,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 				return err
 			}
 		}
-
-		if err := tx.Create(nft).Error; err != nil {
-			return err
-		}
-
+		bulkUpdater.addNFT(nft)
 	case *iotago.FoundryOutput:
 		conditions := iotaOutput.UnlockConditionSet()
 
@@ -277,11 +335,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 				return err
 			}
 		}
-
-		if err := tx.Create(foundry).Error; err != nil {
-			return err
-		}
-
+		bulkUpdater.addFoundry(foundry)
 	default:
 		panic("Unknown output type")
 	}
@@ -302,6 +356,8 @@ func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
 		return err
 	}
 
+	bulkUpdater := NewBulkUpdater(tx, 10000)
+
 	spentOutputs := make(map[string]struct{})
 	for _, spent := range update.Consumed {
 		outputID := spent.GetOutput().GetOutputId().GetId()
@@ -318,12 +374,16 @@ func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
 			// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
 			continue
 		}
-		if err := processOutput(output, tx); err != nil {
+
+		if err := bulkUpdater.AddOutput(output); err != nil {
 			tx.Rollback()
 
 			return err
 		}
 	}
+
+	// process the remaining outputs not already inserted
+	bulkUpdater.Process()
 
 	tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.MilestoneIndex)
 
