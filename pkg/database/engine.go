@@ -219,9 +219,9 @@ func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, log
 		return nil, err
 	}
 
-	//nolint:exhaustive // false positive
 	var dbDialector gorm.Dialector
 
+	//nolint:exhaustive // false positive
 	switch targetEngine {
 	case EngineSQLite, EngineAuto:
 		dbFile := filepath.Join(dbParams.Path, "indexer.db")
@@ -229,8 +229,6 @@ func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, log
 	case EnginePostgres:
 		dsn := fmt.Sprintf("host='%s' user='%s' password='%s' dbname='%s' port=%d", dbParams.Host, dbParams.Username, dbParams.Password, dbParams.Database, dbParams.Port)
 		dbDialector = postgres.Open(dsn)
-	case EngineUnknown:
-		fallthrough
 	default:
 		return nil, fmt.Errorf("unknown database engine: %s, supported engines: sqlite, postgres", targetEngine)
 	}
