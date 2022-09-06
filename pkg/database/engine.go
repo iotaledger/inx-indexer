@@ -235,10 +235,12 @@ func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, log
 
 	return gorm.Open(dbDialector, &gorm.Config{
 		Logger: gormLogger.New(newLogger(log), gormLogger.Config{
-			SlowThreshold:             100 * time.Millisecond,
+			SlowThreshold:             1000 * time.Millisecond,
 			LogLevel:                  gormLogger.Warn,
 			IgnoreRecordNotFoundError: true,
 			Colorful:                  false,
 		}),
+		SkipDefaultTransaction: true,
+		PrepareStmt:            true,
 	})
 }

@@ -246,6 +246,11 @@ func checkIndexerStatus(ctx context.Context) (*indexerpkg.Status, error) {
 		needsToFillIndexer = true
 	}
 
+	//err = ImportMilestoneCone(ctx, deps.Indexer)
+	//if err != nil {
+	//	return nil, err
+	//}
+
 	if needsToFillIndexer {
 		// Indexer is empty, so import initial ledger state from the node
 		timeStart := time.Now()
@@ -278,7 +283,12 @@ func fillIndexer(ctx context.Context, indexer *indexerpkg.Indexer, protoParams *
 	var count int
 	var ledgerIndex uint32
 
-	bulkUpdater := indexerpkg.NewBulkUpdater(importer.GetTx(), 10000)
+	indexer.DropIndices()
+	bulkUpdateManager := indexerpkg.GetBulkUpdaterManager()
+	if err = bulkUpdateManager.Start(); err != nil {
+		return 0, err
+	}
+
 	for {
 		unspentOutput, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
@@ -287,10 +297,8 @@ func fillIndexer(ctx context.Context, indexer *indexerpkg.Indexer, protoParams *
 		if err != nil {
 			return 0, err
 		}
+		bulkUpdateManager.Enqueue(unspentOutput)
 
-		if err := bulkUpdater.AddOutput(unspentOutput.GetOutput()); err != nil {
-			return 0, err
-		}
 		count++
 		if count%100000 == 0 {
 			CoreComponent.LogInfof("imported %d ...", count)
@@ -300,11 +308,44 @@ func fillIndexer(ctx context.Context, indexer *indexerpkg.Indexer, protoParams *
 			ledgerIndex = outputLedgerIndex
 		}
 	}
+	indexer.CreateIndices()
 
-	// process last chunk
-	if err := bulkUpdater.Process(); err != nil {
+	if err = bulkUpdateManager.Done(); err != nil {
 		return 0, err
 	}
 
 	return count, importer.Finalize(ledgerIndex, protoParams)
+}
+
+func ImportMilestoneCone(ctx context.Context, indexer *indexerpkg.Indexer) error {
+	//importer := indexer.ImportTransaction()
+	for ms := uint32(37000); ms < 100000; ms++ {
+		stream, err := deps.NodeBridge.Client().ReadMilestoneCone(ctx, &inx.MilestoneRequest{MilestoneIndex: ms})
+		if err != nil {
+			return err
+		}
+
+		var count int
+
+		for {
+			_, err := stream.Recv()
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if err != nil {
+				return err
+			}
+
+			//if err := bulkUpdater.AddOutput(unspentOutput.GetOutput()); err != nil {
+			//	return 0, err
+			//}
+			count++
+			if count%100000 == 0 {
+				CoreComponent.LogInfof("imported %d ...", count)
+			}
+		}
+		CoreComponent.LogInfof("milestone %d, blocks %d", ms, count)
+	}
+
+	return nil
 }

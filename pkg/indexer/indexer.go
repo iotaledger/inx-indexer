@@ -29,43 +29,173 @@ type Indexer struct {
 	db *gorm.DB
 }
 
+type BulkUpdaterManager struct {
+	updaterChannel chan *inx.UnspentOutput
+	updatedWorkers []*BulkUpdater
+	dbParams       database.Params
+	workers        int
+	log            *logger.Logger
+}
+
+var manager *BulkUpdaterManager
+
 type BulkUpdater struct {
 	basicOutputs []*basicOutput
 	nfts         []*nft
 	foundries    []*foundry
 	aliases      []*alias
 	bulkSize     int
-	tx           *gorm.DB
 	counter      int
+	chanDone     chan bool
+	err          error
+	tx           *gorm.DB
+	db           *gorm.DB
+	manager      *BulkUpdaterManager
+	worker       int
 }
 
 func (b *BulkUpdater) reset() {
-	b.basicOutputs = []*basicOutput{}
-	b.nfts = []*nft{}
-	b.foundries = []*foundry{}
-	b.aliases = []*alias{}
+	b.basicOutputs = make([]*basicOutput, 0, b.bulkSize)
+	b.nfts = make([]*nft, 0, b.bulkSize)
+	b.foundries = make([]*foundry, 0, b.bulkSize)
+	b.aliases = make([]*alias, 0, b.bulkSize)
 	b.counter = 0
 }
 
-func NewBulkUpdater(tx *gorm.DB, bulkSize int) *BulkUpdater {
-	bulkUpdater := &BulkUpdater{bulkSize: bulkSize, tx: tx}
-	bulkUpdater.reset()
-	return bulkUpdater
+func (b *BulkUpdater) init() error {
+	var err error
+	b.manager.log.Infof("[%d] creating db connection", b.worker)
+
+	b.db, err = database.NewWithDefaultSettings(manager.dbParams, true, manager.log)
+	return err
 }
 
-func (b *BulkUpdater) Process() error {
-	if err := b.tx.CreateInBatches(b.basicOutputs, b.bulkSize).Error; err != nil {
-		return b.tx.Error
+func NewBulkUpdater(worker int, manager *BulkUpdaterManager, bulkSize int) *BulkUpdater {
+	b := &BulkUpdater{bulkSize: bulkSize}
+	b.chanDone = make(chan bool)
+	b.manager = manager
+	b.worker = worker
+	b.reset()
+	return b
+}
+
+func NewBulkUpdaterManager(dbParams database.Params, workers int, bulkSize int, log *logger.Logger) (*BulkUpdaterManager, error) {
+	manager = &BulkUpdaterManager{
+		updaterChannel: make(chan *inx.UnspentOutput, 50000),
+		updatedWorkers: make([]*BulkUpdater, workers),
+		dbParams:       dbParams,
+		workers:        workers,
+		log:            log,
 	}
-	if err := b.tx.CreateInBatches(b.nfts, b.bulkSize).Error; err != nil {
-		return b.tx.Error
+
+	for i := 0; i < workers; i++ {
+		manager.updatedWorkers[i] = NewBulkUpdater(i, manager, bulkSize)
+		if err := manager.updatedWorkers[i].init(); err != nil {
+			return nil, err
+		}
 	}
-	if err := b.tx.CreateInBatches(b.foundries, b.bulkSize).Error; err != nil {
-		return b.tx.Error
+	return manager, nil
+}
+
+func (m *BulkUpdaterManager) Done() error {
+	for i := 0; i < m.workers; i++ {
+		if err := m.updatedWorkers[i].Done(); err != nil {
+			return err
+		}
 	}
-	if err := b.tx.CreateInBatches(b.aliases, b.bulkSize).Error; err != nil {
-		return b.tx.Error
+	return nil
+}
+
+func (m *BulkUpdaterManager) Start() error {
+	for i := 0; i < m.workers; i++ {
+		m.updatedWorkers[i].Start()
 	}
+	return nil
+}
+
+func (b *BulkUpdater) Start() {
+	go func() {
+		b.manager.log.Infof("[%d] starting worker ...", b.worker)
+		defer func() {
+			if r := recover(); r != nil {
+				b.manager.log.Debugf("[%d] tx rollback", b.worker)
+				b.tx.Rollback()
+			}
+		}()
+
+		for {
+			unspentOutput, more := <-manager.updaterChannel
+			if more {
+				if err := b.addOutput(unspentOutput.GetOutput()); err != nil {
+					b.err = err
+					return
+				}
+			} else {
+				break
+			}
+		}
+		// store the rest
+		if err := b.store(); err != nil {
+			b.err = err
+			return
+		}
+		b.err = nil
+		b.chanDone <- true
+		b.manager.log.Infof("[%d] worker stopped", b.worker)
+	}()
+}
+
+func (b *BulkUpdater) Done() error {
+	close(manager.updaterChannel)
+	<-b.chanDone
+
+	sqlDB, err := b.db.DB()
+	if err != nil {
+		return err
+	}
+
+	return sqlDB.Close()
+}
+
+func (b *BulkUpdater) GetError() error {
+	return b.err
+}
+
+func (m *BulkUpdaterManager) Enqueue(output *inx.UnspentOutput) {
+	manager.updaterChannel <- output
+}
+
+func GetBulkUpdaterManager() *BulkUpdaterManager {
+	return manager
+}
+
+func (b *BulkUpdater) store() error {
+	b.tx = b.db.Begin()
+	//err := b.tx.Exec("set transaction isolation level read uncommitted").Error
+	//if err != nil {
+	//	return err
+	//}
+	b.manager.log.Debugf("[%d] tx begin", b.worker)
+
+	if err := b.tx.Create(b.basicOutputs).Error; err != nil {
+		return err
+	}
+	if err := b.tx.Create(b.nfts).Error; err != nil {
+		return err
+	}
+	if err := b.tx.Create(b.foundries).Error; err != nil {
+		return err
+	}
+	if err := b.tx.Create(b.aliases).Error; err != nil {
+		return err
+	}
+
+	if err := b.tx.Commit().Error; err != nil {
+		return err
+	}
+	b.manager.log.Debugf("[%d] tx committed", b.worker)
+
+	// in case of error, transaction would be retried
 	b.reset()
 	return nil
 }
@@ -86,7 +216,7 @@ func (b *BulkUpdater) addFoundry(output *foundry) {
 	b.foundries = append(b.foundries, output)
 }
 
-func (b *BulkUpdater) AddOutput(output *inx.LedgerOutput) error {
+func (b *BulkUpdater) addOutput(output *inx.LedgerOutput) error {
 	if err := processOutput(output, b); err != nil {
 		return err
 	}
@@ -96,7 +226,7 @@ func (b *BulkUpdater) AddOutput(output *inx.LedgerOutput) error {
 		return nil
 	}
 
-	return b.Process()
+	return b.store()
 }
 
 func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) {
@@ -111,10 +241,41 @@ func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) 
 		return nil, err
 	}
 
+	manager, err = NewBulkUpdaterManager(dbParams, 8, 2500, log)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Indexer{
 		WrappedLogger: logger.NewWrappedLogger(log),
 		db:            db,
 	}, nil
+}
+
+func (i *Indexer) DropIndices() {
+	/*
+		i.db.Migrator().DropIndex(&basicOutput{}, "basic_outputs_sender_tag")
+		i.db.Migrator().DropIndex(&basicOutput{}, "basic_outputs_address")
+
+		i.db.Migrator().DropConstraint(&foundry{}, "foundries_output_id_key")
+		i.db.Migrator().DropIndex(&foundry{}, "foundries_alias_address")
+
+		i.db.Migrator().DropConstraint(&alias{}, "aliases_output_id_key")
+		i.db.Migrator().DropIndex(&alias{}, "alias_state_controller")
+		i.db.Migrator().DropIndex(&alias{}, "alias_governor")
+		i.db.Migrator().DropIndex(&alias{}, "alias_issuer")
+		i.db.Migrator().DropIndex(&alias{}, "alias_sender")
+
+		i.db.Migrator().DropConstraint(&nft{}, "nfts_output_id_key")
+		i.db.Migrator().DropIndex(&nft{}, "nfts_issuer")
+		i.db.Migrator().DropIndex(&nft{}, "nfts_sender_tag")
+		i.db.Migrator().DropIndex(&nft{}, "nfts_issuer")
+		i.db.Migrator().DropIndex(&nft{}, "nfts_address")
+	*/
+}
+
+func (i *Indexer) CreateIndices() {
+	//	i.db.AutoMigrate()
 }
 
 func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
@@ -344,50 +505,52 @@ func processOutput(output *inx.LedgerOutput, bulkUpdater *BulkUpdater) error {
 }
 
 func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
+	/*
+		tx := i.db.Begin()
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+		}()
 
-	tx := i.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	if err := tx.Error; err != nil {
-		return err
-	}
-
-	bulkUpdater := NewBulkUpdater(tx, 10000)
-
-	spentOutputs := make(map[string]struct{})
-	for _, spent := range update.Consumed {
-		outputID := spent.GetOutput().GetOutputId().GetId()
-		spentOutputs[string(outputID)] = struct{}{}
-		if err := processSpent(spent, tx); err != nil {
-			tx.Rollback()
-
+		if err := tx.Error; err != nil {
 			return err
 		}
-	}
 
-	for _, output := range update.Created {
-		if _, wasSpentInSameMilestone := spentOutputs[string(output.GetOutputId().GetId())]; wasSpentInSameMilestone {
-			// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
-			continue
+		bulkUpdater := NewBulkUpdater(tx, 10000)
+
+		spentOutputs := make(map[string]struct{})
+		for _, spent := range update.Consumed {
+			outputID := spent.GetOutput().GetOutputId().GetId()
+			spentOutputs[string(outputID)] = struct{}{}
+			if err := processSpent(spent, tx); err != nil {
+				tx.Rollback()
+
+				return err
+			}
 		}
 
-		if err := bulkUpdater.AddOutput(output); err != nil {
-			tx.Rollback()
+		for _, output := range update.Created {
+			if _, wasSpentInSameMilestone := spentOutputs[string(output.GetOutputId().GetId())]; wasSpentInSameMilestone {
+				// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
+				continue
+			}
 
-			return err
+			if err := bulkUpdater.addOutput(output); err != nil {
+				tx.Rollback()
+
+				return err
+			}
 		}
-	}
 
-	// process the remaining outputs not already inserted
-	bulkUpdater.Process()
+		// process the remaining outputs not already inserted
+		bulkUpdater.store()
 
-	tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.MilestoneIndex)
+		tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.MilestoneIndex)
 
-	return tx.Commit().Error
+		return tx.Commit().Error
+	*/
+	return nil
 }
 
 func (i *Indexer) Status() (*Status, error) {
