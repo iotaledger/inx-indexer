@@ -1,6 +1,8 @@
 package indexer
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
@@ -35,6 +37,7 @@ type BulkUpdaterManager struct {
 	dbParams       database.Params
 	workers        int
 	log            *logger.Logger
+	db             *gorm.DB
 }
 
 var manager *BulkUpdaterManager
@@ -48,8 +51,6 @@ type BulkUpdater struct {
 	counter      int
 	chanDone     chan bool
 	err          error
-	tx           *gorm.DB
-	db           *gorm.DB
 	manager      *BulkUpdaterManager
 	worker       int
 }
@@ -63,29 +64,28 @@ func (b *BulkUpdater) reset() {
 }
 
 func (b *BulkUpdater) init() error {
-	var err error
-	b.manager.log.Infof("[%d] creating db connection", b.worker)
-
-	b.db, err = database.NewWithDefaultSettings(manager.dbParams, true, manager.log)
-	return err
+	return nil
 }
 
 func NewBulkUpdater(worker int, manager *BulkUpdaterManager, bulkSize int) *BulkUpdater {
-	b := &BulkUpdater{bulkSize: bulkSize}
-	b.chanDone = make(chan bool)
-	b.manager = manager
-	b.worker = worker
+	b := &BulkUpdater{
+		bulkSize: bulkSize,
+		chanDone: make(chan bool),
+		manager:  manager,
+		worker:   worker,
+	}
 	b.reset()
 	return b
 }
 
-func NewBulkUpdaterManager(dbParams database.Params, workers int, bulkSize int, log *logger.Logger) (*BulkUpdaterManager, error) {
+func NewBulkUpdaterManager(db *gorm.DB, dbParams database.Params, workers int, bulkSize int, log *logger.Logger) (*BulkUpdaterManager, error) {
 	manager = &BulkUpdaterManager{
 		updaterChannel: make(chan *inx.UnspentOutput, 50000),
 		updatedWorkers: make([]*BulkUpdater, workers),
 		dbParams:       dbParams,
 		workers:        workers,
 		log:            log,
+		db:             db,
 	}
 
 	for i := 0; i < workers; i++ {
@@ -116,13 +116,6 @@ func (m *BulkUpdaterManager) Start() error {
 func (b *BulkUpdater) Start() {
 	go func() {
 		b.manager.log.Infof("[%d] starting worker ...", b.worker)
-		defer func() {
-			if r := recover(); r != nil {
-				b.manager.log.Debugf("[%d] tx rollback", b.worker)
-				b.tx.Rollback()
-			}
-		}()
-
 		for {
 			unspentOutput, more := <-manager.updaterChannel
 			if more {
@@ -149,12 +142,7 @@ func (b *BulkUpdater) Done() error {
 	close(manager.updaterChannel)
 	<-b.chanDone
 
-	sqlDB, err := b.db.DB()
-	if err != nil {
-		return err
-	}
-
-	return sqlDB.Close()
+	return nil
 }
 
 func (b *BulkUpdater) GetError() error {
@@ -170,27 +158,33 @@ func GetBulkUpdaterManager() *BulkUpdaterManager {
 }
 
 func (b *BulkUpdater) store() error {
-	b.tx = b.db.Begin()
+	tx := manager.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			b.manager.log.Debugf("[%d] tx rollback", b.worker)
+			tx.Rollback()
+		}
+	}()
 	//err := b.tx.Exec("set transaction isolation level read uncommitted").Error
 	//if err != nil {
 	//	return err
 	//}
 	b.manager.log.Debugf("[%d] tx begin", b.worker)
 
-	if err := b.tx.Create(b.basicOutputs).Error; err != nil {
+	if err := tx.Create(b.basicOutputs).Error; err != nil {
 		return err
 	}
-	if err := b.tx.Create(b.nfts).Error; err != nil {
+	if err := tx.Create(b.nfts).Error; err != nil {
 		return err
 	}
-	if err := b.tx.Create(b.foundries).Error; err != nil {
+	if err := tx.Create(b.foundries).Error; err != nil {
 		return err
 	}
-	if err := b.tx.Create(b.aliases).Error; err != nil {
+	if err := tx.Create(b.aliases).Error; err != nil {
 		return err
 	}
 
-	if err := b.tx.Commit().Error; err != nil {
+	if err := tx.Commit().Error; err != nil {
 		return err
 	}
 	b.manager.log.Debugf("[%d] tx committed", b.worker)
@@ -236,12 +230,25 @@ func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) 
 		return nil, err
 	}
 
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+	// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
+	sqlDB.SetMaxIdleConns(10)
+
+	// SetMaxOpenConns sets the maximum number of open connections to the database.
+	sqlDB.SetMaxOpenConns(100)
+
+	// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
 	// Create the tables and indexes if needed
 	if err := db.AutoMigrate(tables...); err != nil {
 		return nil, err
 	}
 
-	manager, err = NewBulkUpdaterManager(dbParams, 8, 2500, log)
+	manager, err = NewBulkUpdaterManager(db, dbParams, 10, 2500, log)
 	if err != nil {
 		return nil, err
 	}
@@ -253,29 +260,27 @@ func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) 
 }
 
 func (i *Indexer) DropIndices() {
-	/*
-		i.db.Migrator().DropIndex(&basicOutput{}, "basic_outputs_sender_tag")
-		i.db.Migrator().DropIndex(&basicOutput{}, "basic_outputs_address")
+	i.db.Migrator().DropIndex(&basicOutput{}, "basic_outputs_sender_tag")
+	i.db.Migrator().DropIndex(&basicOutput{}, "basic_outputs_address")
 
-		i.db.Migrator().DropConstraint(&foundry{}, "foundries_output_id_key")
-		i.db.Migrator().DropIndex(&foundry{}, "foundries_alias_address")
+	i.db.Migrator().DropConstraint(&foundry{}, "foundries_output_id_key")
+	i.db.Migrator().DropIndex(&foundry{}, "foundries_alias_address")
 
-		i.db.Migrator().DropConstraint(&alias{}, "aliases_output_id_key")
-		i.db.Migrator().DropIndex(&alias{}, "alias_state_controller")
-		i.db.Migrator().DropIndex(&alias{}, "alias_governor")
-		i.db.Migrator().DropIndex(&alias{}, "alias_issuer")
-		i.db.Migrator().DropIndex(&alias{}, "alias_sender")
+	i.db.Migrator().DropConstraint(&alias{}, "aliases_output_id_key")
+	i.db.Migrator().DropIndex(&alias{}, "alias_state_controller")
+	i.db.Migrator().DropIndex(&alias{}, "alias_governor")
+	i.db.Migrator().DropIndex(&alias{}, "alias_issuer")
+	i.db.Migrator().DropIndex(&alias{}, "alias_sender")
 
-		i.db.Migrator().DropConstraint(&nft{}, "nfts_output_id_key")
-		i.db.Migrator().DropIndex(&nft{}, "nfts_issuer")
-		i.db.Migrator().DropIndex(&nft{}, "nfts_sender_tag")
-		i.db.Migrator().DropIndex(&nft{}, "nfts_issuer")
-		i.db.Migrator().DropIndex(&nft{}, "nfts_address")
-	*/
+	i.db.Migrator().DropConstraint(&nft{}, "nfts_output_id_key")
+	i.db.Migrator().DropIndex(&nft{}, "nfts_issuer")
+	i.db.Migrator().DropIndex(&nft{}, "nfts_sender_tag")
+	i.db.Migrator().DropIndex(&nft{}, "nfts_issuer")
+	i.db.Migrator().DropIndex(&nft{}, "nfts_address")
 }
 
 func (i *Indexer) CreateIndices() {
-	//	i.db.AutoMigrate()
+	i.db.AutoMigrate()
 }
 
 func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
