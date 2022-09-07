@@ -14,7 +14,6 @@ import (
 
 	"github.com/iotaledger/hive.go/core/app"
 	"github.com/iotaledger/hive.go/core/app/core/shutdown"
-	"github.com/iotaledger/hive.go/core/workerpool"
 	"github.com/iotaledger/inx-app/httpserver"
 	"github.com/iotaledger/inx-app/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/daemon"
@@ -284,29 +283,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 		return 0, err
 	}
 
-	var countInsert int
 	var ledgerIndex uint32
-	tsInsert := time.Now()
-	insertPool := workerpool.New(func(task workerpool.Task) {
-		defer task.Return(nil)
-
-		unspentOutput := task.Param(0).(*inx.UnspentOutput)
-		if err := importer.AddOutput(unspentOutput.GetOutput()); err != nil {
-			innerErr = err
-			receiveCancel()
-			return
-		}
-		countInsert++
-		outputLedgerIndex := unspentOutput.GetLedgerIndex()
-		if ledgerIndex < outputLedgerIndex {
-			ledgerIndex = outputLedgerIndex
-		}
-		if countInsert%100000 == 0 {
-			CoreComponent.LogInfof("imported %d ... in %s", countInsert, time.Since(tsInsert).Truncate(time.Millisecond))
-			tsInsert = time.Now()
-		}
-	}, workerpool.WorkerCount(1), workerpool.QueueSize(10_000_000), workerpool.FlushTasksAtShutdown(true))
-
 	var countReceive int
 	go func() {
 		tsReceive := time.Now()
@@ -319,7 +296,17 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 				receiveCancel()
 				break
 			}
-			insertPool.Submit(unspentOutput)
+
+			if err := importer.AddOutput(unspentOutput.GetOutput()); err != nil {
+				innerErr = err
+				receiveCancel()
+				return
+			}
+			outputLedgerIndex := unspentOutput.GetLedgerIndex()
+			if ledgerIndex < outputLedgerIndex {
+				ledgerIndex = outputLedgerIndex
+			}
+
 			countReceive++
 			if countReceive%100000 == 0 {
 				CoreComponent.LogInfof("received %d ... in %s", countReceive, time.Since(tsReceive).Truncate(time.Millisecond))
@@ -328,9 +315,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 		}
 	}()
 
-	insertPool.Start()
 	<-receiveCtx.Done()
-	insertPool.StopAndWait()
 
 	if innerErr != nil {
 		return 0, innerErr

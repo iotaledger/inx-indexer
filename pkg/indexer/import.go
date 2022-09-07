@@ -1,39 +1,131 @@
 package indexer
 
 import (
+	"fmt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	gormLogger "gorm.io/gorm/logger"
+	"sync"
+	"time"
 
 	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
-const batchSize = 1_000
+const (
+	batchSize   = 1_000
+	workerCount = 4
+)
 
 func (i *Indexer) ImportTransaction() *ImportTransaction {
 	return newImportTransaction(i.db, i.Logger())
 }
 
+type Worker[T any] struct {
+	db   *gorm.DB
+	name string
+	wg   sync.WaitGroup
+
+	queue chan T
+}
+
+func NewWorker[T any](db *gorm.DB, name string) *Worker[T] {
+	w := &Worker[T]{
+		db:    db,
+		name:  name,
+		queue: make(chan T, 10*batchSize),
+	}
+	w.Run()
+	return w
+}
+
+func (w *Worker[T]) closeAndWait() {
+	close(w.queue)
+	w.wg.Wait()
+}
+
+func (w *Worker[T]) Enqueue(item T) {
+	w.queue <- item
+}
+
+func (w *Worker[T]) insertBatch(batch []T) error {
+	tx := w.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Create(batch).Error; err != nil {
+		return err
+	}
+	return tx.Commit().Error
+}
+
+func (w *Worker[T]) Run() {
+	for n := 0; n < workerCount; n++ {
+		workerName := fmt.Sprintf("%s-%d", w.name, n)
+		w.wg.Add(1)
+		go func() {
+			defer w.wg.Done()
+			batch := make([]T, 0, batchSize)
+			var count int
+
+			ts := time.Now()
+			for item := range w.queue {
+				batch = append(batch, item)
+				count++
+				if count%batchSize == 0 {
+					if err := w.insertBatch(batch); err != nil {
+						fmt.Printf("error: %s\n", err.Error())
+						return
+					}
+					batch = make([]T, 0, batchSize)
+				}
+				if count%100_000 == 0 {
+					fmt.Printf("[%s] Inserted: %d, took %s\n", workerName, count, time.Since(ts).Truncate(time.Millisecond))
+					ts = time.Now()
+				}
+			}
+			if len(batch) > 0 {
+				ts := time.Now()
+				// Insert last remaining
+				if err := w.insertBatch(batch); err != nil {
+					fmt.Printf("error: %s\n", err.Error())
+					return
+				}
+				fmt.Printf("[%s] Inserted remaining: %d, took %s\n", workerName, len(batch), time.Since(ts).Truncate(time.Millisecond))
+			}
+			fmt.Printf("[%s] ended\n", workerName)
+		}()
+	}
+}
+
 type ImportTransaction struct {
 	db *gorm.DB
 
-	basic   []*basicOutput
-	nft     []*nft
-	alias   []*alias
-	foundry []*foundry
+	basic   *Worker[*basicOutput]
+	nft     *Worker[*nft]
+	alias   *Worker[*alias]
+	foundry *Worker[*foundry]
 }
 
 func newImportTransaction(db *gorm.DB) *ImportTransaction {
+
+	dbSession := db.Session(&gorm.Session{
+		PrepareStmt:            true,
+		SkipHooks:              true,
+		SkipDefaultTransaction: true,
+		Logger:                 gormLogger.Discard,
+	})
+
 	t := &ImportTransaction{
-		db: db.Session(&gorm.Session{
-			PrepareStmt:            true,
-			SkipHooks:              true,
-			SkipDefaultTransaction: true,
-			Logger:                 gormLogger.Discard,
-		}),
+		db:      dbSession,
+		basic:   NewWorker[*basicOutput](dbSession, "basic"),
+		nft:     NewWorker[*nft](dbSession, "nft"),
+		alias:   NewWorker[*alias](dbSession, "alias"),
+		foundry: NewWorker[*foundry](dbSession, "foundry"),
 	}
-	t.resetPendingBatch()
+
 	return t
 }
 
@@ -46,55 +138,24 @@ func (i *ImportTransaction) AddOutput(output *inx.LedgerOutput) error {
 
 	switch o := op.(type) {
 	case *basicOutput:
-		i.basic = append(i.basic, o)
-		if len(i.basic) == batchSize {
-			i.db.Create(i.basic)
-			i.basic = make([]*basicOutput, 0, batchSize)
-		}
+		i.basic.Enqueue(o)
 	case *nft:
-		i.nft = append(i.nft, o)
-		if len(i.nft) == batchSize {
-			i.db.Create(i.nft)
-			i.nft = make([]*nft, 0, batchSize)
-		}
+		i.nft.Enqueue(o)
 	case *alias:
-		i.alias = append(i.alias, o)
-		if len(i.nft) == batchSize {
-			i.db.Create(i.alias)
-			i.alias = make([]*alias, 0, batchSize)
-		}
+		i.alias.Enqueue(o)
 	case *foundry:
-		i.foundry = append(i.foundry, o)
-		if len(i.foundry) == batchSize {
-			i.db.Create(i.foundry)
-			i.foundry = make([]*foundry, 0, batchSize)
-		}
+		i.foundry.Enqueue(o)
 	}
 
 	return nil
 }
 
-func (i *ImportTransaction) resetPendingBatch() {
-	i.basic = make([]*basicOutput, 0, batchSize)
-	i.nft = make([]*nft, 0, batchSize)
-	i.alias = make([]*alias, 0, batchSize)
-	i.foundry = make([]*foundry, 0, batchSize)
-}
-
-func (i *ImportTransaction) insertPendingBatch() error {
-	i.db.Create(i.basic)
-	i.db.Create(i.nft)
-	i.db.Create(i.alias)
-	i.db.Create(i.foundry)
-	i.resetPendingBatch()
-	return i.db.Error
-}
-
 func (i *ImportTransaction) Finalize(ledgerIndex uint32, protoParams *iotago.ProtocolParameters) error {
-	// Insert last batch if necessary
-	if err := i.insertPendingBatch(); err != nil {
-		return err
-	}
+
+	i.basic.closeAndWait()
+	i.nft.closeAndWait()
+	i.alias.closeAndWait()
+	i.foundry.closeAndWait()
 
 	// Update the indexer status
 	status := &Status{
