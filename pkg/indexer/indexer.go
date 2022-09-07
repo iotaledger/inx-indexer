@@ -68,10 +68,40 @@ func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
 	return nil
 }
 
+func (i *Indexer) DropIndexes() {
+	i.db.Migrator().DropIndex(&alias{}, "alias_governor")
+	i.db.Migrator().DropIndex(&alias{}, "alias_issuer")
+	i.db.Migrator().DropIndex(&alias{}, "alias_sender")
+	i.db.Migrator().DropIndex(&alias{}, "alias_state_controller")
+
+	i.db.Migrator().DropIndex(&basicOutput{}, "basic_outputs_address")
+	i.db.Migrator().DropIndex(&basicOutput{}, "basic_outputs_sender_tag")
+
+	i.db.Migrator().DropIndex(&foundry{}, "foundries_alias_address")
+
+	i.db.Migrator().DropIndex(&nft{}, "nfts_address")
+	i.db.Migrator().DropIndex(&nft{}, "nfts_issuer")
+	i.db.Migrator().DropIndex(&nft{}, "nfts_sender_tag")
+}
+func (i *Indexer) CreateIndexes() error {
+	return i.db.AutoMigrate(tables...)
+}
+
 func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
-	unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
+	op, err := opForOutput(output)
 	if err != nil {
 		return err
+	}
+	if err := tx.Create(op).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func opForOutput(output *inx.LedgerOutput) (interface{}, error) {
+	unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	outputID := output.GetOutputId().Unwrap()
@@ -90,7 +120,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
 			basic.Sender, err = addressBytesForAddress(senderBlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -102,7 +132,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		if addressUnlock := conditions.Address(); addressUnlock != nil {
 			basic.Address, err = addressBytesForAddress(addressUnlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -110,7 +140,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 			basic.StorageDepositReturn = &storageDepositReturn.Amount
 			basic.StorageDepositReturnAddress, err = addressBytesForAddress(storageDepositReturn.ReturnAddress)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -124,13 +154,11 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 			basic.ExpirationTime = &time
 			basic.ExpirationReturnAddress, err = addressBytesForAddress(expiration.ReturnAddress)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
-		if err := tx.Create(basic).Error; err != nil {
-			return err
-		}
+		return basic, nil
 
 	case *iotago.AliasOutput:
 		aliasID := iotaOutput.AliasID
@@ -154,34 +182,32 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		if issuerBlock := features.IssuerFeature(); issuerBlock != nil {
 			alias.Issuer, err = addressBytesForAddress(issuerBlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
 			alias.Sender, err = addressBytesForAddress(senderBlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		if stateController := conditions.StateControllerAddress(); stateController != nil {
 			alias.StateController, err = addressBytesForAddress(stateController.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		if governor := conditions.GovernorAddress(); governor != nil {
 			alias.Governor, err = addressBytesForAddress(governor.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
-		if err := tx.Create(alias).Error; err != nil {
-			return err
-		}
+		return alias, nil
 
 	case *iotago.NFTOutput:
 		features := iotaOutput.FeatureSet()
@@ -206,14 +232,14 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		if issuerBlock := features.IssuerFeature(); issuerBlock != nil {
 			nft.Issuer, err = addressBytesForAddress(issuerBlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
 			nft.Sender, err = addressBytesForAddress(senderBlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -225,7 +251,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		if addressUnlock := conditions.Address(); addressUnlock != nil {
 			nft.Address, err = addressBytesForAddress(addressUnlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -233,7 +259,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 			nft.StorageDepositReturn = &storageDepositReturn.Amount
 			nft.StorageDepositReturnAddress, err = addressBytesForAddress(storageDepositReturn.ReturnAddress)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -247,20 +273,18 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 			nft.ExpirationTime = &time
 			nft.ExpirationReturnAddress, err = addressBytesForAddress(expiration.ReturnAddress)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
-		if err := tx.Create(nft).Error; err != nil {
-			return err
-		}
+		return nft, err
 
 	case *iotago.FoundryOutput:
 		conditions := iotaOutput.UnlockConditionSet()
 
 		foundryID, err := iotaOutput.ID()
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		foundry := &foundry{
@@ -274,19 +298,14 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		if aliasUnlock := conditions.ImmutableAlias(); aliasUnlock != nil {
 			foundry.AliasAddress, err = addressBytesForAddress(aliasUnlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
-		if err := tx.Create(foundry).Error; err != nil {
-			return err
-		}
-
-	default:
-		panic("Unknown output type")
+		return foundry, nil
 	}
 
-	return nil
+	return nil, errors.New("unknown output type")
 }
 
 func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
