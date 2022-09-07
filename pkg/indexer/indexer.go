@@ -63,19 +63,37 @@ func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
 	return nil
 }
 
+func (i *Indexer) DropIndexes() {
+	i.db.Migrator().DropIndex(&alias{}, "alias_governor")
+	i.db.Migrator().DropIndex(&alias{}, "alias_issuer")
+	i.db.Migrator().DropIndex(&alias{}, "alias_sender")
+	i.db.Migrator().DropIndex(&alias{}, "alias_state_controller")
+
+	i.db.Migrator().DropIndex(&basicOutput{}, "basic_outputs_address")
+	i.db.Migrator().DropIndex(&basicOutput{}, "basic_outputs_sender_tag")
+
+	i.db.Migrator().DropIndex(&foundry{}, "foundries_alias_address")
+
+	i.db.Migrator().DropIndex(&nft{}, "nfts_address")
+	i.db.Migrator().DropIndex(&nft{}, "nfts_issuer")
+	i.db.Migrator().DropIndex(&nft{}, "nfts_sender_tag")
+}
+func (i *Indexer) CreateIndexes() error {
+	return i.db.AutoMigrate(tables...)
+}
+
 func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
-	entry, err := entryForOutput(output)
+	op, err := opForOutput(output)
 	if err != nil {
 		return err
 	}
-	if err := tx.Create(entry).Error; err != nil {
+	if err := tx.Create(op).Error; err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func entryForOutput(output *inx.LedgerOutput) (interface{}, error) {
+func opForOutput(output *inx.LedgerOutput) (interface{}, error) {
 	unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
 	if err != nil {
 		return nil, err

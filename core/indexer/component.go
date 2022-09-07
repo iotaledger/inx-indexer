@@ -11,11 +11,10 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/dig"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
 
 	"github.com/iotaledger/hive.go/core/app"
-	"github.com/iotaledger/hive.go/core/app/pkg/shutdown"
+	"github.com/iotaledger/hive.go/core/app/core/shutdown"
+	"github.com/iotaledger/hive.go/core/workerpool"
 	"github.com/iotaledger/inx-app/httpserver"
 	"github.com/iotaledger/inx-app/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/daemon"
@@ -272,14 +271,11 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 }
 
 func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iotago.ProtocolParameters) (int, error) {
+	// Drop the indexes while doing bulk inserts to speed-up insertion.
+	indexer.DropIndexes()
 
-	// Drop indexes to speed up data insertion
-	if err := deps.Indexer.DropIndexes(); err != nil {
-		return 0, err
-	}
-
+	var innerErr error
 	receiveCtx, receiveCancel := context.WithCancel(ctx)
-	defer receiveCancel()
 
 	importer := indexer.ImportTransaction()
 
@@ -288,12 +284,32 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 		return 0, err
 	}
 
-	tsStart := time.Now()
-	p := message.NewPrinter(language.English)
-	var innerErr error
+	var countInsert int
 	var ledgerIndex uint32
+	tsInsert := time.Now()
+	insertPool := workerpool.New(func(task workerpool.Task) {
+		defer task.Return(nil)
+
+		unspentOutput := task.Param(0).(*inx.UnspentOutput)
+		if err := importer.AddOutput(unspentOutput.GetOutput()); err != nil {
+			innerErr = err
+			receiveCancel()
+			return
+		}
+		countInsert++
+		outputLedgerIndex := unspentOutput.GetLedgerIndex()
+		if ledgerIndex < outputLedgerIndex {
+			ledgerIndex = outputLedgerIndex
+		}
+		if countInsert%100000 == 0 {
+			CoreComponent.LogInfof("imported %d ... in %s", countInsert, time.Since(tsInsert).Truncate(time.Millisecond))
+			tsInsert = time.Now()
+		}
+	}, workerpool.WorkerCount(1), workerpool.QueueSize(10_000_000), workerpool.FlushTasksAtShutdown(true))
+
 	var countReceive int
 	go func() {
+		tsReceive := time.Now()
 		for {
 			unspentOutput, err := stream.Recv()
 			if err != nil {
@@ -301,39 +317,29 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 					innerErr = err
 				}
 				receiveCancel()
-
 				break
 			}
-
-			if err := importer.AddOutput(unspentOutput.GetOutput()); err != nil {
-				innerErr = err
-				receiveCancel()
-
-				return
-			}
-			outputLedgerIndex := unspentOutput.GetLedgerIndex()
-			if ledgerIndex < outputLedgerIndex {
-				ledgerIndex = outputLedgerIndex
-			}
-
+			insertPool.Submit(unspentOutput)
 			countReceive++
-			if countReceive%1_000_000 == 0 {
-				CoreComponent.LogInfo(p.Sprintf("received total=%d @ %.2f per second", countReceive, float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
+			if countReceive%100000 == 0 {
+				CoreComponent.LogInfof("received %d ... in %s", countReceive, time.Since(tsReceive).Truncate(time.Millisecond))
+				tsReceive = time.Now()
 			}
 		}
 	}()
 
+	insertPool.Start()
 	<-receiveCtx.Done()
+	insertPool.StopAndWait()
 
 	if innerErr != nil {
 		return 0, innerErr
 	}
 
-	CoreComponent.LogInfo(p.Sprintf("received total=%d in %s @ %.2f per second", countReceive, time.Since(tsStart).Truncate(time.Millisecond), float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
-
 	if err := importer.Finalize(ledgerIndex, protoParams); err != nil {
 		return 0, err
 	}
 
-	return countReceive, nil
+	// Re-create the indexes.
+	return countReceive, indexer.CreateIndexes()
 }
