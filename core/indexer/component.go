@@ -191,13 +191,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		return nil, fmt.Errorf("the supported protocol version is %d but the node protocol is %d", supportedProtocolVersion, protocolParams.Version)
 	}
 
-	ctxStatus, cancelStatus := context.WithTimeout(ctx, 5*time.Second)
-	defer cancelStatus()
-
-	nodeStatus, err := deps.NodeBridge.NodeStatus(ctxStatus)
-	if err != nil {
-		return nil, fmt.Errorf("error loading node status: %w", err)
-	}
+	nodeStatus := deps.NodeBridge.NodeStatus()
 
 	// Checking initial indexer state
 	indexerStatus, err := deps.Indexer.Status()
