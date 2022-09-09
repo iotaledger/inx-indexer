@@ -26,12 +26,12 @@
   "indexer": {
     "db": {
       "path": "database"
-    },
-    "maxPageSize": 1000
+    }
   },
   "restAPI": {
     "bindAddress": "localhost:9091",
     "advertiseAddress": "",
+    "maxPageSize": 1000,
     "debugRequestLoggerEnabled": false
   },
   "profiling": {
