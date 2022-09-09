@@ -285,7 +285,9 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 
 func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iotago.ProtocolParameters) (int, error) {
 	// Drop the indexes while doing bulk inserts to speed-up insertion.
-	indexer.DropIndexes()
+	if err := indexer.DropIndexes(); err != nil {
+		return 0, err
+	}
 
 	var innerErr error
 	receiveCtx, receiveCancel := context.WithCancel(ctx)
@@ -294,6 +296,8 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 
 	stream, err := deps.NodeBridge.Client().ReadUnspentOutputs(receiveCtx, &inx.NoParams{})
 	if err != nil {
+		receiveCancel()
+
 		return 0, err
 	}
 
@@ -308,12 +312,14 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 					innerErr = err
 				}
 				receiveCancel()
+
 				break
 			}
 
 			if err := importer.AddOutput(unspentOutput.GetOutput()); err != nil {
 				innerErr = err
 				receiveCancel()
+
 				return
 			}
 			outputLedgerIndex := unspentOutput.GetLedgerIndex()

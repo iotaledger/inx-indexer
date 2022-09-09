@@ -47,6 +47,7 @@ func NewWorker[T any](db *gorm.DB, name string) *Worker[T] {
 		queue: make(chan T, 10*batchSize),
 	}
 	w.Run()
+
 	return w
 }
 
@@ -69,6 +70,7 @@ func (w *Worker[T]) insertBatch(batch []T) error {
 	if err := tx.Create(batch).Error; err != nil {
 		return err
 	}
+
 	return tx.Commit().Error
 }
 
@@ -87,12 +89,13 @@ func (w *Worker[T]) Run() {
 				if count%batchSize == 0 {
 					if err := w.insertBatch(batch); err != nil {
 						fmt.Printf("error: %s\n", err.Error())
+
 						return
 					}
 					batch = make([]T, 0, batchSize)
 				}
 				timeTracker.mutex.Lock()
-				timeTracker.counter += 1
+				timeTracker.counter++
 				if timeTracker.counter%100_000 == 0 {
 					fmt.Printf("[%s] Inserted: %d, took %s\n", workerName, timeTracker.counter, time.Since(timeTracker.ts).Truncate(time.Millisecond))
 					timeTracker.ts = time.Now()
@@ -104,6 +107,7 @@ func (w *Worker[T]) Run() {
 				// Insert last remaining
 				if err := w.insertBatch(batch); err != nil {
 					fmt.Printf("error: %s\n", err.Error())
+
 					return
 				}
 				fmt.Printf("[%s] Inserted remaining: %d, took %s\n", workerName, len(batch), time.Since(ts).Truncate(time.Millisecond))
