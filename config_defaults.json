@@ -26,8 +26,11 @@
   "indexer": {
     "db": {
       "path": "database"
-    },
+    }
+  },
+  "restAPI": {
     "bindAddress": "localhost:9091",
+    "advertiseAddress": "",
     "maxPageSize": 1000,
     "debugRequestLoggerEnabled": false
   },

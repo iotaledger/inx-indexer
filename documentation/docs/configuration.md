@@ -120,12 +120,9 @@ Example:
 
 ## <a id="indexer"></a> 4. Indexer
 
-| Name                      | Description                                                      | Type    | Default value    |
-| ------------------------- | ---------------------------------------------------------------- | ------- | ---------------- |
-| [db](#indexer_db)         | Configuration for Database                                       | object  |                  |
-| bindAddress               | The bind address on which the Indexer HTTP server listens        | string  | "localhost:9091" |
-| maxPageSize               | The maximum number of results that may be returned for each page | int     | 1000             |
-| debugRequestLoggerEnabled | Whether the debug logging for requests should be enabled         | boolean | false            |
+| Name              | Description                | Type   | Default value |
+| ----------------- | -------------------------- | ------ | ------------- |
+| [db](#indexer_db) | Configuration for Database | object |               |
 
 ### <a id="indexer_db"></a> Database
 
@@ -140,15 +137,34 @@ Example:
     "indexer": {
       "db": {
         "path": "database"
-      },
+      }
+    }
+  }
+```
+
+## <a id="restapi"></a> 5. RestAPI
+
+| Name                      | Description                                                                             | Type    | Default value    |
+| ------------------------- | --------------------------------------------------------------------------------------- | ------- | ---------------- |
+| bindAddress               | The bind address on which the Indexer HTTP server listens                               | string  | "localhost:9091" |
+| advertiseAddress          | The address of the Indexer HTTP server which is advertised to the INX Server (optional) | string  | ""               |
+| maxPageSize               | The maximum number of results that may be returned for each page                        | int     | 1000             |
+| debugRequestLoggerEnabled | Whether the debug logging for requests should be enabled                                | boolean | false            |
+
+Example:
+
+```json
+  {
+    "restAPI": {
       "bindAddress": "localhost:9091",
+      "advertiseAddress": "",
       "maxPageSize": 1000,
       "debugRequestLoggerEnabled": false
     }
   }
 ```
 
-## <a id="profiling"></a> 5. Profiling
+## <a id="profiling"></a> 6. Profiling
 
 | Name        | Description                                       | Type    | Default value    |
 | ----------- | ------------------------------------------------- | ------- | ---------------- |
@@ -166,7 +182,7 @@ Example:
   }
 ```
 
-## <a id="prometheus"></a> 6. Prometheus
+## <a id="prometheus"></a> 7. Prometheus
 
 | Name            | Description                                                     | Type    | Default value    |
 | --------------- | --------------------------------------------------------------- | ------- | ---------------- |
