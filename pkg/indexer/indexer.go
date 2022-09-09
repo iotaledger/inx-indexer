@@ -1,6 +1,8 @@
 package indexer
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
@@ -29,10 +31,30 @@ type Indexer struct {
 	db *gorm.DB
 }
 
-func NewIndexer(dbPath string, log *logger.Logger) (*Indexer, error) {
+func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) {
 
-	db, err := database.NewWithDefaultSettings(dbPath, true, log)
+	db, err := database.NewWithDefaultSettings(dbParams, true, log)
 	if err != nil {
+		return nil, err
+	}
+
+	if dbParams.Engine == database.EngineSQLite {
+		sqlDB, err := db.DB()
+		if err != nil {
+			return nil, err
+		}
+		// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
+		sqlDB.SetMaxIdleConns(10)
+
+		// SetMaxOpenConns sets the maximum number of open connections to the database.
+		sqlDB.SetMaxOpenConns(100)
+
+		// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
+		sqlDB.SetConnMaxLifetime(time.Hour)
+	}
+
+	// Create the tables and indexes if needed
+	if err := db.AutoMigrate(tables...); err != nil {
 		return nil, err
 	}
 

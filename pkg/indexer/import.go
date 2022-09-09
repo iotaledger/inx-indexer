@@ -2,14 +2,14 @@ package indexer
 
 import (
 	"fmt"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
-	gormLogger "gorm.io/gorm/logger"
 	"sync"
 	"time"
 
 	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v3"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	gormLogger "gorm.io/gorm/logger"
 )
 
 const (
@@ -19,6 +19,17 @@ const (
 
 func (i *Indexer) ImportTransaction() *ImportTransaction {
 	return newImportTransaction(i.db, i.Logger())
+}
+
+type TimeTracker struct {
+	mutex   sync.Mutex
+	counter uint32
+	ts      time.Time
+}
+
+var timeTracker = &TimeTracker{
+	ts:      time.Now(),
+	counter: 0,
 }
 
 type Worker[T any] struct {
@@ -70,7 +81,6 @@ func (w *Worker[T]) Run() {
 			batch := make([]T, 0, batchSize)
 			var count int
 
-			ts := time.Now()
 			for item := range w.queue {
 				batch = append(batch, item)
 				count++
@@ -81,10 +91,13 @@ func (w *Worker[T]) Run() {
 					}
 					batch = make([]T, 0, batchSize)
 				}
-				if count%100_000 == 0 {
-					fmt.Printf("[%s] Inserted: %d, took %s\n", workerName, count, time.Since(ts).Truncate(time.Millisecond))
-					ts = time.Now()
+				timeTracker.mutex.Lock()
+				timeTracker.counter += 1
+				if timeTracker.counter%100_000 == 0 {
+					fmt.Printf("[%s] Inserted: %d, took %s\n", workerName, timeTracker.counter, time.Since(timeTracker.ts).Truncate(time.Millisecond))
+					timeTracker.ts = time.Now()
 				}
+				timeTracker.mutex.Unlock()
 			}
 			if len(batch) > 0 {
 				ts := time.Now()
