@@ -15,7 +15,7 @@ require (
 	github.com/prometheus/client_golang v1.13.0
 	go.uber.org/dig v1.15.0
 	gorm.io/driver/sqlite v1.3.6
-	gorm.io/gorm v1.23.8
+	gorm.io/gorm v1.23.9
 )
 
 require (
