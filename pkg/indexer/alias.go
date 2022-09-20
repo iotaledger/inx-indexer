@@ -14,7 +14,7 @@ type alias struct {
 	Governor         addressBytes  `gorm:"notnull;index:alias_governor"`
 	Issuer           addressBytes  `gorm:"index:alias_issuer"`
 	Sender           addressBytes  `gorm:"index:alias_sender"`
-	CreatedAt        time.Time     `gorm:"notnull"`
+	CreatedAt        time.Time     `gorm:"notnull;index:alias_created_at"`
 }
 
 type AliasFilterOptions struct {

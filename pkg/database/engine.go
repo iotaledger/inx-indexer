@@ -209,7 +209,7 @@ func NewWithDefaultSettings(path string, createDatabaseIfNotExists bool, log *lo
 	case EngineSQLite, EngineAuto:
 		dbFile := filepath.Join(path, "indexer.db")
 
-		return gorm.Open(sqlite.Open(dbFile), &gorm.Config{
+		return gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?&_journal_mode=WAL", dbFile)), &gorm.Config{
 			Logger: gormLogger.New(newLogger(log), gormLogger.Config{
 				SlowThreshold:             100 * time.Millisecond,
 				LogLevel:                  gormLogger.Warn,

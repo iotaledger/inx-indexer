@@ -15,11 +15,11 @@ type nft struct {
 	Tag                         []byte        `gorm:"index:nfts_sender_tag"`
 	Address                     addressBytes  `gorm:"notnull;index:nfts_address"`
 	StorageDepositReturn        *uint64
-	StorageDepositReturnAddress addressBytes
+	StorageDepositReturnAddress addressBytes `gorm:"index:nfts_storage_deposit_return_address"`
 	TimelockTime                *time.Time
 	ExpirationTime              *time.Time
-	ExpirationReturnAddress     addressBytes
-	CreatedAt                   time.Time `gorm:"notnull"`
+	ExpirationReturnAddress     addressBytes `gorm:"index:nfts_expiration_return_address"`
+	CreatedAt                   time.Time    `gorm:"notnull;index:nfts_created_at"`
 }
 
 type NFTFilterOptions struct {
