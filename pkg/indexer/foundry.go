@@ -11,7 +11,7 @@ type foundry struct {
 	OutputID         outputIDBytes  `gorm:"unique;notnull"`
 	NativeTokenCount int            `gorm:"notnull"`
 	AliasAddress     addressBytes   `gorm:"notnull;index:foundries_alias_address"`
-	CreatedAt        time.Time      `gorm:"notnull"`
+	CreatedAt        time.Time      `gorm:"notnull;index:foundries_created_at"`
 }
 
 type FoundryFilterOptions struct {

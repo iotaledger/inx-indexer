@@ -13,11 +13,11 @@ type basicOutput struct {
 	Tag                         []byte        `gorm:"index:basic_outputs_sender_tag"`
 	Address                     addressBytes  `gorm:"notnull;index:basic_outputs_address"`
 	StorageDepositReturn        *uint64
-	StorageDepositReturnAddress addressBytes
+	StorageDepositReturnAddress addressBytes `gorm:"index:basic_outputs_storage_deposit_return_address"`
 	TimelockTime                *time.Time
 	ExpirationTime              *time.Time
-	ExpirationReturnAddress     addressBytes
-	CreatedAt                   time.Time `gorm:"notnull"`
+	ExpirationReturnAddress     addressBytes `gorm:"index:basic_outputs_expiration_return_address"`
+	CreatedAt                   time.Time    `gorm:"notnull;index:basic_outputs_created_at"`
 }
 
 type BasicOutputFilterOptions struct {
