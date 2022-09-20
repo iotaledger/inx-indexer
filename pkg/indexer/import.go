@@ -2,12 +2,14 @@ package indexer
 
 import (
 	"fmt"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
-	gormLogger "gorm.io/gorm/logger"
 	"sync"
 	"time"
 
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	gormLogger "gorm.io/gorm/logger"
+
+	"github.com/iotaledger/hive.go/core/logger"
 	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v3"
 )
@@ -18,10 +20,12 @@ const (
 )
 
 func (i *Indexer) ImportTransaction() *ImportTransaction {
-	return newImportTransaction(i.db)
+	return newImportTransaction(i.db, i.Logger())
 }
 
-type Worker[T any] struct {
+type importWorker[T any] struct {
+	*logger.WrappedLogger
+
 	db   *gorm.DB
 	name string
 	wg   sync.WaitGroup
@@ -29,26 +33,27 @@ type Worker[T any] struct {
 	queue chan T
 }
 
-func NewWorker[T any](db *gorm.DB, name string) *Worker[T] {
-	w := &Worker[T]{
-		db:    db,
-		name:  name,
-		queue: make(chan T, 10*batchSize),
+func newImportWorker[T any](db *gorm.DB, name string, log *logger.Logger) *importWorker[T] {
+	w := &importWorker[T]{
+		WrappedLogger: logger.NewWrappedLogger(log),
+		db:            db,
+		name:          name,
+		queue:         make(chan T, 10*batchSize),
 	}
 	w.Run()
 	return w
 }
 
-func (w *Worker[T]) closeAndWait() {
+func (w *importWorker[T]) closeAndWait() {
 	close(w.queue)
 	w.wg.Wait()
 }
 
-func (w *Worker[T]) Enqueue(item T) {
+func (w *importWorker[T]) enqueue(item T) {
 	w.queue <- item
 }
 
-func (w *Worker[T]) insertBatch(batch []T) error {
+func (w *importWorker[T]) insertBatch(batch []T) error {
 	tx := w.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -61,12 +66,15 @@ func (w *Worker[T]) insertBatch(batch []T) error {
 	return tx.Commit().Error
 }
 
-func (w *Worker[T]) Run() {
+func (w *importWorker[T]) Run() {
 	for n := 0; n < workerCount; n++ {
 		workerName := fmt.Sprintf("%s-%d", w.name, n)
 		w.wg.Add(1)
 		go func() {
 			defer w.wg.Done()
+
+			w.LogInfof("[%s] started", workerName)
+
 			batch := make([]T, 0, batchSize)
 			var count int
 
@@ -76,13 +84,13 @@ func (w *Worker[T]) Run() {
 				count++
 				if count%batchSize == 0 {
 					if err := w.insertBatch(batch); err != nil {
-						fmt.Printf("error: %s\n", err.Error())
+						w.LogErrorf("[%s] error: %s", workerName, err.Error())
 						return
 					}
 					batch = make([]T, 0, batchSize)
 				}
 				if count%100_000 == 0 {
-					fmt.Printf("[%s] Inserted: %d, took %s\n", workerName, count, time.Since(ts).Truncate(time.Millisecond))
+					w.LogInfof("[%s] Inserted: %d, took %s", workerName, count, time.Since(ts).Truncate(time.Millisecond))
 					ts = time.Now()
 				}
 			}
@@ -90,12 +98,12 @@ func (w *Worker[T]) Run() {
 				ts := time.Now()
 				// Insert last remaining
 				if err := w.insertBatch(batch); err != nil {
-					fmt.Printf("error: %s\n", err.Error())
+					w.LogErrorf("[%s] error: %s", workerName, err.Error())
 					return
 				}
-				fmt.Printf("[%s] Inserted remaining: %d, took %s\n", workerName, len(batch), time.Since(ts).Truncate(time.Millisecond))
+				w.LogInfof("[%s] Inserted remaining: %d, took %s", workerName, len(batch), time.Since(ts).Truncate(time.Millisecond))
 			}
-			fmt.Printf("[%s] ended\n", workerName)
+			w.LogInfof("[%s] ended", workerName)
 		}()
 	}
 }
@@ -103,16 +111,16 @@ func (w *Worker[T]) Run() {
 type ImportTransaction struct {
 	db *gorm.DB
 
-	basic   *Worker[*basicOutput]
-	nft     *Worker[*nft]
-	alias   *Worker[*alias]
-	foundry *Worker[*foundry]
+	basic   *importWorker[*basicOutput]
+	nft     *importWorker[*nft]
+	alias   *importWorker[*alias]
+	foundry *importWorker[*foundry]
 }
 
-func newImportTransaction(db *gorm.DB) *ImportTransaction {
+func newImportTransaction(db *gorm.DB, log *logger.Logger) *ImportTransaction {
 
+	// use a session without logger and hooks to reduce the amount of work that needs to be done by gorm.
 	dbSession := db.Session(&gorm.Session{
-		PrepareStmt:            true,
 		SkipHooks:              true,
 		SkipDefaultTransaction: true,
 		Logger:                 gormLogger.Discard,
@@ -120,10 +128,10 @@ func newImportTransaction(db *gorm.DB) *ImportTransaction {
 
 	t := &ImportTransaction{
 		db:      dbSession,
-		basic:   NewWorker[*basicOutput](dbSession, "basic"),
-		nft:     NewWorker[*nft](dbSession, "nft"),
-		alias:   NewWorker[*alias](dbSession, "alias"),
-		foundry: NewWorker[*foundry](dbSession, "foundry"),
+		basic:   newImportWorker[*basicOutput](dbSession, "basic", log),
+		nft:     newImportWorker[*nft](dbSession, "nft", log),
+		alias:   newImportWorker[*alias](dbSession, "alias", log),
+		foundry: newImportWorker[*foundry](dbSession, "foundry", log),
 	}
 
 	return t
@@ -131,20 +139,20 @@ func newImportTransaction(db *gorm.DB) *ImportTransaction {
 
 func (i *ImportTransaction) AddOutput(output *inx.LedgerOutput) error {
 
-	op, err := opForOutput(output)
+	entry, err := entryForOutput(output)
 	if err != nil {
 		return err
 	}
 
-	switch o := op.(type) {
+	switch e := entry.(type) {
 	case *basicOutput:
-		i.basic.Enqueue(o)
+		i.basic.enqueue(e)
 	case *nft:
-		i.nft.Enqueue(o)
+		i.nft.enqueue(e)
 	case *alias:
-		i.alias.Enqueue(o)
+		i.alias.enqueue(e)
 	case *foundry:
-		i.foundry.Enqueue(o)
+		i.foundry.enqueue(e)
 	}
 
 	return nil
@@ -152,6 +160,7 @@ func (i *ImportTransaction) AddOutput(output *inx.LedgerOutput) error {
 
 func (i *ImportTransaction) Finalize(ledgerIndex uint32, protoParams *iotago.ProtocolParameters) error {
 
+	// drain all workers
 	i.basic.closeAndWait()
 	i.nft.closeAndWait()
 	i.alias.closeAndWait()

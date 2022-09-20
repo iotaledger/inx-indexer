@@ -253,9 +253,6 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 }
 
 func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iotago.ProtocolParameters) (int, error) {
-	// Drop the indexes while doing bulk inserts to speed-up insertion.
-	indexer.DropIndexes()
-
 	var innerErr error
 	receiveCtx, receiveCancel := context.WithCancel(ctx)
 
@@ -309,5 +306,5 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 	}
 
 	// Re-create the indexes.
-	return countReceive, indexer.CreateIndexes()
+	return countReceive, nil
 }
