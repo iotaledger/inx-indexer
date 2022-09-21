@@ -16,6 +16,7 @@ import (
 
 	"github.com/iotaledger/hive.go/core/app"
 	"github.com/iotaledger/hive.go/core/app/pkg/shutdown"
+	"github.com/iotaledger/hive.go/serializer/v2"
 	"github.com/iotaledger/inx-app/httpserver"
 	"github.com/iotaledger/inx-app/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/daemon"
@@ -328,7 +329,17 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 				break
 			}
 
-			if err := importer.AddOutput(unspentOutput.GetOutput()); err != nil {
+			output := unspentOutput.GetOutput()
+
+			unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
+			if err != nil {
+				innerErr = err
+				receiveCancel()
+
+				break
+			}
+
+			if err := importer.AddOutput(output.GetOutputId().Unwrap(), unwrapped, output.GetMilestoneTimestampBooked()); err != nil {
 				innerErr = err
 				receiveCancel()
 

@@ -13,7 +13,6 @@ import (
 	gormLogger "gorm.io/gorm/logger"
 
 	"github.com/iotaledger/hive.go/core/logger"
-	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
@@ -201,9 +200,9 @@ func newImportTransaction(db *gorm.DB, log *logger.Logger) *ImportTransaction {
 	return t
 }
 
-func (i *ImportTransaction) AddOutput(output *inx.LedgerOutput) error {
+func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Output, timestampBooked uint32) error {
 
-	entry, err := entryForOutput(output)
+	entry, err := entryForOutput(outputID, output, timestampBooked)
 	if err != nil {
 		return err
 	}

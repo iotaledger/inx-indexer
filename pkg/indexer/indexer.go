@@ -66,7 +66,15 @@ func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
 }
 
 func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
-	entry, err := entryForOutput(output)
+
+	unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
+	if err != nil {
+		return err
+	}
+
+	outputID := output.GetOutputId().Unwrap()
+
+	entry, err := entryForOutput(outputID, unwrapped, output.GetMilestoneTimestampBooked())
 	if err != nil {
 		return err
 	}
@@ -77,14 +85,9 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 	return nil
 }
 
-func entryForOutput(output *inx.LedgerOutput) (interface{}, error) {
-	unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	outputID := output.GetOutputId().Unwrap()
-	switch iotaOutput := unwrapped.(type) {
+func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBooked uint32) (interface{}, error) {
+	var err error
+	switch iotaOutput := output.(type) {
 	case *iotago.BasicOutput:
 		features := iotaOutput.FeatureSet()
 		conditions := iotaOutput.UnlockConditionSet()
@@ -92,7 +95,7 @@ func entryForOutput(output *inx.LedgerOutput) (interface{}, error) {
 		basic := &basicOutput{
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
 			NativeTokenCount: len(iotaOutput.NativeTokens),
-			CreatedAt:        unixTime(output.GetMilestoneTimestampBooked()),
+			CreatedAt:        unixTime(timestampBooked),
 		}
 		copy(basic.OutputID, outputID[:])
 
@@ -153,7 +156,7 @@ func entryForOutput(output *inx.LedgerOutput) (interface{}, error) {
 			AliasID:          make(aliasIDBytes, iotago.AliasIDLength),
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
 			NativeTokenCount: len(iotaOutput.NativeTokens),
-			CreatedAt:        unixTime(output.GetMilestoneTimestampBooked()),
+			CreatedAt:        unixTime(timestampBooked),
 		}
 		copy(alias.AliasID, aliasID[:])
 		copy(alias.OutputID, outputID[:])
@@ -203,7 +206,7 @@ func entryForOutput(output *inx.LedgerOutput) (interface{}, error) {
 			NFTID:            make(nftIDBytes, iotago.NFTIDLength),
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
 			NativeTokenCount: len(iotaOutput.NativeTokens),
-			CreatedAt:        unixTime(output.GetMilestoneTimestampBooked()),
+			CreatedAt:        unixTime(timestampBooked),
 		}
 		copy(nft.NFTID, nftID[:])
 		copy(nft.OutputID, outputID[:])
@@ -270,7 +273,7 @@ func entryForOutput(output *inx.LedgerOutput) (interface{}, error) {
 			FoundryID:        foundryID[:],
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
 			NativeTokenCount: len(iotaOutput.NativeTokens),
-			CreatedAt:        unixTime(output.GetMilestoneTimestampBooked()),
+			CreatedAt:        unixTime(timestampBooked),
 		}
 		copy(foundry.OutputID, outputID[:])
 
