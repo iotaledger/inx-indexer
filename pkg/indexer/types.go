@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/iotaledger/hive.go/serializer/v2"
+	"github.com/iotaledger/inx-indexer/pkg/database"
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
@@ -83,7 +84,18 @@ func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, 
 
 	query = query.Select("output_id").Order("created_at asc, output_id asc")
 	if pageSize > 0 {
-		query = query.Select("output_id", "printf('%08X', strftime('%s', `created_at`)) || hex(output_id) as cursor").Limit(int(pageSize + 1))
+		var cursorQuery string
+		//nolint:exhaustive // we have a default case.
+		switch i.engine {
+		case database.EngineSQLite:
+			cursorQuery = "printf('%08X', strftime('%s', `created_at`)) || hex(output_id) as cursor"
+		case database.EnginePostgreSQL:
+			cursorQuery = "lpad(to_hex(extract(epoch from created_at)::integer), 8, '0') || encode(output_id, 'hex') as cursor"
+		default:
+			i.LogErrorfAndExit("Unsupported db engine pagination queries: %s", i.engine)
+		}
+
+		query = query.Select("output_id", cursorQuery).Limit(int(pageSize + 1))
 
 		if cursor != nil {
 			if len(*cursor) != CursorLength {
@@ -97,7 +109,7 @@ func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, 
 	// This way we do not need to lock anything and we know the index matches the results.
 	//TODO: measure performance for big datasets
 	ledgerIndexQuery := i.db.Model(&Status{}).Select("ledger_index")
-	joinedQuery := i.db.Table("(?), (?)", query, ledgerIndexQuery)
+	joinedQuery := i.db.Table("(?) as results, (?) as status", query, ledgerIndexQuery)
 
 	var results queryResults
 

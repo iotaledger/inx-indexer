@@ -8,11 +8,11 @@ type ParametersIndexer struct {
 	Database struct {
 		// Database engine (sqlite or postgres)
 		Engine string `default:"sqlite" usage:"database engine (sqlite, postgres)"`
-		Sqlite struct {
+		SQLite struct {
 			// Path defines the path to the database folder
 			Path string `default:"database" usage:"the path to the database folder"`
 		} `name:"sqlite"`
-		Postgres struct {
+		PostgreSQL struct {
 			// Database name
 			Database string `default:"indexer" usage:"database name"`
 
@@ -27,7 +27,7 @@ type ParametersIndexer struct {
 
 			// Database port
 			Port uint `default:"5432" usage:"database port"`
-		} `name:"postgres"`
+		} `name:"postgresql"`
 	} `name:"db"`
 }
 

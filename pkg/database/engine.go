@@ -20,10 +20,10 @@ import (
 type Engine string
 
 const (
-	EngineUnknown  Engine = "unknown"
-	EngineAuto     Engine = "auto"
-	EngineSQLite   Engine = "sqlite"
-	EnginePostgres Engine = "postgres"
+	EngineUnknown    Engine = "unknown"
+	EngineAuto       Engine = "auto"
+	EngineSQLite     Engine = "sqlite"
+	EnginePostgreSQL Engine = "postgresql"
 )
 
 type databaseInfo struct {
@@ -55,8 +55,8 @@ func EngineFromString(engineStr string) (Engine, error) {
 		return EngineAuto, nil
 	case EngineSQLite:
 		return EngineSQLite, nil
-	case EnginePostgres:
-		return EnginePostgres, nil
+	case EnginePostgreSQL:
+		return EnginePostgreSQL, nil
 	default:
 		return EngineUnknown, fmt.Errorf("unknown database engine: %s, supported engines: sqlite", dbEngine)
 	}
@@ -85,7 +85,7 @@ func EngineAllowed(dbEngine Engine, allowedEngines ...Engine) (Engine, error) {
 	switch dbEngine {
 	case EngineAuto:
 	case EngineSQLite:
-	case EnginePostgres:
+	case EnginePostgreSQL:
 	default:
 		return "", fmt.Errorf("unknown database engine: %s, supported engines: sqlite", dbEngine)
 	}
@@ -212,11 +212,15 @@ func (l *sqliteLogger) Printf(t string, args ...interface{}) {
 	l.LogWarnf(t, args...)
 }
 
-func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, log *logger.Logger) (*gorm.DB, error) {
+func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, log *logger.Logger) (*gorm.DB, Engine, error) {
 
-	targetEngine, err := CheckEngine(dbParams.Path, createDatabaseIfNotExists, dbParams.Engine)
-	if err != nil {
-		return nil, err
+	targetEngine := dbParams.Engine
+	if len(dbParams.Path) > 0 {
+		var err error
+		targetEngine, err = CheckEngine(dbParams.Path, createDatabaseIfNotExists, dbParams.Engine)
+		if err != nil {
+			return nil, EngineUnknown, err
+		}
 	}
 
 	var dbDialector gorm.Dialector
@@ -226,14 +230,14 @@ func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, log
 	case EngineSQLite, EngineAuto:
 		dbFile := filepath.Join(dbParams.Path, "indexer.db")
 		dbDialector = sqlite.Open(fmt.Sprintf("file:%s?&_journal_mode=WAL&_busy_timeout=60000", dbFile))
-	case EnginePostgres:
+	case EnginePostgreSQL:
 		dsn := fmt.Sprintf("host='%s' user='%s' password='%s' dbname='%s' port=%d", dbParams.Host, dbParams.Username, dbParams.Password, dbParams.Database, dbParams.Port)
 		dbDialector = postgres.Open(dsn)
 	default:
-		return nil, fmt.Errorf("unknown database engine: %s, supported engines: sqlite, postgres", targetEngine)
+		return nil, EngineUnknown, fmt.Errorf("unknown database engine: %s, supported engines: sqlite, postgres", targetEngine)
 	}
 
-	return gorm.Open(dbDialector, &gorm.Config{
+	db, err := gorm.Open(dbDialector, &gorm.Config{
 		Logger: gormLogger.New(newLogger(log), gormLogger.Config{
 			SlowThreshold:             100 * time.Millisecond,
 			LogLevel:                  gormLogger.Warn,
@@ -241,4 +245,9 @@ func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, log
 			Colorful:                  false,
 		}),
 	})
+	if err != nil {
+		return nil, EngineUnknown, err
+	}
+
+	return db, targetEngine, nil
 }

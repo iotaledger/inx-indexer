@@ -69,15 +69,24 @@ func provide(c *dig.Container) error {
 			return nil, err
 		}
 
-		return indexer.NewIndexer(database.Params{
-			Engine:   engine,
-			Path:     ParamsIndexer.Database.Sqlite.Path,
-			Host:     ParamsIndexer.Database.Postgres.Host,
-			Port:     ParamsIndexer.Database.Postgres.Port,
-			Database: ParamsIndexer.Database.Postgres.Database,
-			Username: ParamsIndexer.Database.Postgres.Username,
-			Password: ParamsIndexer.Database.Postgres.Password,
-		}, CoreComponent.Logger())
+		dbParams := database.Params{
+			Engine: engine,
+		}
+
+		//nolint:exhaustive // we already checked the values is one of the valid ones
+		switch engine {
+		case database.EngineSQLite:
+			dbParams.Path = ParamsIndexer.Database.SQLite.Path
+
+		case database.EnginePostgreSQL:
+			dbParams.Host = ParamsIndexer.Database.PostgreSQL.Host
+			dbParams.Port = ParamsIndexer.Database.PostgreSQL.Port
+			dbParams.Database = ParamsIndexer.Database.PostgreSQL.Database
+			dbParams.Username = ParamsIndexer.Database.PostgreSQL.Username
+			dbParams.Password = ParamsIndexer.Database.PostgreSQL.Password
+		}
+
+		return indexer.NewIndexer(dbParams, CoreComponent.Logger())
 	}); err != nil {
 		return err
 	}

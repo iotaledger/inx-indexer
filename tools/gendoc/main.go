@@ -64,6 +64,8 @@ func main() {
 	replaceTopicNames["app"] = "Application"
 	replaceTopicNames["db"] = "Database"
 	replaceTopicNames["inx"] = "INX"
+	replaceTopicNames["sqlite"] = "SQLite"
+	replaceTopicNames["postgresql"] = "PostgreSQL"
 
 	application := indexerApp.App()
 

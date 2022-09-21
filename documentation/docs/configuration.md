@@ -125,9 +125,27 @@ Example:
 
 ### <a id="indexer_db"></a> Database
 
+| Name                                 | Description                        | Type   | Default value |
+| ------------------------------------ | ---------------------------------- | ------ | ------------- |
+| engine                               | Database engine (sqlite, postgres) | string | "sqlite"      |
+| [sqlite](#indexer_db_sqlite)         | Configuration for SQLite           | object |               |
+| [postgresql](#indexer_db_postgresql) | Configuration for PostgreSQL       | object |               |
+
+### <a id="indexer_db_sqlite"></a> SQLite
+
 | Name | Description                     | Type   | Default value |
 | ---- | ------------------------------- | ------ | ------------- |
 | path | The path to the database folder | string | "database"    |
+
+### <a id="indexer_db_postgresql"></a> PostgreSQL
+
+| Name     | Description       | Type   | Default value |
+| -------- | ----------------- | ------ | ------------- |
+| database | Database name     | string | "indexer"     |
+| username | Database username | string | "indexer"     |
+| password | Database password | string | ""            |
+| host     | Database host     | string | "localhost"   |
+| port     | Database port     | uint   | 5432          |
 
 Example:
 
@@ -135,7 +153,17 @@ Example:
   {
     "indexer": {
       "db": {
-        "path": "database"
+        "engine": "sqlite",
+        "sqlite": {
+          "path": "database"
+        },
+        "postgresql": {
+          "database": "indexer",
+          "username": "indexer",
+          "password": "",
+          "host": "localhost",
+          "port": 5432
+        }
       }
     }
   }

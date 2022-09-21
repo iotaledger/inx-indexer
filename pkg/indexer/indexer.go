@@ -26,12 +26,13 @@ var (
 
 type Indexer struct {
 	*logger.WrappedLogger
-	db *gorm.DB
+	db     *gorm.DB
+	engine database.Engine
 }
 
 func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) {
 
-	db, err := database.NewWithDefaultSettings(dbParams, true, log)
+	db, engine, err := database.NewWithDefaultSettings(dbParams, true, log)
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +40,7 @@ func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) 
 	return &Indexer{
 		WrappedLogger: logger.NewWrappedLogger(log),
 		db:            db,
+		engine:        engine,
 	}, nil
 }
 
