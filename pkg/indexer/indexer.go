@@ -29,9 +29,9 @@ type Indexer struct {
 	db *gorm.DB
 }
 
-func NewIndexer(dbPath string, log *logger.Logger) (*Indexer, error) {
+func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) {
 
-	db, err := database.NewWithDefaultSettings(dbPath, true, log)
+	db, err := database.NewWithDefaultSettings(dbParams, true, log)
 	if err != nil {
 		return nil, err
 	}

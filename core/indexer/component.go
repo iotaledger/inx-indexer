@@ -19,6 +19,7 @@ import (
 	"github.com/iotaledger/inx-app/httpserver"
 	"github.com/iotaledger/inx-app/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/daemon"
+	"github.com/iotaledger/inx-indexer/pkg/database"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	"github.com/iotaledger/inx-indexer/pkg/server"
 	inx "github.com/iotaledger/inx/go"
@@ -63,7 +64,20 @@ func provide(c *dig.Container) error {
 	if err := c.Provide(func() (*indexer.Indexer, error) {
 		CoreComponent.LogInfo("Setting up database ...")
 
-		return indexer.NewIndexer(ParamsIndexer.Database.Path, CoreComponent.Logger())
+		engine, err := database.EngineFromString(ParamsIndexer.Database.Engine)
+		if err != nil {
+			return nil, err
+		}
+
+		return indexer.NewIndexer(database.Params{
+			Engine:   engine,
+			Path:     ParamsIndexer.Database.Sqlite.Path,
+			Host:     ParamsIndexer.Database.Postgres.Host,
+			Port:     ParamsIndexer.Database.Postgres.Port,
+			Database: ParamsIndexer.Database.Postgres.Database,
+			Username: ParamsIndexer.Database.Postgres.Username,
+			Password: ParamsIndexer.Database.Postgres.Password,
+		}, CoreComponent.Logger())
 	}); err != nil {
 		return err
 	}
