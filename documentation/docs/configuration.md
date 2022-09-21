@@ -125,11 +125,11 @@ Example:
 
 ### <a id="indexer_db"></a> Database
 
-| Name                                 | Description                        | Type   | Default value |
-| ------------------------------------ | ---------------------------------- | ------ | ------------- |
-| engine                               | Database engine (sqlite, postgres) | string | "sqlite"      |
-| [sqlite](#indexer_db_sqlite)         | Configuration for SQLite           | object |               |
-| [postgresql](#indexer_db_postgresql) | Configuration for PostgreSQL       | object |               |
+| Name                                 | Description                          | Type   | Default value |
+| ------------------------------------ | ------------------------------------ | ------ | ------------- |
+| engine                               | Database engine (sqlite, postgresql) | string | "sqlite"      |
+| [sqlite](#indexer_db_sqlite)         | Configuration for SQLite             | object |               |
+| [postgresql](#indexer_db_postgresql) | Configuration for PostgreSQL         | object |               |
 
 ### <a id="indexer_db_sqlite"></a> SQLite
 

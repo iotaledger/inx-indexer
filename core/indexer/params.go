@@ -7,7 +7,7 @@ import (
 type ParametersIndexer struct {
 	Database struct {
 		// Database engine (sqlite or postgres)
-		Engine string `default:"sqlite" usage:"database engine (sqlite, postgres)"`
+		Engine string `default:"sqlite" usage:"database engine (sqlite, postgresql)"`
 		SQLite struct {
 			// Path defines the path to the database folder
 			Path string `default:"database" usage:"the path to the database folder"`
