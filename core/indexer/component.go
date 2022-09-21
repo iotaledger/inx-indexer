@@ -246,10 +246,6 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 				CoreComponent.LogInfof("> Network name changed: %s vs %s", status.NetworkName, protocolParams.NetworkName)
 				needsToClearIndexer = true
 
-			case nodeStatus.LedgerIndex < status.LedgerIndex:
-				CoreComponent.LogInfo("> Network has been reset: indexer index > ledger index")
-				needsToClearIndexer = true
-
 			case nodeStatus.GetLedgerPruningIndex() > status.LedgerIndex:
 				CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
 				needsToClearIndexer = true
