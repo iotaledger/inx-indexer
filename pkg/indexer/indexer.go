@@ -15,7 +15,7 @@ import (
 var (
 	ErrNotFound = errors.New("output not found for given filter")
 
-	tables = []interface{}{
+	dbTables = []interface{}{
 		&Status{},
 		&basicOutput{},
 		&nft{},
@@ -33,11 +33,6 @@ func NewIndexer(dbPath string, log *logger.Logger) (*Indexer, error) {
 
 	db, err := database.NewWithDefaultSettings(dbPath, true, log)
 	if err != nil {
-		return nil, err
-	}
-
-	// Create the tables and indexes if needed
-	if err := db.AutoMigrate(tables...); err != nil {
 		return nil, err
 	}
 
@@ -76,6 +71,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 	if err := tx.Create(entry).Error; err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -289,45 +285,64 @@ func entryForOutput(output *inx.LedgerOutput) (interface{}, error) {
 	return nil, errors.New("unknown output type")
 }
 
+func (i *Indexer) IsInitialized() bool {
+	return i.db.Migrator().HasTable(&Status{})
+}
+
+func (i *Indexer) CreateTables() error {
+	return i.db.Migrator().CreateTable(dbTables...)
+}
+
+func (i *Indexer) DropIndexes() error {
+	m := i.db.Migrator()
+	for _, table := range dbTables {
+		stmt := &gorm.Statement{DB: i.db}
+		if err := stmt.ParseWithSpecialTableName(table, ""); err != nil {
+			return err
+		}
+
+		for name := range stmt.Schema.ParseIndexes() {
+			if m.HasIndex(table, name) {
+				if err := m.DropIndex(table, name); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (i *Indexer) AutoMigrate() error {
+	// Create the tables and indexes if needed
+	return i.db.AutoMigrate(dbTables...)
+}
+
 func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
-
-	tx := i.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
+	return i.db.Transaction(func(tx *gorm.DB) error {
+		spentOutputs := make(map[string]struct{})
+		for _, spent := range update.Consumed {
+			outputID := spent.GetOutput().GetOutputId().GetId()
+			spentOutputs[string(outputID)] = struct{}{}
+			if err := processSpent(spent, tx); err != nil {
+				return err
+			}
 		}
-	}()
 
-	if err := tx.Error; err != nil {
-		return err
-	}
-
-	spentOutputs := make(map[string]struct{})
-	for _, spent := range update.Consumed {
-		outputID := spent.GetOutput().GetOutputId().GetId()
-		spentOutputs[string(outputID)] = struct{}{}
-		if err := processSpent(spent, tx); err != nil {
-			tx.Rollback()
-
-			return err
+		for _, output := range update.Created {
+			if _, wasSpentInSameMilestone := spentOutputs[string(output.GetOutputId().GetId())]; wasSpentInSameMilestone {
+				// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
+				continue
+			}
+			if err := processOutput(output, tx); err != nil {
+				return err
+			}
 		}
-	}
 
-	for _, output := range update.Created {
-		if _, wasSpentInSameMilestone := spentOutputs[string(output.GetOutputId().GetId())]; wasSpentInSameMilestone {
-			// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
-			continue
-		}
-		if err := processOutput(output, tx); err != nil {
-			tx.Rollback()
+		tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.MilestoneIndex)
 
-			return err
-		}
-	}
-
-	tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.MilestoneIndex)
-
-	return tx.Commit().Error
+		return nil
+	})
 }
 
 func (i *Indexer) Status() (*Status, error) {
@@ -345,13 +360,11 @@ func (i *Indexer) Status() (*Status, error) {
 
 func (i *Indexer) Clear() error {
 	// Drop all tables
-	for _, table := range tables {
-		if err := i.db.Migrator().DropTable(table); err != nil {
-			return err
-		}
+	if err := i.db.Migrator().DropTable(dbTables...); err != nil {
+		return err
 	}
 	// Re-create tables
-	return i.db.AutoMigrate(tables...)
+	return i.CreateTables()
 }
 
 func (i *Indexer) CloseDatabase() error {
