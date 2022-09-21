@@ -11,6 +11,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/dig"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 
 	"github.com/iotaledger/hive.go/core/app"
 	"github.com/iotaledger/hive.go/core/app/pkg/shutdown"
@@ -182,6 +184,9 @@ func run() error {
 }
 
 func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
+	var status *indexer.Status
+	var err error
+
 	needsToFillIndexer := false
 	needsToClearIndexer := false
 
@@ -191,35 +196,40 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		return nil, fmt.Errorf("the supported protocol version is %d but the node protocol is %d", supportedProtocolVersion, protocolParams.Version)
 	}
 
-	nodeStatus := deps.NodeBridge.NodeStatus()
-
-	// Checking initial indexer state
-	indexerStatus, err := deps.Indexer.Status()
-	if err != nil {
-		if !errors.Is(err, indexer.ErrNotFound) {
-			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
+	if !deps.Indexer.IsInitialized() {
+		// Starting indexer without a database
+		if err := deps.Indexer.CreateTables(); err != nil {
+			return nil, err
 		}
-		CoreComponent.LogInfo("Indexer is empty, so import initial ledger...")
 		needsToFillIndexer = true
 	} else {
-		switch {
+		// Checking current indexer state to see if it needs a reset or not
+		nodeStatus := deps.NodeBridge.NodeStatus()
+		status, err = deps.Indexer.Status()
+		if err != nil {
+			if !errors.Is(err, indexer.ErrNotFound) {
+				return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
+			}
+			CoreComponent.LogInfo("Indexer is empty, so import initial ledger...")
+			needsToFillIndexer = true
+		} else {
+			switch {
+			case status.ProtocolVersion != protocolParams.Version:
+				CoreComponent.LogInfof("> Network protocol version changed: %d vs %d", status.ProtocolVersion, protocolParams.Version)
+				needsToClearIndexer = true
 
-		case indexerStatus.ProtocolVersion != protocolParams.Version:
-			CoreComponent.LogInfof("> Network protocol version changed: %d vs %d", indexerStatus.ProtocolVersion, protocolParams.Version)
-			needsToClearIndexer = true
+			case status.NetworkName != protocolParams.NetworkName:
+				CoreComponent.LogInfof("> Network name changed: %s vs %s", status.NetworkName, protocolParams.NetworkName)
+				needsToClearIndexer = true
 
-		case indexerStatus.NetworkName != protocolParams.NetworkName:
-			CoreComponent.LogInfof("> Network name changed: %s vs %s", indexerStatus.NetworkName, protocolParams.NetworkName)
-			needsToClearIndexer = true
+			case nodeStatus.LedgerIndex < status.LedgerIndex:
+				CoreComponent.LogInfo("> Network has been reset: indexer index > ledger index")
+				needsToClearIndexer = true
 
-		case nodeStatus.LedgerIndex < indexerStatus.LedgerIndex:
-			CoreComponent.LogInfo("> Network has been reset: indexer index > ledger index")
-			needsToClearIndexer = true
-
-		case nodeStatus.GetLedgerPruningIndex() > indexerStatus.LedgerIndex:
-			CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
-			needsToClearIndexer = true
-
+			case nodeStatus.GetLedgerPruningIndex() > status.LedgerIndex:
+				CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
+				needsToClearIndexer = true
+			}
 		}
 	}
 
@@ -240,21 +250,36 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		}
 		duration := time.Since(timeStart)
 		// Read new ledgerIndex after filling up the indexer
-		indexerStatus, err = deps.Indexer.Status()
+		status, err = deps.Indexer.Status()
 		if err != nil {
 			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
 		}
-		CoreComponent.LogInfof("Importing initial ledger with %d outputs at index %d took %s", count, indexerStatus.LedgerIndex, duration.Truncate(time.Millisecond))
+		CoreComponent.LogInfo("Re-creating indexes")
+		if err := deps.Indexer.AutoMigrate(); err != nil {
+			return nil, err
+		}
+		CoreComponent.LogInfof("Importing initial ledger with %d outputs at index %d took %s", count, status.LedgerIndex, duration.Truncate(time.Millisecond))
 	} else {
-		CoreComponent.LogInfof("> Indexer started at ledgerIndex %d", indexerStatus.LedgerIndex)
+		CoreComponent.LogInfo("Checking database schema")
+		if err := deps.Indexer.AutoMigrate(); err != nil {
+			return nil, err
+		}
+		CoreComponent.LogInfof("> Indexer started at ledgerIndex %d", status.LedgerIndex)
 	}
 
-	return indexerStatus, nil
+	// Run auto migrate to make sure all required tables and indexes are there
+	return status, nil
 }
 
 func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iotago.ProtocolParameters) (int, error) {
-	var innerErr error
+
+	// Drop indexes to speed up data insertion
+	if err := deps.Indexer.DropIndexes(); err != nil {
+		return 0, err
+	}
+
 	receiveCtx, receiveCancel := context.WithCancel(ctx)
+	defer receiveCancel()
 
 	importer := indexer.ImportTransaction()
 
@@ -263,10 +288,12 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 		return 0, err
 	}
 
+	tsStart := time.Now()
+	p := message.NewPrinter(language.English)
+	var innerErr error
 	var ledgerIndex uint32
 	var countReceive int
 	go func() {
-		tsReceive := time.Now()
 		for {
 			unspentOutput, err := stream.Recv()
 			if err != nil {
@@ -274,12 +301,14 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 					innerErr = err
 				}
 				receiveCancel()
+
 				break
 			}
 
 			if err := importer.AddOutput(unspentOutput.GetOutput()); err != nil {
 				innerErr = err
 				receiveCancel()
+
 				return
 			}
 			outputLedgerIndex := unspentOutput.GetLedgerIndex()
@@ -288,9 +317,8 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 			}
 
 			countReceive++
-			if countReceive%100000 == 0 {
-				CoreComponent.LogInfof("received %d ... in %s", countReceive, time.Since(tsReceive).Truncate(time.Millisecond))
-				tsReceive = time.Now()
+			if countReceive%1_000_000 == 0 {
+				CoreComponent.LogInfo(p.Sprintf("received total=%d @ %.2f per second", countReceive, float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
 			}
 		}
 	}()
@@ -301,10 +329,11 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 		return 0, innerErr
 	}
 
+	CoreComponent.LogInfo(p.Sprintf("received total=%d in %s @ %.2f per second", countReceive, time.Since(tsStart).Truncate(time.Millisecond), float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
+
 	if err := importer.Finalize(ledgerIndex, protoParams); err != nil {
 		return 0, err
 	}
 
-	// Re-create the indexes.
 	return countReceive, nil
 }
