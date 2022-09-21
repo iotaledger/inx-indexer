@@ -31,16 +31,6 @@ type Indexer struct {
 	db *gorm.DB
 }
 
-func chainErr(errors ...error) error {
-	for _, err := range errors {
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) {
 
 	db, err := database.NewWithDefaultSettings(dbParams, true, log)
@@ -61,11 +51,6 @@ func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) 
 
 		// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
 		sqlDB.SetConnMaxLifetime(time.Hour)
-	}
-
-	// Create the tables and indexes if needed
-	if err := db.AutoMigrate(tables...); err != nil {
-		return nil, err
 	}
 
 	return &Indexer{
@@ -95,46 +80,19 @@ func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
 	return nil
 }
 
-func (i *Indexer) DropIndexes() error {
-	err := chainErr(
-		i.db.Migrator().DropIndex(&alias{}, "alias_governor"),
-		i.db.Migrator().DropIndex(&alias{}, "alias_issuer"),
-		i.db.Migrator().DropIndex(&alias{}, "alias_sender"),
-		i.db.Migrator().DropIndex(&alias{}, "alias_state_controller"),
-
-		i.db.Migrator().DropIndex(&basicOutput{}, "basic_outputs_address"),
-		i.db.Migrator().DropIndex(&basicOutput{}, "basic_outputs_sender_tag"),
-
-		i.db.Migrator().DropIndex(&foundry{}, "foundries_alias_address"),
-
-		i.db.Migrator().DropIndex(&nft{}, "nfts_address"),
-		i.db.Migrator().DropIndex(&nft{}, "nfts_issuer"),
-		i.db.Migrator().DropIndex(&nft{}, "nfts_sender_tag"),
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (i *Indexer) CreateIndexes() error {
-	return i.db.AutoMigrate(tables...)
-}
-
 func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
-	op, err := opForOutput(output)
+	entry, err := entryForOutput(output)
 	if err != nil {
 		return err
 	}
-	if err := tx.Create(op).Error; err != nil {
+	if err := tx.Create(entry).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func opForOutput(output *inx.LedgerOutput) (interface{}, error) {
+func entryForOutput(output *inx.LedgerOutput) (interface{}, error) {
 	unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
 	if err != nil {
 		return nil, err

@@ -225,7 +225,7 @@ func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, log
 	switch targetEngine {
 	case EngineSQLite, EngineAuto:
 		dbFile := filepath.Join(dbParams.Path, "indexer.db")
-		dbDialector = sqlite.Open(fmt.Sprintf("file:%s?&_journal_mode=WAL&_busy_timeout=60000", dbFile)
+		dbDialector = sqlite.Open(fmt.Sprintf("file:%s?&_journal_mode=WAL&_busy_timeout=60000", dbFile))
 	case EnginePostgres:
 		dsn := fmt.Sprintf("host='%s' user='%s' password='%s' dbname='%s' port=%d", dbParams.Host, dbParams.Username, dbParams.Password, dbParams.Database, dbParams.Port)
 		dbDialector = postgres.Open(dsn)

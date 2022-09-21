@@ -11,9 +11,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/dig"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 
 	"github.com/iotaledger/hive.go/core/app"
-	"github.com/iotaledger/hive.go/core/app/core/shutdown"
+	"github.com/iotaledger/hive.go/core/app/pkg/shutdown"
 	"github.com/iotaledger/inx-app/httpserver"
 	"github.com/iotaledger/inx-app/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/daemon"
@@ -284,27 +286,28 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 }
 
 func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iotago.ProtocolParameters) (int, error) {
-	// Drop the indexes while doing bulk inserts to speed-up insertion.
-	if err := indexer.DropIndexes(); err != nil {
+
+	// Drop indexes to speed up data insertion
+	if err := deps.Indexer.DropIndexes(); err != nil {
 		return 0, err
 	}
 
-	var innerErr error
 	receiveCtx, receiveCancel := context.WithCancel(ctx)
+	defer receiveCancel()
 
 	importer := indexer.ImportTransaction()
 
 	stream, err := deps.NodeBridge.Client().ReadUnspentOutputs(receiveCtx, &inx.NoParams{})
 	if err != nil {
-		receiveCancel()
-
 		return 0, err
 	}
 
+	tsStart := time.Now()
+	p := message.NewPrinter(language.English)
+	var innerErr error
 	var ledgerIndex uint32
 	var countReceive int
 	go func() {
-		tsReceive := time.Now()
 		for {
 			unspentOutput, err := stream.Recv()
 			if err != nil {
@@ -328,9 +331,8 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 			}
 
 			countReceive++
-			if countReceive%100000 == 0 {
-				CoreComponent.LogInfof("received %d ... in %s", countReceive, time.Since(tsReceive).Truncate(time.Millisecond))
-				tsReceive = time.Now()
+			if countReceive%1_000_000 == 0 {
+				CoreComponent.LogInfo(p.Sprintf("received total=%d @ %.2f per second", countReceive, float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
 			}
 		}
 	}()
@@ -341,10 +343,11 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 		return 0, innerErr
 	}
 
+	CoreComponent.LogInfo(p.Sprintf("received total=%d in %s @ %.2f per second", countReceive, time.Since(tsStart).Truncate(time.Millisecond), float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
+
 	if err := importer.Finalize(ledgerIndex, protoParams); err != nil {
 		return 0, err
 	}
 
-	// Re-create the indexes.
-	return countReceive, indexer.CreateIndexes()
+	return countReceive, nil
 }
