@@ -105,12 +105,13 @@ func convert() error {
 		return errors.New("indexer database already initialized")
 	}
 
-	log.Info("Creating tables")
+	log.Info("> Creating tables ...")
 	if err := idx.CreateTables(); err != nil {
 		return err
 	}
 
 	// Drop indexes to speed up data insertion
+	log.Info("> Dropping indexes to speed up insertion ...")
 	if err := idx.DropIndexes(); err != nil {
 		return err
 	}
@@ -118,7 +119,7 @@ func convert() error {
 	importer := idx.ImportTransaction()
 
 	ts := time.Now()
-	log.Info("Importing snapshot")
+	log.Info("> Importing snapshot ...")
 	var count int
 	var snapshotHeader *snapshot.FullSnapshotHeader
 	if err := snapshot.StreamFullSnapshotDataFrom(
@@ -155,12 +156,17 @@ func convert() error {
 		return err
 	}
 
-	log.Infof("Importing %d outputs took %s", count, time.Since(ts).Truncate(time.Millisecond))
-
-	log.Info("Creating indexes")
+	log.Info("> Creating indexes ...")
 	if err := idx.AutoMigrate(); err != nil {
 		return err
 	}
+
+	status, err := idx.Status()
+	if err != nil {
+		return err
+	}
+
+	log.Infof("> Importing initial ledger with %d outputs at index %d took %s", count, status.LedgerIndex, time.Since(ts).Truncate(time.Millisecond))
 
 	return idx.CloseDatabase()
 }
