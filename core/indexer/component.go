@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -107,8 +106,7 @@ func provide(c *dig.Container) error {
 
 func run() error {
 
-	indexerInitWaitGroup := &sync.WaitGroup{}
-	indexerInitWaitGroup.Add(1)
+	indexerInitWait := make(chan struct{})
 
 	// create a background worker that handles the indexer events
 	if err := CoreComponent.Daemon().BackgroundWorker("Indexer", func(ctx context.Context) {
@@ -125,7 +123,7 @@ func run() error {
 
 			return
 		}
-		indexerInitWaitGroup.Done()
+		close(indexerInitWait)
 
 		CoreComponent.LogInfo("Starting LedgerUpdates ... done")
 
@@ -152,8 +150,12 @@ func run() error {
 	if err := CoreComponent.Daemon().BackgroundWorker("API", func(ctx context.Context) {
 		CoreComponent.LogInfo("Starting API")
 
-		// we need to wait until the indexer is initialized before starting the API
-		indexerInitWaitGroup.Wait()
+		// we need to wait until the indexer is initialized before starting the API or the daemon is canceled before that is done.
+		select {
+		case <-ctx.Done():
+			return
+		case <-indexerInitWait:
+		}
 		CoreComponent.LogInfo("Starting API ... done")
 
 		CoreComponent.LogInfo("Starting API server ...")
