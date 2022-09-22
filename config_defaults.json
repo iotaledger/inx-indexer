@@ -26,7 +26,17 @@
   },
   "indexer": {
     "db": {
-      "path": "database"
+      "engine": "sqlite",
+      "sqlite": {
+        "path": "database"
+      },
+      "postgresql": {
+        "database": "indexer",
+        "username": "indexer",
+        "password": "",
+        "host": "localhost",
+        "port": 5432
+      }
     }
   },
   "restAPI": {

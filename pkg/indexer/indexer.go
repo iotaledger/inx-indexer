@@ -15,7 +15,7 @@ import (
 var (
 	ErrNotFound = errors.New("output not found for given filter")
 
-	tables = []interface{}{
+	dbTables = []interface{}{
 		&Status{},
 		&basicOutput{},
 		&nft{},
@@ -26,24 +26,21 @@ var (
 
 type Indexer struct {
 	*logger.WrappedLogger
-	db *gorm.DB
+	db     *gorm.DB
+	engine database.Engine
 }
 
-func NewIndexer(dbPath string, log *logger.Logger) (*Indexer, error) {
+func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) {
 
-	db, err := database.NewWithDefaultSettings(dbPath, true, log)
+	db, engine, err := database.NewWithDefaultSettings(dbParams, true, log)
 	if err != nil {
-		return nil, err
-	}
-
-	// Create the tables and indexes if needed
-	if err := db.AutoMigrate(tables...); err != nil {
 		return nil, err
 	}
 
 	return &Indexer{
 		WrappedLogger: logger.NewWrappedLogger(log),
 		db:            db,
+		engine:        engine,
 	}, nil
 }
 
@@ -69,13 +66,28 @@ func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
 }
 
 func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
+
 	unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
 	if err != nil {
 		return err
 	}
 
 	outputID := output.GetOutputId().Unwrap()
-	switch iotaOutput := unwrapped.(type) {
+
+	entry, err := entryForOutput(outputID, unwrapped, output.GetMilestoneTimestampBooked())
+	if err != nil {
+		return err
+	}
+	if err := tx.Create(entry).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBooked uint32) (interface{}, error) {
+	var err error
+	switch iotaOutput := output.(type) {
 	case *iotago.BasicOutput:
 		features := iotaOutput.FeatureSet()
 		conditions := iotaOutput.UnlockConditionSet()
@@ -83,14 +95,14 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		basic := &basicOutput{
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
 			NativeTokenCount: len(iotaOutput.NativeTokens),
-			CreatedAt:        unixTime(output.GetMilestoneTimestampBooked()),
+			CreatedAt:        unixTime(timestampBooked),
 		}
 		copy(basic.OutputID, outputID[:])
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
 			basic.Sender, err = addressBytesForAddress(senderBlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -102,7 +114,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		if addressUnlock := conditions.Address(); addressUnlock != nil {
 			basic.Address, err = addressBytesForAddress(addressUnlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -110,7 +122,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 			basic.StorageDepositReturn = &storageDepositReturn.Amount
 			basic.StorageDepositReturnAddress, err = addressBytesForAddress(storageDepositReturn.ReturnAddress)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -124,13 +136,11 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 			basic.ExpirationTime = &time
 			basic.ExpirationReturnAddress, err = addressBytesForAddress(expiration.ReturnAddress)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
-		if err := tx.Create(basic).Error; err != nil {
-			return err
-		}
+		return basic, nil
 
 	case *iotago.AliasOutput:
 		aliasID := iotaOutput.AliasID
@@ -146,7 +156,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 			AliasID:          make(aliasIDBytes, iotago.AliasIDLength),
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
 			NativeTokenCount: len(iotaOutput.NativeTokens),
-			CreatedAt:        unixTime(output.GetMilestoneTimestampBooked()),
+			CreatedAt:        unixTime(timestampBooked),
 		}
 		copy(alias.AliasID, aliasID[:])
 		copy(alias.OutputID, outputID[:])
@@ -154,34 +164,32 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		if issuerBlock := features.IssuerFeature(); issuerBlock != nil {
 			alias.Issuer, err = addressBytesForAddress(issuerBlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
 			alias.Sender, err = addressBytesForAddress(senderBlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		if stateController := conditions.StateControllerAddress(); stateController != nil {
 			alias.StateController, err = addressBytesForAddress(stateController.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		if governor := conditions.GovernorAddress(); governor != nil {
 			alias.Governor, err = addressBytesForAddress(governor.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
-		if err := tx.Create(alias).Error; err != nil {
-			return err
-		}
+		return alias, nil
 
 	case *iotago.NFTOutput:
 		features := iotaOutput.FeatureSet()
@@ -198,7 +206,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 			NFTID:            make(nftIDBytes, iotago.NFTIDLength),
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
 			NativeTokenCount: len(iotaOutput.NativeTokens),
-			CreatedAt:        unixTime(output.GetMilestoneTimestampBooked()),
+			CreatedAt:        unixTime(timestampBooked),
 		}
 		copy(nft.NFTID, nftID[:])
 		copy(nft.OutputID, outputID[:])
@@ -206,14 +214,14 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		if issuerBlock := features.IssuerFeature(); issuerBlock != nil {
 			nft.Issuer, err = addressBytesForAddress(issuerBlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
 			nft.Sender, err = addressBytesForAddress(senderBlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -225,7 +233,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 		if addressUnlock := conditions.Address(); addressUnlock != nil {
 			nft.Address, err = addressBytesForAddress(addressUnlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -233,7 +241,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 			nft.StorageDepositReturn = &storageDepositReturn.Amount
 			nft.StorageDepositReturnAddress, err = addressBytesForAddress(storageDepositReturn.ReturnAddress)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -247,87 +255,99 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 			nft.ExpirationTime = &time
 			nft.ExpirationReturnAddress, err = addressBytesForAddress(expiration.ReturnAddress)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
-		if err := tx.Create(nft).Error; err != nil {
-			return err
-		}
+		return nft, err
 
 	case *iotago.FoundryOutput:
 		conditions := iotaOutput.UnlockConditionSet()
 
 		foundryID, err := iotaOutput.ID()
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		foundry := &foundry{
 			FoundryID:        foundryID[:],
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
 			NativeTokenCount: len(iotaOutput.NativeTokens),
-			CreatedAt:        unixTime(output.GetMilestoneTimestampBooked()),
+			CreatedAt:        unixTime(timestampBooked),
 		}
 		copy(foundry.OutputID, outputID[:])
 
 		if aliasUnlock := conditions.ImmutableAlias(); aliasUnlock != nil {
 			foundry.AliasAddress, err = addressBytesForAddress(aliasUnlock.Address)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
-		if err := tx.Create(foundry).Error; err != nil {
+		return foundry, nil
+	}
+
+	return nil, errors.New("unknown output type")
+}
+
+func (i *Indexer) IsInitialized() bool {
+	return i.db.Migrator().HasTable(&Status{})
+}
+
+func (i *Indexer) CreateTables() error {
+	return i.db.Migrator().CreateTable(dbTables...)
+}
+
+func (i *Indexer) DropIndexes() error {
+	m := i.db.Migrator()
+	for _, table := range dbTables {
+		stmt := &gorm.Statement{DB: i.db}
+		if err := stmt.ParseWithSpecialTableName(table, ""); err != nil {
 			return err
 		}
 
-	default:
-		panic("Unknown output type")
+		for name := range stmt.Schema.ParseIndexes() {
+			if m.HasIndex(table, name) {
+				if err := m.DropIndex(table, name); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	return nil
 }
 
+func (i *Indexer) AutoMigrate() error {
+	// Create the tables and indexes if needed
+	return i.db.AutoMigrate(dbTables...)
+}
+
 func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
-
-	tx := i.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
+	return i.db.Transaction(func(tx *gorm.DB) error {
+		spentOutputs := make(map[string]struct{})
+		for _, spent := range update.Consumed {
+			outputID := spent.GetOutput().GetOutputId().GetId()
+			spentOutputs[string(outputID)] = struct{}{}
+			if err := processSpent(spent, tx); err != nil {
+				return err
+			}
 		}
-	}()
 
-	if err := tx.Error; err != nil {
-		return err
-	}
-
-	spentOutputs := make(map[string]struct{})
-	for _, spent := range update.Consumed {
-		outputID := spent.GetOutput().GetOutputId().GetId()
-		spentOutputs[string(outputID)] = struct{}{}
-		if err := processSpent(spent, tx); err != nil {
-			tx.Rollback()
-
-			return err
+		for _, output := range update.Created {
+			if _, wasSpentInSameMilestone := spentOutputs[string(output.GetOutputId().GetId())]; wasSpentInSameMilestone {
+				// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
+				continue
+			}
+			if err := processOutput(output, tx); err != nil {
+				return err
+			}
 		}
-	}
 
-	for _, output := range update.Created {
-		if _, wasSpentInSameMilestone := spentOutputs[string(output.GetOutputId().GetId())]; wasSpentInSameMilestone {
-			// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
-			continue
-		}
-		if err := processOutput(output, tx); err != nil {
-			tx.Rollback()
+		tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.MilestoneIndex)
 
-			return err
-		}
-	}
-
-	tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.MilestoneIndex)
-
-	return tx.Commit().Error
+		return nil
+	})
 }
 
 func (i *Indexer) Status() (*Status, error) {
@@ -345,13 +365,11 @@ func (i *Indexer) Status() (*Status, error) {
 
 func (i *Indexer) Clear() error {
 	// Drop all tables
-	for _, table := range tables {
-		if err := i.db.Migrator().DropTable(table); err != nil {
-			return err
-		}
+	if err := i.db.Migrator().DropTable(dbTables...); err != nil {
+		return err
 	}
 	// Re-create tables
-	return i.db.AutoMigrate(tables...)
+	return i.CreateTables()
 }
 
 func (i *Indexer) CloseDatabase() error {

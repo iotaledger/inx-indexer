@@ -6,17 +6,20 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/dig"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 
 	"github.com/iotaledger/hive.go/core/app"
 	"github.com/iotaledger/hive.go/core/app/pkg/shutdown"
+	"github.com/iotaledger/hive.go/serializer/v2"
 	"github.com/iotaledger/inx-app/httpserver"
 	"github.com/iotaledger/inx-app/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/daemon"
+	"github.com/iotaledger/inx-indexer/pkg/database"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	"github.com/iotaledger/inx-indexer/pkg/server"
 	inx "github.com/iotaledger/inx/go"
@@ -61,7 +64,29 @@ func provide(c *dig.Container) error {
 	if err := c.Provide(func() (*indexer.Indexer, error) {
 		CoreComponent.LogInfo("Setting up database ...")
 
-		return indexer.NewIndexer(ParamsIndexer.Database.Path, CoreComponent.Logger())
+		engine, err := database.EngineFromString(ParamsIndexer.Database.Engine)
+		if err != nil {
+			return nil, err
+		}
+
+		dbParams := database.Params{
+			Engine: engine,
+		}
+
+		//nolint:exhaustive // we already checked the values is one of the valid ones
+		switch engine {
+		case database.EngineSQLite:
+			dbParams.Path = ParamsIndexer.Database.SQLite.Path
+
+		case database.EnginePostgreSQL:
+			dbParams.Host = ParamsIndexer.Database.PostgreSQL.Host
+			dbParams.Port = ParamsIndexer.Database.PostgreSQL.Port
+			dbParams.Database = ParamsIndexer.Database.PostgreSQL.Database
+			dbParams.Username = ParamsIndexer.Database.PostgreSQL.Username
+			dbParams.Password = ParamsIndexer.Database.PostgreSQL.Password
+		}
+
+		return indexer.NewIndexer(dbParams, CoreComponent.Logger())
 	}); err != nil {
 		return err
 	}
@@ -81,8 +106,7 @@ func provide(c *dig.Container) error {
 
 func run() error {
 
-	indexerInitWaitGroup := &sync.WaitGroup{}
-	indexerInitWaitGroup.Add(1)
+	indexerInitWait := make(chan struct{})
 
 	// create a background worker that handles the indexer events
 	if err := CoreComponent.Daemon().BackgroundWorker("Indexer", func(ctx context.Context) {
@@ -99,7 +123,7 @@ func run() error {
 
 			return
 		}
-		indexerInitWaitGroup.Done()
+		close(indexerInitWait)
 
 		CoreComponent.LogInfo("Starting LedgerUpdates ... done")
 
@@ -126,8 +150,12 @@ func run() error {
 	if err := CoreComponent.Daemon().BackgroundWorker("API", func(ctx context.Context) {
 		CoreComponent.LogInfo("Starting API")
 
-		// we need to wait until the indexer is initialized before starting the API
-		indexerInitWaitGroup.Wait()
+		// we need to wait until the indexer is initialized before starting the API or the daemon is canceled before that is done.
+		select {
+		case <-ctx.Done():
+			return
+		case <-indexerInitWait:
+		}
 		CoreComponent.LogInfo("Starting API ... done")
 
 		CoreComponent.LogInfo("Starting API server ...")
@@ -182,6 +210,9 @@ func run() error {
 }
 
 func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
+	var status *indexer.Status
+	var err error
+
 	needsToFillIndexer := false
 	needsToClearIndexer := false
 
@@ -191,35 +222,36 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		return nil, fmt.Errorf("the supported protocol version is %d but the node protocol is %d", supportedProtocolVersion, protocolParams.Version)
 	}
 
-	nodeStatus := deps.NodeBridge.NodeStatus()
-
-	// Checking initial indexer state
-	indexerStatus, err := deps.Indexer.Status()
-	if err != nil {
-		if !errors.Is(err, indexer.ErrNotFound) {
-			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
+	if !deps.Indexer.IsInitialized() {
+		// Starting indexer without a database
+		if err := deps.Indexer.CreateTables(); err != nil {
+			return nil, err
 		}
-		CoreComponent.LogInfo("Indexer is empty, so import initial ledger...")
 		needsToFillIndexer = true
 	} else {
-		switch {
+		// Checking current indexer state to see if it needs a reset or not
+		nodeStatus := deps.NodeBridge.NodeStatus()
+		status, err = deps.Indexer.Status()
+		if err != nil {
+			if !errors.Is(err, indexer.ErrNotFound) {
+				return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
+			}
+			CoreComponent.LogInfo("Indexer is empty, so import initial ledger...")
+			needsToFillIndexer = true
+		} else {
+			switch {
+			case status.ProtocolVersion != protocolParams.Version:
+				CoreComponent.LogInfof("> Network protocol version changed: %d vs %d", status.ProtocolVersion, protocolParams.Version)
+				needsToClearIndexer = true
 
-		case indexerStatus.ProtocolVersion != protocolParams.Version:
-			CoreComponent.LogInfof("> Network protocol version changed: %d vs %d", indexerStatus.ProtocolVersion, protocolParams.Version)
-			needsToClearIndexer = true
+			case status.NetworkName != protocolParams.NetworkName:
+				CoreComponent.LogInfof("> Network name changed: %s vs %s", status.NetworkName, protocolParams.NetworkName)
+				needsToClearIndexer = true
 
-		case indexerStatus.NetworkName != protocolParams.NetworkName:
-			CoreComponent.LogInfof("> Network name changed: %s vs %s", indexerStatus.NetworkName, protocolParams.NetworkName)
-			needsToClearIndexer = true
-
-		case nodeStatus.LedgerIndex < indexerStatus.LedgerIndex:
-			CoreComponent.LogInfo("> Network has been reset: indexer index > ledger index")
-			needsToClearIndexer = true
-
-		case nodeStatus.GetLedgerPruningIndex() > indexerStatus.LedgerIndex:
-			CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
-			needsToClearIndexer = true
-
+			case nodeStatus.GetLedgerPruningIndex() > status.LedgerIndex:
+				CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
+				needsToClearIndexer = true
+			}
 		}
 	}
 
@@ -240,45 +272,105 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		}
 		duration := time.Since(timeStart)
 		// Read new ledgerIndex after filling up the indexer
-		indexerStatus, err = deps.Indexer.Status()
+		status, err = deps.Indexer.Status()
 		if err != nil {
 			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
 		}
-		CoreComponent.LogInfof("Importing initial ledger with %d outputs at index %d took %s", count, indexerStatus.LedgerIndex, duration.Truncate(time.Millisecond))
+		CoreComponent.LogInfo("Re-creating indexes")
+		// Run auto migrate to make sure all required tables and indexes are there
+		if err := deps.Indexer.AutoMigrate(); err != nil {
+			return nil, err
+		}
+		CoreComponent.LogInfof("Importing initial ledger with %d outputs at index %d took %s", count, status.LedgerIndex, duration.Truncate(time.Millisecond))
 	} else {
-		CoreComponent.LogInfof("> Indexer started at ledgerIndex %d", indexerStatus.LedgerIndex)
+		CoreComponent.LogInfo("Checking database schema")
+		// Run auto migrate to make sure all required tables and indexes are there
+		if err := deps.Indexer.AutoMigrate(); err != nil {
+			return nil, err
+		}
+		CoreComponent.LogInfof("> Indexer started at ledgerIndex %d", status.LedgerIndex)
 	}
 
-	return indexerStatus, nil
+	return status, nil
 }
 
 func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iotago.ProtocolParameters) (int, error) {
-	importer := indexer.ImportTransaction()
 
-	stream, err := deps.NodeBridge.Client().ReadUnspentOutputs(ctx, &inx.NoParams{})
+	// Drop indexes to speed up data insertion
+	if err := deps.Indexer.DropIndexes(); err != nil {
+		return 0, err
+	}
+
+	receiveCtx, receiveCancel := context.WithCancel(ctx)
+	defer receiveCancel()
+
+	importer := indexer.ImportTransaction(receiveCtx)
+
+	stream, err := deps.NodeBridge.Client().ReadUnspentOutputs(receiveCtx, &inx.NoParams{})
 	if err != nil {
 		return 0, err
 	}
 
-	var count int
+	tsStart := time.Now()
+	p := message.NewPrinter(language.English)
+	var innerErr error
 	var ledgerIndex uint32
-	for {
-		unspentOutput, err := stream.Recv()
-		if errors.Is(err, io.EOF) {
-			break
+	var countReceive int
+	go func() {
+		for {
+			unspentOutput, err := stream.Recv()
+			if err != nil {
+				if !errors.Is(err, io.EOF) {
+					innerErr = err
+				}
+				receiveCancel()
+
+				break
+			}
+
+			output := unspentOutput.GetOutput()
+
+			unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
+			if err != nil {
+				innerErr = err
+				receiveCancel()
+
+				break
+			}
+
+			if err := importer.AddOutput(output.GetOutputId().Unwrap(), unwrapped, output.GetMilestoneTimestampBooked()); err != nil {
+				innerErr = err
+				receiveCancel()
+
+				return
+			}
+			outputLedgerIndex := unspentOutput.GetLedgerIndex()
+			if ledgerIndex < outputLedgerIndex {
+				ledgerIndex = outputLedgerIndex
+			}
+
+			countReceive++
+			if countReceive%1_000_000 == 0 {
+				CoreComponent.LogInfo(p.Sprintf("received total=%d @ %.2f per second", countReceive, float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
+			}
 		}
-		if err != nil {
-			return 0, err
-		}
-		if err := importer.AddOutput(unspentOutput.GetOutput()); err != nil {
-			return 0, err
-		}
-		count++
-		outputLedgerIndex := unspentOutput.GetLedgerIndex()
-		if ledgerIndex < outputLedgerIndex {
-			ledgerIndex = outputLedgerIndex
-		}
+	}()
+
+	<-receiveCtx.Done()
+
+	if ctx.Err() != nil {
+		return 0, ctx.Err()
 	}
 
-	return count, importer.Finalize(ledgerIndex, protoParams)
+	if innerErr != nil {
+		return 0, innerErr
+	}
+
+	CoreComponent.LogInfo(p.Sprintf("received total=%d in %s @ %.2f per second", countReceive, time.Since(tsStart).Truncate(time.Millisecond), float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
+
+	if err := importer.Finalize(ledgerIndex, protoParams); err != nil {
+		return 0, err
+	}
+
+	return countReceive, nil
 }

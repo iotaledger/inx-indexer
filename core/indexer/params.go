@@ -6,8 +6,28 @@ import (
 
 type ParametersIndexer struct {
 	Database struct {
-		// Path defines the path to the database folder
-		Path string `default:"database" usage:"the path to the database folder"`
+		// Database engine (sqlite or postgres)
+		Engine string `default:"sqlite" usage:"database engine (sqlite, postgresql)"`
+		SQLite struct {
+			// Path defines the path to the database folder
+			Path string `default:"database" usage:"the path to the database folder"`
+		} `name:"sqlite"`
+		PostgreSQL struct {
+			// Database name
+			Database string `default:"indexer" usage:"database name"`
+
+			// Database username
+			Username string `default:"indexer" usage:"database username"`
+
+			// Database password
+			Password string `default:"" usage:"database password"`
+
+			// Database host
+			Host string `default:"localhost" usage:"database host"`
+
+			// Database port
+			Port uint `default:"5432" usage:"database port"`
+		} `name:"postgresql"`
 	} `name:"db"`
 }
 
