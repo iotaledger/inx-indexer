@@ -119,8 +119,7 @@ func (i *inserter[T]) Run(workerCount int, input <-chan []T) {
 			for b := range input {
 				batch := b
 				if err := i.db.Transaction(func(tx *gorm.DB) error {
-					tx.Create(batch)
-					return nil
+					return tx.Create(batch).Error
 				}); err != nil {
 					i.LogErrorAndExit(err)
 				}
