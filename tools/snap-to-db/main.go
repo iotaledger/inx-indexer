@@ -116,7 +116,7 @@ func convert() error {
 		return err
 	}
 
-	importer := idx.ImportTransaction()
+	importer := idx.ImportTransaction(context.Background())
 
 	ts := time.Now()
 	log.Info("> Importing snapshot ...")

@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sync"
@@ -55,7 +56,7 @@ func (b *batcher[T]) closeAndWait() {
 	close(b.output)
 }
 
-func (b *batcher[T]) Run(workerCount int) {
+func (b *batcher[T]) Run(ctx context.Context, workerCount int) {
 	for n := 0; n < workerCount; n++ {
 		workerName := fmt.Sprintf("batcher-%s-%d", b.name, n)
 		b.wg.Add(1)
@@ -68,6 +69,10 @@ func (b *batcher[T]) Run(workerCount int) {
 			batch := make([]T, 0, batchSize)
 			var count int
 			for item := range b.input {
+				if ctx.Err() != nil {
+					return
+				}
+
 				batch = append(batch, item)
 				count++
 				if count%batchSize == 0 {
@@ -102,7 +107,7 @@ func newImporter[T any](db *gorm.DB, log *logger.Logger) *inserter[T] {
 }
 
 //nolint:golint,revive // false positive.
-func (i *inserter[T]) Run(workerCount int, input <-chan []T) {
+func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T) {
 	for n := 0; n < workerCount; n++ {
 		workerName := fmt.Sprintf("inserter-%s-%d", i.name, n)
 		i.wg.Add(1)
@@ -117,6 +122,10 @@ func (i *inserter[T]) Run(workerCount int, input <-chan []T) {
 
 			var count int
 			for b := range input {
+				if ctx.Err() != nil {
+					return
+				}
+
 				batch := b
 				if err := i.db.Transaction(func(tx *gorm.DB) error {
 					return tx.Create(batch).Error
@@ -142,13 +151,13 @@ type processor[T any] struct {
 	importer *inserter[T]
 }
 
-func newProcessor[T any](db *gorm.DB, log *logger.Logger) *processor[T] {
+func newProcessor[T any](ctx context.Context, db *gorm.DB, log *logger.Logger) *processor[T] {
 	p := &processor[T]{
 		batcher:  newBatcher[T](log),
 		importer: newImporter[T](db, log),
 	}
-	p.batcher.Run(perBatcherWorkers)
-	p.importer.Run(perImporterWorkers, p.batcher.output)
+	p.batcher.Run(ctx, perBatcherWorkers)
+	p.importer.Run(ctx, perImporterWorkers, p.batcher.output)
 
 	return p
 }
@@ -164,8 +173,8 @@ func (p *processor[T]) closeAndWait() {
 	p.importer.closeAndWait()
 }
 
-func (i *Indexer) ImportTransaction() *ImportTransaction {
-	return newImportTransaction(i.db, i.Logger())
+func (i *Indexer) ImportTransaction(ctx context.Context) *ImportTransaction {
+	return newImportTransaction(ctx, i.db, i.Logger())
 }
 
 type ImportTransaction struct {
@@ -179,7 +188,7 @@ type ImportTransaction struct {
 	foundry *processor[*foundry]
 }
 
-func newImportTransaction(db *gorm.DB, log *logger.Logger) *ImportTransaction {
+func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) *ImportTransaction {
 	// use a session without logger and hooks to reduce the amount of work that needs to be done by gorm.
 	dbSession := db.Session(&gorm.Session{
 		SkipHooks:              true,
@@ -190,10 +199,10 @@ func newImportTransaction(db *gorm.DB, log *logger.Logger) *ImportTransaction {
 	t := &ImportTransaction{
 		WrappedLogger: logger.NewWrappedLogger(log),
 		db:            dbSession,
-		basic:         newProcessor[*basicOutput](dbSession, log),
-		nft:           newProcessor[*nft](dbSession, log),
-		alias:         newProcessor[*alias](dbSession, log),
-		foundry:       newProcessor[*foundry](dbSession, log),
+		basic:         newProcessor[*basicOutput](ctx, dbSession, log),
+		nft:           newProcessor[*nft](ctx, dbSession, log),
+		alias:         newProcessor[*alias](ctx, dbSession, log),
+		foundry:       newProcessor[*foundry](ctx, dbSession, log),
 	}
 
 	return t
