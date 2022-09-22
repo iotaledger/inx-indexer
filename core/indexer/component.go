@@ -275,19 +275,20 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
 		}
 		CoreComponent.LogInfo("Re-creating indexes")
+		// Run auto migrate to make sure all required tables and indexes are there
 		if err := deps.Indexer.AutoMigrate(); err != nil {
 			return nil, err
 		}
 		CoreComponent.LogInfof("Importing initial ledger with %d outputs at index %d took %s", count, status.LedgerIndex, duration.Truncate(time.Millisecond))
 	} else {
 		CoreComponent.LogInfo("Checking database schema")
+		// Run auto migrate to make sure all required tables and indexes are there
 		if err := deps.Indexer.AutoMigrate(); err != nil {
 			return nil, err
 		}
 		CoreComponent.LogInfof("> Indexer started at ledgerIndex %d", status.LedgerIndex)
 	}
 
-	// Run auto migrate to make sure all required tables and indexes are there
 	return status, nil
 }
 

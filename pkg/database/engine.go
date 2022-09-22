@@ -217,7 +217,7 @@ func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, log
 	targetEngine := dbParams.Engine
 	if len(dbParams.Path) > 0 {
 		var err error
-		targetEngine, err = CheckEngine(dbParams.Path, createDatabaseIfNotExists, dbParams.Engine)
+		targetEngine, err = CheckEngine(dbParams.Path, createDatabaseIfNotExists, EngineSQLite)
 		if err != nil {
 			return nil, EngineUnknown, err
 		}
