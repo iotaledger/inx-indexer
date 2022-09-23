@@ -94,7 +94,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 
 		basic := &basicOutput{
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
-			NativeTokenCount: len(iotaOutput.NativeTokens),
+			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
 			CreatedAt:        unixTime(timestampBooked),
 		}
 		copy(basic.OutputID, outputID[:])
@@ -155,7 +155,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 		alias := &alias{
 			AliasID:          make(aliasIDBytes, iotago.AliasIDLength),
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
-			NativeTokenCount: len(iotaOutput.NativeTokens),
+			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
 			CreatedAt:        unixTime(timestampBooked),
 		}
 		copy(alias.AliasID, aliasID[:])
@@ -205,7 +205,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 		nft := &nft{
 			NFTID:            make(nftIDBytes, iotago.NFTIDLength),
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
-			NativeTokenCount: len(iotaOutput.NativeTokens),
+			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
 			CreatedAt:        unixTime(timestampBooked),
 		}
 		copy(nft.NFTID, nftID[:])
@@ -272,7 +272,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 		foundry := &foundry{
 			FoundryID:        foundryID[:],
 			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
-			NativeTokenCount: len(iotaOutput.NativeTokens),
+			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
 			CreatedAt:        unixTime(timestampBooked),
 		}
 		copy(foundry.OutputID, outputID[:])

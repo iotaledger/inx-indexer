@@ -9,7 +9,7 @@ import (
 type alias struct {
 	AliasID          aliasIDBytes  `gorm:"primaryKey;notnull"`
 	OutputID         outputIDBytes `gorm:"unique;notnull"`
-	NativeTokenCount int           `gorm:"notnull"`
+	NativeTokenCount uint32        `gorm:"notnull;type:integer"`
 	StateController  addressBytes  `gorm:"notnull;index:alias_state_controller"`
 	Governor         addressBytes  `gorm:"notnull;index:alias_governor"`
 	Issuer           addressBytes  `gorm:"index:alias_issuer"`
@@ -125,7 +125,7 @@ func (i *Indexer) AliasOutputsWithFilters(filter ...AliasFilterOption) *IndexerR
 		if *opts.hasNativeTokens {
 			query = query.Where("native_token_count > 0")
 		} else {
-			query = query.Where("native_token_count == 0")
+			query = query.Where("native_token_count = 0")
 		}
 	}
 

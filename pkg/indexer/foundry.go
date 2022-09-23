@@ -9,7 +9,7 @@ import (
 type foundry struct {
 	FoundryID        foundryIDBytes `gorm:"primaryKey;notnull"`
 	OutputID         outputIDBytes  `gorm:"unique;notnull"`
-	NativeTokenCount int            `gorm:"notnull"`
+	NativeTokenCount uint32         `gorm:"notnull;type:integer"`
 	AliasAddress     addressBytes   `gorm:"notnull;index:foundries_alias_address"`
 	CreatedAt        time.Time      `gorm:"notnull;index:foundries_created_at"`
 }
@@ -101,7 +101,7 @@ func (i *Indexer) FoundryOutputsWithFilters(filters ...FoundryFilterOption) *Ind
 		if *opts.hasNativeTokens {
 			query = query.Where("native_token_count > 0")
 		} else {
-			query = query.Where("native_token_count == 0")
+			query = query.Where("native_token_count = 0")
 		}
 	}
 
