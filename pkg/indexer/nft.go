@@ -9,7 +9,7 @@ import (
 type nft struct {
 	NFTID                       nftIDBytes    `gorm:"primaryKey;notnull"`
 	OutputID                    outputIDBytes `gorm:"unique;notnull"`
-	NativeTokenCount            int           `gorm:"notnull"`
+	NativeTokenCount            uint32        `gorm:"notnull;type:integer"`
 	Issuer                      addressBytes  `gorm:"index:nfts_issuer"`
 	Sender                      addressBytes  `gorm:"index:nfts_sender_tag"`
 	Tag                         []byte        `gorm:"index:nfts_sender_tag"`
@@ -193,7 +193,7 @@ func (i *Indexer) NFTOutputsWithFilters(filters ...NFTFilterOption) *IndexerResu
 		if *opts.hasNativeTokens {
 			query = query.Where("native_token_count > 0")
 		} else {
-			query = query.Where("native_token_count == 0")
+			query = query.Where("native_token_count = 0")
 		}
 	}
 

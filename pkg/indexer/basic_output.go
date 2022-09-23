@@ -8,7 +8,7 @@ import (
 
 type basicOutput struct {
 	OutputID                    outputIDBytes `gorm:"primaryKey;notnull"`
-	NativeTokenCount            int           `gorm:"notnull"`
+	NativeTokenCount            uint32        `gorm:"notnull;type:integer"`
 	Sender                      addressBytes  `gorm:"index:basic_outputs_sender_tag"`
 	Tag                         []byte        `gorm:"index:basic_outputs_sender_tag"`
 	Address                     addressBytes  `gorm:"notnull;index:basic_outputs_address"`
@@ -176,7 +176,7 @@ func (i *Indexer) BasicOutputsWithFilters(filters ...BasicOutputFilterOption) *I
 		if *opts.hasNativeTokens {
 			query = query.Where("native_token_count > 0")
 		} else {
-			query = query.Where("native_token_count == 0")
+			query = query.Where("native_token_count = 0")
 		}
 	}
 
