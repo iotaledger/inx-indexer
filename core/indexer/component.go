@@ -301,10 +301,13 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 		return 0, err
 	}
 
+	importerCtx, importCancel := context.WithCancel(ctx)
+	defer importCancel()
+
+	importer := indexer.ImportTransaction(importerCtx)
+
 	receiveCtx, receiveCancel := context.WithCancel(ctx)
 	defer receiveCancel()
-
-	importer := indexer.ImportTransaction(receiveCtx)
 
 	stream, err := deps.NodeBridge.Client().ReadUnspentOutputs(receiveCtx, &inx.NoParams{})
 	if err != nil {
