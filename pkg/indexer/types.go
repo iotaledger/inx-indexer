@@ -101,7 +101,15 @@ func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, 
 			if len(*cursor) != CursorLength {
 				return errorResult(errors.Errorf("Invalid cursor length: %d", len(*cursor)))
 			}
-			query = query.Where("cursor >= ?", strings.ToUpper(*cursor))
+			//nolint:exhaustive // we have a default case.
+			switch i.engine {
+			case database.EngineSQLite:
+				query = query.Where("cursor >= ?", strings.ToUpper(*cursor))
+			case database.EnginePostgreSQL:
+				query = query.Where("lpad(to_hex(extract(epoch from created_at)::integer), 8, '0') || encode(output_id, 'hex') >= ?", *cursor)
+			default:
+				i.LogErrorfAndExit("Unsupported db engine pagination queries: %s", i.engine)
+			}
 		}
 	}
 
