@@ -5,18 +5,11 @@ module.exports = {
         [
             '@docusaurus/plugin-content-docs',
             {
-                id: 'inx-indexer-develop',
+                id: 'inx-indexer',
                 path: path.resolve(__dirname, 'docs'),
                 routeBasePath: 'inx-indexer',
                 sidebarPath: path.resolve(__dirname, 'sidebars.js'),
                 editUrl: 'https://github.com/iotaledger/inx-indexer/edit/develop/documentation',
-                versions: {
-                    current: {
-                        label: 'Develop',
-                        path: 'develop',
-                        badge: true
-                    },
-                },
             }
         ],
     ],
