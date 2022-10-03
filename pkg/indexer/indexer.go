@@ -150,6 +150,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 		}
 
 		features := iotaOutput.FeatureSet()
+		immutableFeatures := iotaOutput.ImmutableFeatureSet()
 		conditions := iotaOutput.UnlockConditionSet()
 
 		alias := &alias{
@@ -161,7 +162,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 		copy(alias.AliasID, aliasID[:])
 		copy(alias.OutputID, outputID[:])
 
-		if issuerBlock := features.IssuerFeature(); issuerBlock != nil {
+		if issuerBlock := immutableFeatures.IssuerFeature(); issuerBlock != nil {
 			alias.Issuer, err = addressBytesForAddress(issuerBlock.Address)
 			if err != nil {
 				return nil, err
@@ -193,6 +194,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 
 	case *iotago.NFTOutput:
 		features := iotaOutput.FeatureSet()
+		immutableFeatures := iotaOutput.ImmutableFeatureSet()
 		conditions := iotaOutput.UnlockConditionSet()
 
 		nftID := iotaOutput.NFTID
@@ -211,7 +213,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 		copy(nft.NFTID, nftID[:])
 		copy(nft.OutputID, outputID[:])
 
-		if issuerBlock := features.IssuerFeature(); issuerBlock != nil {
+		if issuerBlock := immutableFeatures.IssuerFeature(); issuerBlock != nil {
 			nft.Issuer, err = addressBytesForAddress(issuerBlock.Address)
 			if err != nil {
 				return nil, err
