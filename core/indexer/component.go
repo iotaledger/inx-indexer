@@ -27,6 +27,10 @@ import (
 )
 
 const (
+	DBVersion uint32 = 2
+)
+
+const (
 	APIRoute = "indexer/v1"
 )
 
@@ -248,6 +252,10 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 				CoreComponent.LogInfof("> Network name changed: %s vs %s", status.NetworkName, protocolParams.NetworkName)
 				needsToClearIndexer = true
 
+			case status.DatabaseVersion != DBVersion:
+				CoreComponent.LogInfof("> Indexer database version changed: %d vs %d", status.DatabaseVersion, DBVersion)
+				needsToClearIndexer = true
+
 			case nodeStatus.GetLedgerPruningIndex() > status.LedgerIndex:
 				CoreComponent.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
 				needsToClearIndexer = true
@@ -371,7 +379,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 
 	CoreComponent.LogInfo(p.Sprintf("received total=%d in %s @ %.2f per second", countReceive, time.Since(tsStart).Truncate(time.Millisecond), float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
 
-	if err := importer.Finalize(ledgerIndex, protoParams); err != nil {
+	if err := importer.Finalize(ledgerIndex, protoParams, DBVersion); err != nil {
 		return 0, err
 	}
 
