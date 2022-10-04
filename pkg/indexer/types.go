@@ -31,6 +31,7 @@ type Status struct {
 	LedgerIndex     uint32
 	ProtocolVersion byte
 	NetworkName     string
+	DatabaseVersion uint32
 }
 
 type queryResult struct {

@@ -229,7 +229,7 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 	return nil
 }
 
-func (i *ImportTransaction) Finalize(ledgerIndex uint32, protoParams *iotago.ProtocolParameters) error {
+func (i *ImportTransaction) Finalize(ledgerIndex uint32, protoParams *iotago.ProtocolParameters, databaseVersion uint32) error {
 
 	// drain all processors
 	i.basic.closeAndWait()
@@ -245,6 +245,7 @@ func (i *ImportTransaction) Finalize(ledgerIndex uint32, protoParams *iotago.Pro
 		LedgerIndex:     ledgerIndex,
 		ProtocolVersion: protoParams.Version,
 		NetworkName:     protoParams.NetworkName,
+		DatabaseVersion: databaseVersion,
 	}
 	i.db.Clauses(clause.OnConflict{
 		UpdateAll: true,
