@@ -16,7 +16,7 @@ require (
 	go.uber.org/dig v1.15.0
 	golang.org/x/text v0.3.7
 	gorm.io/driver/postgres v1.3.10
-	gorm.io/driver/sqlite v1.3.6
+	gorm.io/driver/sqlite v1.4.1
 	gorm.io/gorm v1.23.10
 )
 
