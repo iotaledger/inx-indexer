@@ -1,6 +1,8 @@
 package indexer
 
 import (
+	"encoding/hex"
+	"fmt"
 	"time"
 
 	iotago "github.com/iotaledger/iota.go/v3"
@@ -12,6 +14,10 @@ type foundry struct {
 	NativeTokenCount uint32         `gorm:"notnull;type:integer"`
 	AliasAddress     addressBytes   `gorm:"notnull;index:foundries_alias_address"`
 	CreatedAt        time.Time      `gorm:"notnull;index:foundries_created_at"`
+}
+
+func (o *foundry) String() string {
+	return fmt.Sprintf("foundry output => foundryID: %s outputID: %s", hex.EncodeToString(o.FoundryID), hex.EncodeToString(o.OutputID))
 }
 
 type FoundryFilterOptions struct {

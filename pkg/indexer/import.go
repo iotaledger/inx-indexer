@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm/clause"
 	gormLogger "gorm.io/gorm/logger"
 
-	"github.com/iotaledger/hive.go/core/logger"
+	"github.com/iotaledger/hive.go/logger"
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
@@ -146,12 +146,12 @@ func (i *inserter[T]) closeAndWait() {
 	i.wg.Wait()
 }
 
-type processor[T any] struct {
+type processor[T fmt.Stringer] struct {
 	batcher  *batcher[T]
 	importer *inserter[T]
 }
 
-func newProcessor[T any](ctx context.Context, db *gorm.DB, log *logger.Logger) *processor[T] {
+func newProcessor[T fmt.Stringer](ctx context.Context, db *gorm.DB, log *logger.Logger) *processor[T] {
 	p := &processor[T]{
 		batcher:  newBatcher[T](log),
 		importer: newImporter[T](db, log),
