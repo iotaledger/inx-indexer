@@ -4,11 +4,11 @@ go 1.20
 
 require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/iotaledger/hive.go/app v0.0.0-20230414110654-96c760895037
-	github.com/iotaledger/hive.go/logger v0.0.0-20230414110654-96c760895037
-	github.com/iotaledger/hive.go/runtime v0.0.0-20230414110654-96c760895037
-	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20230414110654-96c760895037
-	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20230414112003-d6664fecf195
+	github.com/iotaledger/hive.go/app v0.0.0-20230417125513-e2e89991217f
+	github.com/iotaledger/hive.go/logger v0.0.0-20230417125513-e2e89991217f
+	github.com/iotaledger/hive.go/runtime v0.0.0-20230417125513-e2e89991217f
+	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20230417125513-e2e89991217f
+	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20230417173151-cde47df5fe79
 	github.com/iotaledger/inx/go v1.0.0-rc.2
 	github.com/iotaledger/iota.go/v3 v3.0.0-rc.2
 	github.com/labstack/echo-contrib v0.14.1
@@ -47,10 +47,10 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/holiman/uint256 v1.2.2 // indirect
 	github.com/iancoleman/orderedmap v0.2.0 // indirect
-	github.com/iotaledger/hive.go/constraints v0.0.0-20230414110654-96c760895037 // indirect
-	github.com/iotaledger/hive.go/ds v0.0.0-20230414110654-96c760895037 // indirect
-	github.com/iotaledger/hive.go/lo v0.0.0-20230414110654-96c760895037 // indirect
-	github.com/iotaledger/hive.go/stringify v0.0.0-20230414110654-96c760895037 // indirect
+	github.com/iotaledger/hive.go/constraints v0.0.0-20230417125513-e2e89991217f // indirect
+	github.com/iotaledger/hive.go/ds v0.0.0-20230417125513-e2e89991217f // indirect
+	github.com/iotaledger/hive.go/lo v0.0.0-20230417125513-e2e89991217f // indirect
+	github.com/iotaledger/hive.go/stringify v0.0.0-20230417125513-e2e89991217f // indirect
 	github.com/iotaledger/iota.go v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect

@@ -13,7 +13,7 @@ import (
 	"github.com/iotaledger/hive.go/logger"
 	"github.com/iotaledger/hornet/v2/pkg/model/utxo"
 	"github.com/iotaledger/hornet/v2/pkg/snapshot"
-	indexerComponent "github.com/iotaledger/inx-indexer/core/indexer"
+	indexerComponent "github.com/iotaledger/inx-indexer/components/indexer"
 	"github.com/iotaledger/inx-indexer/pkg/database"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v3"

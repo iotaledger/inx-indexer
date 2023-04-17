@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/iotaledger/inx-indexer/core/app"
+	"github.com/iotaledger/inx-indexer/components/app"
 )
 
 func main() {
