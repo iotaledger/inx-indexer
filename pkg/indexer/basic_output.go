@@ -1,9 +1,7 @@
 package indexer
 
 import (
-	"time"
-
-	iotago "github.com/iotaledger/iota.go/v3"
+	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 type basicOutput struct {
@@ -12,12 +10,12 @@ type basicOutput struct {
 	Sender                      addressBytes  `gorm:"index:basic_outputs_sender_tag"`
 	Tag                         []byte        `gorm:"index:basic_outputs_sender_tag"`
 	Address                     addressBytes  `gorm:"notnull;index:basic_outputs_address"`
-	StorageDepositReturn        *uint64
+	StorageDepositReturn        *iotago.BaseToken
 	StorageDepositReturnAddress addressBytes `gorm:"index:basic_outputs_storage_deposit_return_address"`
-	TimelockTime                *time.Time
-	ExpirationTime              *time.Time
-	ExpirationReturnAddress     addressBytes `gorm:"index:basic_outputs_expiration_return_address"`
-	CreatedAt                   time.Time    `gorm:"notnull;index:basic_outputs_created_at"`
+	TimelockSlot                *iotago.SlotIndex
+	ExpirationSlot              *iotago.SlotIndex
+	ExpirationReturnAddress     addressBytes     `gorm:"index:basic_outputs_expiration_return_address"`
+	CreatedAt                   iotago.SlotIndex `gorm:"notnull;index:basic_outputs_created_at"`
 }
 
 type BasicOutputFilterOptions struct {
@@ -29,17 +27,17 @@ type BasicOutputFilterOptions struct {
 	storageDepositReturnAddress      *iotago.Address
 	hasExpirationCondition           *bool
 	expirationReturnAddress          *iotago.Address
-	expiresBefore                    *time.Time
-	expiresAfter                     *time.Time
+	expiresBefore                    *iotago.SlotIndex
+	expiresAfter                     *iotago.SlotIndex
 	hasTimelockCondition             *bool
-	timelockedBefore                 *time.Time
-	timelockedAfter                  *time.Time
+	timelockedBefore                 *iotago.SlotIndex
+	timelockedAfter                  *iotago.SlotIndex
 	sender                           *iotago.Address
 	tag                              []byte
 	pageSize                         uint32
 	cursor                           *string
-	createdBefore                    *time.Time
-	createdAfter                     *time.Time
+	createdBefore                    *iotago.SlotIndex
+	createdAfter                     *iotago.SlotIndex
 }
 
 type BasicOutputFilterOption func(*BasicOutputFilterOptions)
@@ -86,15 +84,15 @@ func BasicOutputHasExpirationCondition(value bool) BasicOutputFilterOption {
 	}
 }
 
-func BasicOutputExpiresBefore(time time.Time) BasicOutputFilterOption {
+func BasicOutputExpiresBefore(slot iotago.SlotIndex) BasicOutputFilterOption {
 	return func(args *BasicOutputFilterOptions) {
-		args.expiresBefore = &time
+		args.expiresBefore = &slot
 	}
 }
 
-func BasicOutputExpiresAfter(time time.Time) BasicOutputFilterOption {
+func BasicOutputExpiresAfter(slot iotago.SlotIndex) BasicOutputFilterOption {
 	return func(args *BasicOutputFilterOptions) {
-		args.expiresAfter = &time
+		args.expiresAfter = &slot
 	}
 }
 
@@ -104,15 +102,15 @@ func BasicOutputHasTimelockCondition(value bool) BasicOutputFilterOption {
 	}
 }
 
-func BasicOutputTimelockedBefore(time time.Time) BasicOutputFilterOption {
+func BasicOutputTimelockedBefore(slot iotago.SlotIndex) BasicOutputFilterOption {
 	return func(args *BasicOutputFilterOptions) {
-		args.timelockedBefore = &time
+		args.timelockedBefore = &slot
 	}
 }
 
-func BasicOutputTimelockedAfter(time time.Time) BasicOutputFilterOption {
+func BasicOutputTimelockedAfter(slot iotago.SlotIndex) BasicOutputFilterOption {
 	return func(args *BasicOutputFilterOptions) {
-		args.timelockedAfter = &time
+		args.timelockedAfter = &slot
 	}
 }
 
@@ -146,15 +144,15 @@ func BasicOutputCursor(cursor string) BasicOutputFilterOption {
 	}
 }
 
-func BasicOutputCreatedBefore(time time.Time) BasicOutputFilterOption {
+func BasicOutputCreatedBefore(slot iotago.SlotIndex) BasicOutputFilterOption {
 	return func(args *BasicOutputFilterOptions) {
-		args.createdBefore = &time
+		args.createdBefore = &slot
 	}
 }
 
-func BasicOutputCreatedAfter(time time.Time) BasicOutputFilterOption {
+func BasicOutputCreatedAfter(slot iotago.SlotIndex) BasicOutputFilterOption {
 	return func(args *BasicOutputFilterOptions) {
-		args.createdAfter = &time
+		args.createdAfter = &slot
 	}
 }
 

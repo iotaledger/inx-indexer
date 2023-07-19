@@ -11,7 +11,7 @@ import (
 
 	"github.com/iotaledger/inx-app/pkg/httpserver"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
-	iotago "github.com/iotaledger/iota.go/v3"
+	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 const (
@@ -26,18 +26,18 @@ const (
 	// Returns an empty list if no results are found.
 	RouteOutputsBasic = "/outputs/basic"
 
-	// RouteOutputsAliases is the route for getting aliases filtered by the given parameters.
+	// RouteOutputsAccounts is the route for getting accounts filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
 	//					 "stateController", "governor", "issuer", "sender",
 	//					 "createdBefore", "createdAfter"
 	// Query parameters:
 	// Returns an empty list if no results are found.
-	RouteOutputsAliases = "/outputs/alias"
+	RouteOutputsAccounts = "/outputs/account"
 
-	// RouteOutputsAliasByID is the route for getting aliases by their aliasID.
+	// RouteOutputsAccountByID is the route for getting accounts by their accountID.
 	// GET returns the outputIDs or 404 if no record is found.
-	RouteOutputsAliasByID = "/outputs/alias/:" + ParameterAliasID
+	RouteOutputsAccountByID = "/outputs/account/:" + ParameterAccountID
 
 	// RouteOutputsNFTs is the route for getting NFT filtered by the given parameters.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
@@ -64,6 +64,10 @@ const (
 	RouteOutputsFoundryByID = "/outputs/foundry/:" + ParameterFoundryID
 )
 
+const (
+	MaxTagLength = 64
+)
+
 func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 
 	routeGroup.GET(RouteOutputsBasic, func(c echo.Context) error {
@@ -75,7 +79,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return c.JSON(http.StatusOK, resp)
 	})
 
-	routeGroup.GET(RouteOutputsAliases, func(c echo.Context) error {
+	routeGroup.GET(RouteOutputsAccounts, func(c echo.Context) error {
 		resp, err := s.aliasesWithFilter(c)
 		if err != nil {
 			return err
@@ -84,7 +88,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return c.JSON(http.StatusOK, resp)
 	})
 
-	routeGroup.GET(RouteOutputsAliasByID, func(c echo.Context) error {
+	routeGroup.GET(RouteOutputsAccountByID, func(c echo.Context) error {
 		resp, err := s.aliasByID(c)
 		if err != nil {
 			return err
@@ -198,19 +202,19 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresBefore)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterExpiresBefore)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterExpiresBefore)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputExpiresBefore(timestamp))
+		filters = append(filters, indexer.BasicOutputExpiresBefore(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresAfter)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterExpiresAfter)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterExpiresAfter)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputExpiresAfter(timestamp))
+		filters = append(filters, indexer.BasicOutputExpiresAfter(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterHasTimelock)) > 0 {
@@ -222,19 +226,19 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedBefore)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterTimelockedBefore)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterTimelockedBefore)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputTimelockedBefore(timestamp))
+		filters = append(filters, indexer.BasicOutputTimelockedBefore(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedAfter)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterTimelockedAfter)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterTimelockedAfter)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputTimelockedAfter(timestamp))
+		filters = append(filters, indexer.BasicOutputTimelockedAfter(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterSender)) > 0 {
@@ -246,7 +250,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterTag)) > 0 {
-		tagBytes, err := httpserver.ParseHexQueryParam(c, QueryParameterTag, iotago.MaxTagLength)
+		tagBytes, err := httpserver.ParseHexQueryParam(c, QueryParameterTag, MaxTagLength)
 		if err != nil {
 			return nil, err
 		}
@@ -262,42 +266,42 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedBefore)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedBefore)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputCreatedBefore(timestamp))
+		filters = append(filters, indexer.BasicOutputCreatedBefore(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedAfter)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedAfter)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputCreatedAfter(timestamp))
+		filters = append(filters, indexer.BasicOutputCreatedAfter(slot))
 	}
 
 	return outputsResponseFromResult(s.Indexer.BasicOutputsWithFilters(filters...))
 }
 
 func (s *IndexerServer) aliasByID(c echo.Context) (*outputsResponse, error) {
-	aliasID, err := httpserver.ParseAliasIDParam(c, ParameterAliasID)
+	accountID, err := httpserver.ParseAccountIDParam(c, ParameterAccountID)
 	if err != nil {
 		return nil, err
 	}
 
-	return singleOutputResponseFromResult(s.Indexer.AliasOutput(aliasID))
+	return singleOutputResponseFromResult(s.Indexer.AccountOutput(accountID))
 }
 
 func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, error) {
-	filters := []indexer.AliasFilterOption{indexer.AliasPageSize(s.pageSizeFromContext(c))}
+	filters := []indexer.AccountFilterOption{indexer.AccountPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
 		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.AliasHasNativeTokens(value))
+		filters = append(filters, indexer.AccountHasNativeTokens(value))
 	}
 
 	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
@@ -305,7 +309,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.AliasMinNativeTokenCount(value))
+		filters = append(filters, indexer.AccountMinNativeTokenCount(value))
 	}
 
 	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
@@ -313,7 +317,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.AliasMaxNativeTokenCount(value))
+		filters = append(filters, indexer.AccountMaxNativeTokenCount(value))
 	}
 
 	if len(c.QueryParam(QueryParameterStateController)) > 0 {
@@ -321,7 +325,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.AliasStateController(stateController))
+		filters = append(filters, indexer.AccountStateController(stateController))
 	}
 
 	if len(c.QueryParam(QueryParameterGovernor)) > 0 {
@@ -329,7 +333,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.AliasGovernor(governor))
+		filters = append(filters, indexer.AccountGovernor(governor))
 	}
 
 	if len(c.QueryParam(QueryParameterIssuer)) > 0 {
@@ -337,7 +341,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.AliasIssuer(issuer))
+		filters = append(filters, indexer.AccountIssuer(issuer))
 	}
 
 	if len(c.QueryParam(QueryParameterSender)) > 0 {
@@ -345,7 +349,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.AliasSender(sender))
+		filters = append(filters, indexer.AccountSender(sender))
 	}
 
 	if len(c.QueryParam(QueryParameterCursor)) > 0 {
@@ -353,26 +357,26 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.AliasCursor(cursor), indexer.AliasPageSize(pageSize))
+		filters = append(filters, indexer.AccountCursor(cursor), indexer.AccountPageSize(pageSize))
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedBefore)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedBefore)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.AliasCreatedBefore(timestamp))
+		filters = append(filters, indexer.AccountCreatedBefore(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedAfter)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedAfter)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.AliasCreatedAfter(timestamp))
+		filters = append(filters, indexer.AccountCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.AliasOutputsWithFilters(filters...))
+	return outputsResponseFromResult(s.Indexer.AccountOutputsWithFilters(filters...))
 }
 
 func (s *IndexerServer) nftByID(c echo.Context) (*outputsResponse, error) {
@@ -452,19 +456,19 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresBefore)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterExpiresBefore)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterExpiresBefore)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.NFTExpiresBefore(timestamp))
+		filters = append(filters, indexer.NFTExpiresBefore(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresAfter)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterExpiresAfter)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterExpiresAfter)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.NFTExpiresAfter(timestamp))
+		filters = append(filters, indexer.NFTExpiresAfter(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterHasTimelock)) > 0 {
@@ -476,19 +480,19 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedBefore)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterTimelockedBefore)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterTimelockedBefore)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.NFTTimelockedBefore(timestamp))
+		filters = append(filters, indexer.NFTTimelockedBefore(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedAfter)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterTimelockedAfter)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterTimelockedAfter)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.NFTTimelockedAfter(timestamp))
+		filters = append(filters, indexer.NFTTimelockedAfter(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterIssuer)) > 0 {
@@ -508,7 +512,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterTag)) > 0 {
-		tagBytes, err := httpserver.ParseHexQueryParam(c, QueryParameterTag, iotago.MaxTagLength)
+		tagBytes, err := httpserver.ParseHexQueryParam(c, QueryParameterTag, MaxTagLength)
 		if err != nil {
 			return nil, err
 		}
@@ -524,19 +528,19 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedBefore)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedBefore)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.NFTCreatedBefore(timestamp))
+		filters = append(filters, indexer.NFTCreatedBefore(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedAfter)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedAfter)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.NFTCreatedAfter(timestamp))
+		filters = append(filters, indexer.NFTCreatedAfter(slot))
 	}
 
 	return outputsResponseFromResult(s.Indexer.NFTOutputsWithFilters(filters...))
@@ -578,17 +582,17 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 		filters = append(filters, indexer.FoundryMaxNativeTokenCount(value))
 	}
 
-	if len(c.QueryParam(QueryParameterAliasAddress)) > 0 {
-		address, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAliasAddress)
+	if len(c.QueryParam(QueryParameterAccountAddress)) > 0 {
+		address, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAccountAddress)
 		if err != nil {
 			return nil, err
 		}
-		if address.Type() != iotago.AddressAlias {
+		if address.Type() != iotago.AddressAccount {
 			return nil, errors.WithMessagef(httpserver.ErrInvalidParameter, "invalid address: %s, not an alias address", address.Bech32(s.Bech32HRP))
 		}
 
 		//nolint:forcetypeassert // we already checked the type
-		filters = append(filters, indexer.FoundryWithAliasAddress(address.(*iotago.AliasAddress)))
+		filters = append(filters, indexer.FoundryWithAccountAddress(address.(*iotago.AccountAddress)))
 	}
 
 	if len(c.QueryParam(QueryParameterCursor)) > 0 {
@@ -600,19 +604,19 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedBefore)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedBefore)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.FoundryCreatedBefore(timestamp))
+		filters = append(filters, indexer.FoundryCreatedBefore(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
-		timestamp, err := httpserver.ParseUnixTimestampQueryParam(c, QueryParameterCreatedAfter)
+		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedAfter)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.FoundryCreatedAfter(timestamp))
+		filters = append(filters, indexer.FoundryCreatedAfter(slot))
 	}
 
 	return outputsResponseFromResult(s.Indexer.FoundryOutputsWithFilters(filters...))

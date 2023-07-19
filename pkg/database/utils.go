@@ -3,7 +3,7 @@ package database
 import (
 	"fmt"
 
-	"github.com/iotaledger/hive.go/core/ioutils"
+	"github.com/iotaledger/hive.go/runtime/ioutils"
 )
 
 // Exists checks if the database folder exists and is not empty.

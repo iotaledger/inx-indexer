@@ -1,28 +1,26 @@
 package indexer
 
 import (
-	"time"
-
-	iotago "github.com/iotaledger/iota.go/v3"
+	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 type foundry struct {
-	FoundryID        foundryIDBytes `gorm:"primaryKey;notnull"`
-	OutputID         outputIDBytes  `gorm:"unique;notnull"`
-	NativeTokenCount uint32         `gorm:"notnull;type:integer"`
-	AliasAddress     addressBytes   `gorm:"notnull;index:foundries_alias_address"`
-	CreatedAt        time.Time      `gorm:"notnull;index:foundries_created_at"`
+	FoundryID        foundryIDBytes   `gorm:"primaryKey;notnull"`
+	OutputID         outputIDBytes    `gorm:"unique;notnull"`
+	NativeTokenCount uint32           `gorm:"notnull;type:integer"`
+	AccountAddress   addressBytes     `gorm:"notnull;index:foundries_account_address"`
+	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:foundries_created_at"`
 }
 
 type FoundryFilterOptions struct {
 	hasNativeTokens     *bool
 	minNativeTokenCount *uint32
 	maxNativeTokenCount *uint32
-	aliasAddress        *iotago.AliasAddress
+	accountAddress      *iotago.AccountAddress
 	pageSize            uint32
 	cursor              *string
-	createdBefore       *time.Time
-	createdAfter        *time.Time
+	createdBefore       *iotago.SlotIndex
+	createdAfter        *iotago.SlotIndex
 }
 
 type FoundryFilterOption func(*FoundryFilterOptions)
@@ -45,9 +43,9 @@ func FoundryMaxNativeTokenCount(value uint32) FoundryFilterOption {
 	}
 }
 
-func FoundryWithAliasAddress(address *iotago.AliasAddress) FoundryFilterOption {
+func FoundryWithAccountAddress(address *iotago.AccountAddress) FoundryFilterOption {
 	return func(args *FoundryFilterOptions) {
-		args.aliasAddress = address
+		args.accountAddress = address
 	}
 }
 
@@ -63,15 +61,15 @@ func FoundryCursor(cursor string) FoundryFilterOption {
 	}
 }
 
-func FoundryCreatedBefore(time time.Time) FoundryFilterOption {
+func FoundryCreatedBefore(slot iotago.SlotIndex) FoundryFilterOption {
 	return func(args *FoundryFilterOptions) {
-		args.createdBefore = &time
+		args.createdBefore = &slot
 	}
 }
 
-func FoundryCreatedAfter(time time.Time) FoundryFilterOption {
+func FoundryCreatedAfter(slot iotago.SlotIndex) FoundryFilterOption {
 	return func(args *FoundryFilterOptions) {
-		args.createdAfter = &time
+		args.createdAfter = &slot
 	}
 }
 
@@ -113,8 +111,8 @@ func (i *Indexer) FoundryOutputsWithFilters(filters ...FoundryFilterOption) *Ind
 		query = query.Where("native_token_count <= ?", *opts.maxNativeTokenCount)
 	}
 
-	if opts.aliasAddress != nil {
-		addr, err := addressBytesForAddress(opts.aliasAddress)
+	if opts.accountAddress != nil {
+		addr, err := addressBytesForAddress(opts.accountAddress)
 		if err != nil {
 			return errorResult(err)
 		}

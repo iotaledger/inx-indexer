@@ -1,23 +1,21 @@
 package indexer
 
 import (
-	"time"
-
-	iotago "github.com/iotaledger/iota.go/v3"
+	iotago "github.com/iotaledger/iota.go/v4"
 )
 
-type alias struct {
-	AliasID          aliasIDBytes  `gorm:"primaryKey;notnull"`
-	OutputID         outputIDBytes `gorm:"unique;notnull"`
-	NativeTokenCount uint32        `gorm:"notnull;type:integer"`
-	StateController  addressBytes  `gorm:"notnull;index:alias_state_controller"`
-	Governor         addressBytes  `gorm:"notnull;index:alias_governor"`
-	Issuer           addressBytes  `gorm:"index:alias_issuer"`
-	Sender           addressBytes  `gorm:"index:alias_sender"`
-	CreatedAt        time.Time     `gorm:"notnull;index:alias_created_at"`
+type account struct {
+	AccountID        accountIDBytes   `gorm:"primaryKey;notnull"`
+	OutputID         outputIDBytes    `gorm:"unique;notnull"`
+	NativeTokenCount uint32           `gorm:"notnull;type:integer"`
+	StateController  addressBytes     `gorm:"notnull;index:account_state_controller"`
+	Governor         addressBytes     `gorm:"notnull;index:account_governor"`
+	Issuer           addressBytes     `gorm:"index:account_issuer"`
+	Sender           addressBytes     `gorm:"index:account_sender"`
+	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:alias_created_at"`
 }
 
-type AliasFilterOptions struct {
+type AccountFilterOptions struct {
 	hasNativeTokens     *bool
 	minNativeTokenCount *uint32
 	maxNativeTokenCount *uint32
@@ -27,80 +25,80 @@ type AliasFilterOptions struct {
 	sender              *iotago.Address
 	pageSize            uint32
 	cursor              *string
-	createdBefore       *time.Time
-	createdAfter        *time.Time
+	createdBefore       *iotago.SlotIndex
+	createdAfter        *iotago.SlotIndex
 }
 
-type AliasFilterOption func(*AliasFilterOptions)
+type AccountFilterOption func(*AccountFilterOptions)
 
-func AliasHasNativeTokens(value bool) AliasFilterOption {
-	return func(args *AliasFilterOptions) {
+func AccountHasNativeTokens(value bool) AccountFilterOption {
+	return func(args *AccountFilterOptions) {
 		args.hasNativeTokens = &value
 	}
 }
 
-func AliasMinNativeTokenCount(value uint32) AliasFilterOption {
-	return func(args *AliasFilterOptions) {
+func AccountMinNativeTokenCount(value uint32) AccountFilterOption {
+	return func(args *AccountFilterOptions) {
 		args.minNativeTokenCount = &value
 	}
 }
 
-func AliasMaxNativeTokenCount(value uint32) AliasFilterOption {
-	return func(args *AliasFilterOptions) {
+func AccountMaxNativeTokenCount(value uint32) AccountFilterOption {
+	return func(args *AccountFilterOptions) {
 		args.maxNativeTokenCount = &value
 	}
 }
 
-func AliasStateController(address iotago.Address) AliasFilterOption {
-	return func(args *AliasFilterOptions) {
+func AccountStateController(address iotago.Address) AccountFilterOption {
+	return func(args *AccountFilterOptions) {
 		args.stateController = &address
 	}
 }
 
-func AliasGovernor(address iotago.Address) AliasFilterOption {
-	return func(args *AliasFilterOptions) {
+func AccountGovernor(address iotago.Address) AccountFilterOption {
+	return func(args *AccountFilterOptions) {
 		args.governor = &address
 	}
 }
 
-func AliasSender(address iotago.Address) AliasFilterOption {
-	return func(args *AliasFilterOptions) {
+func AccountSender(address iotago.Address) AccountFilterOption {
+	return func(args *AccountFilterOptions) {
 		args.sender = &address
 	}
 }
 
-func AliasIssuer(address iotago.Address) AliasFilterOption {
-	return func(args *AliasFilterOptions) {
+func AccountIssuer(address iotago.Address) AccountFilterOption {
+	return func(args *AccountFilterOptions) {
 		args.issuer = &address
 	}
 }
 
-func AliasPageSize(pageSize uint32) AliasFilterOption {
-	return func(args *AliasFilterOptions) {
+func AccountPageSize(pageSize uint32) AccountFilterOption {
+	return func(args *AccountFilterOptions) {
 		args.pageSize = pageSize
 	}
 }
 
-func AliasCursor(cursor string) AliasFilterOption {
-	return func(args *AliasFilterOptions) {
+func AccountCursor(cursor string) AccountFilterOption {
+	return func(args *AccountFilterOptions) {
 		args.cursor = &cursor
 	}
 }
 
-func AliasCreatedBefore(time time.Time) AliasFilterOption {
-	return func(args *AliasFilterOptions) {
-		args.createdBefore = &time
+func AccountCreatedBefore(slot iotago.SlotIndex) AccountFilterOption {
+	return func(args *AccountFilterOptions) {
+		args.createdBefore = &slot
 	}
 }
 
-func AliasCreatedAfter(time time.Time) AliasFilterOption {
-	return func(args *AliasFilterOptions) {
-		args.createdAfter = &time
+func AccountCreatedAfter(slot iotago.SlotIndex) AccountFilterOption {
+	return func(args *AccountFilterOptions) {
+		args.createdAfter = &slot
 	}
 }
 
-func aliasFilterOptions(optionalOptions []AliasFilterOption) *AliasFilterOptions {
-	result := &AliasFilterOptions{}
+func accountFilterOptions(optionalOptions []AccountFilterOption) *AccountFilterOptions {
+	result := &AccountFilterOptions{}
 
 	for _, optionalOption := range optionalOptions {
 		optionalOption(result)
@@ -109,17 +107,17 @@ func aliasFilterOptions(optionalOptions []AliasFilterOption) *AliasFilterOptions
 	return result
 }
 
-func (i *Indexer) AliasOutput(aliasID *iotago.AliasID) *IndexerResult {
-	query := i.db.Model(&alias{}).
-		Where("alias_id = ?", aliasID[:]).
+func (i *Indexer) AccountOutput(accountID *iotago.AccountID) *IndexerResult {
+	query := i.db.Model(&account{}).
+		Where("account_id = ?", accountID[:]).
 		Limit(1)
 
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) AliasOutputsWithFilters(filter ...AliasFilterOption) *IndexerResult {
-	opts := aliasFilterOptions(filter)
-	query := i.db.Model(&alias{})
+func (i *Indexer) AccountOutputsWithFilters(filter ...AccountFilterOption) *IndexerResult {
+	opts := accountFilterOptions(filter)
+	query := i.db.Model(&account{})
 
 	if opts.hasNativeTokens != nil {
 		if *opts.hasNativeTokens {
