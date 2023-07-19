@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -16,7 +15,6 @@ import (
 
 	"github.com/iotaledger/hive.go/app"
 	"github.com/iotaledger/hive.go/app/shutdown"
-	"github.com/iotaledger/hive.go/serializer/v2"
 	"github.com/iotaledger/inx-app/pkg/httpserver"
 	"github.com/iotaledger/inx-app/pkg/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/daemon"
@@ -24,16 +22,16 @@ import (
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	"github.com/iotaledger/inx-indexer/pkg/server"
 	inx "github.com/iotaledger/inx/go"
-	iotago "github.com/iotaledger/iota.go/v3"
+	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 const (
 	DBVersion uint32 = 2
 )
 
-// supportedProtocolVersion is the supported protocol version
-// the application will exit if the node protocol version is not matched.
-const supportedProtocolVersion = 2
+const (
+	APIRoute = "indexer/v1"
+)
 
 func init() {
 	Component = &app.Component{
@@ -90,13 +88,17 @@ func provide(c *dig.Container) error {
 		return err
 	}
 
-	return c.Provide(func() *echo.Echo {
+	if err := c.Provide(func() *echo.Echo {
 		return httpserver.NewEcho(
 			Component.Logger(),
 			nil,
 			ParamsRestAPI.DebugRequestLoggerEnabled,
 		)
-	})
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func run() error {
@@ -128,7 +130,7 @@ func run() error {
 				return err
 			}
 
-			Component.LogInfof("Applying milestone %d with %d new and %d consumed outputs took %s", update.MilestoneIndex, len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
+			Component.LogInfof("Applying slot %d with %d new and %d consumed outputs took %s", update.SlotIndex, len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
 
 			return nil
 		}); err != nil {
@@ -155,7 +157,7 @@ func run() error {
 
 		Component.LogInfo("Starting API server ...")
 
-		_ = server.NewIndexerServer(deps.Indexer, deps.Echo, deps.NodeBridge.ProtocolParameters().Bech32HRP, ParamsRestAPI.MaxPageSize)
+		_ = server.NewIndexerServer(deps.Indexer, deps.Echo.Group(""), deps.NodeBridge.APIProvider().CurrentAPI().ProtocolParameters().Bech32HRP(), ParamsRestAPI.MaxPageSize)
 
 		go func() {
 			Component.LogInfof("You can now access the API using: http://%s", ParamsRestAPI.BindAddress)
@@ -171,9 +173,7 @@ func run() error {
 			advertisedAddress = ParamsRestAPI.AdvertiseAddress
 		}
 
-		routeName := strings.Replace(server.APIRoute, "/api/", "", 1)
-
-		if err := deps.NodeBridge.RegisterAPIRoute(ctxRegister, routeName, advertisedAddress, server.APIRoute); err != nil {
+		if err := deps.NodeBridge.RegisterAPIRoute(ctxRegister, APIRoute, advertisedAddress, ""); err != nil {
 			Component.LogErrorfAndExit("Registering INX api route failed: %s", err)
 		}
 		cancelRegister()
@@ -186,7 +186,7 @@ func run() error {
 		defer cancelUnregister()
 
 		//nolint:contextcheck // false positive
-		if err := deps.NodeBridge.UnregisterAPIRoute(ctxUnregister, routeName); err != nil {
+		if err := deps.NodeBridge.UnregisterAPIRoute(ctxUnregister, APIRoute); err != nil {
 			Component.LogWarnf("Unregistering INX api route failed: %s", err)
 		}
 
@@ -213,11 +213,8 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 	needsToFillIndexer := false
 	needsToClearIndexer := false
 
-	protocolParams := deps.NodeBridge.ProtocolParameters()
-	// check protocol version
-	if protocolParams.Version != supportedProtocolVersion {
-		return nil, fmt.Errorf("the supported protocol version is %d but the node protocol is %d", supportedProtocolVersion, protocolParams.Version)
-	}
+	nodeStatus := deps.NodeBridge.NodeStatus()
+	fmt.Println(nodeStatus)
 
 	if !deps.Indexer.IsInitialized() {
 		// Starting indexer without a database
@@ -227,7 +224,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		needsToFillIndexer = true
 	} else {
 		// Checking current indexer state to see if it needs a reset or not
-		nodeStatus := deps.NodeBridge.NodeStatus()
+		//nodeStatus := deps.NodeBridge.NodeStatus()
 		status, err = deps.Indexer.Status()
 		if err != nil {
 			if !errors.Is(err, indexer.ErrNotFound) {
@@ -237,21 +234,18 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 			needsToFillIndexer = true
 		} else {
 			switch {
-			case status.ProtocolVersion != protocolParams.Version:
-				Component.LogInfof("> Network protocol version changed: %d vs %d", status.ProtocolVersion, protocolParams.Version)
-				needsToClearIndexer = true
-
-			case status.NetworkName != protocolParams.NetworkName:
-				Component.LogInfof("> Network name changed: %s vs %s", status.NetworkName, protocolParams.NetworkName)
+			case status.NetworkName != deps.NodeBridge.APIProvider().CurrentAPI().ProtocolParameters().NetworkName():
+				Component.LogInfof("> Network name changed: %s vs %s", status.NetworkName, deps.NodeBridge.APIProvider().CurrentAPI().ProtocolParameters().NetworkName())
 				needsToClearIndexer = true
 
 			case status.DatabaseVersion != DBVersion:
 				Component.LogInfof("> Indexer database version changed: %d vs %d", status.DatabaseVersion, DBVersion)
 				needsToClearIndexer = true
 
-			case nodeStatus.GetLedgerPruningIndex() > status.LedgerIndex:
-				Component.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
-				needsToClearIndexer = true
+				//TODO: add pruning slot to node status
+				//case nodeStatus.GetLedgerPruningIndex() > status.LedgerIndex:
+				//	Component.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
+				//	needsToClearIndexer = true
 			}
 		}
 	}
@@ -268,7 +262,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		// Indexer is empty, so import initial ledger state from the node
 		timeStart := time.Now()
 		var count int
-		if count, err = fillIndexer(ctx, deps.Indexer, protocolParams); err != nil {
+		if count, err = fillIndexer(ctx, deps.Indexer); err != nil {
 			return nil, fmt.Errorf("filling Indexer failed! Error: %w", err)
 		}
 		duration := time.Since(timeStart)
@@ -295,7 +289,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 	return status, nil
 }
 
-func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iotago.ProtocolParameters) (int, error) {
+func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 
 	// Drop indexes to speed up data insertion
 	if err := deps.Indexer.DropIndexes(); err != nil {
@@ -318,7 +312,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 	tsStart := time.Now()
 	p := message.NewPrinter(language.English)
 	var innerErr error
-	var ledgerIndex uint32
+	var ledgerIndex iotago.SlotIndex
 	var countReceive int
 	go func() {
 		for {
@@ -333,8 +327,9 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 			}
 
 			output := unspentOutput.GetOutput()
+			slotBooked := iotago.SlotIndex(output.GetSlotBooked())
 
-			unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
+			unwrapped, err := output.UnwrapOutput(deps.NodeBridge.APIProvider().APIForSlot(slotBooked), nil)
 			if err != nil {
 				innerErr = err
 				receiveCancel()
@@ -342,13 +337,13 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 				break
 			}
 
-			if err := importer.AddOutput(output.GetOutputId().Unwrap(), unwrapped, output.GetMilestoneTimestampBooked()); err != nil {
+			if err := importer.AddOutput(output.GetOutputId().Unwrap(), unwrapped, slotBooked); err != nil {
 				innerErr = err
 				receiveCancel()
 
 				return
 			}
-			outputLedgerIndex := unspentOutput.GetLedgerIndex()
+			outputLedgerIndex := unspentOutput.GetLatestCommitmentId().Unwrap().Index()
 			if ledgerIndex < outputLedgerIndex {
 				ledgerIndex = outputLedgerIndex
 			}
@@ -372,7 +367,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer, protoParams *iot
 
 	Component.LogInfo(p.Sprintf("received total=%d in %s @ %.2f per second", countReceive, time.Since(tsStart).Truncate(time.Millisecond), float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
 
-	if err := importer.Finalize(ledgerIndex, protoParams, DBVersion); err != nil {
+	if err := importer.Finalize(ledgerIndex, deps.NodeBridge.APIProvider().CurrentAPI().ProtocolParameters(), DBVersion); err != nil {
 		return 0, err
 	}
 

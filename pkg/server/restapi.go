@@ -4,8 +4,8 @@ const (
 	// ParameterFoundryID is used to identify a foundry by its ID.
 	ParameterFoundryID = "foundryID"
 
-	// ParameterAliasID is used to identify an alias by its ID.
-	ParameterAliasID = "aliasID"
+	// ParameterAccountID is used to identify an account by its ID.
+	ParameterAccountID = "accountID"
 
 	// ParameterNFTID is used to identify a nft by its ID.
 	ParameterNFTID = "nftID"
@@ -16,8 +16,8 @@ const (
 	// QueryParameterAddress is used to filter for a certain address.
 	QueryParameterAddress = "address"
 
-	// QueryParameterAliasAddress is used to filter for a certain alias address.
-	QueryParameterAliasAddress = "aliasAddress"
+	// QueryParameterAccountAddress is used to filter for a certain account address.
+	QueryParameterAccountAddress = "accountAddress"
 
 	// QueryParameterIssuer is used to filter for a certain issuer.
 	QueryParameterIssuer = "issuer"
@@ -49,10 +49,10 @@ const (
 	// QueryParameterHasTimelock is used to filter for outputs having a timelock unlock condition.
 	QueryParameterHasTimelock = "hasTimelock"
 
-	// QueryParameterTimelockedBefore is used to filter for outputs that are timelocked before a certain unix time.
+	// QueryParameterTimelockedBefore is used to filter for outputs that are timelocked before a certain slot.
 	QueryParameterTimelockedBefore = "timelockedBefore"
 
-	// QueryParameterTimelockedAfter is used to filter for outputs that are timelocked after a certain unix time.
+	// QueryParameterTimelockedAfter is used to filter for outputs that are timelocked after a certain slot.
 	QueryParameterTimelockedAfter = "timelockedAfter"
 
 	// QueryParameterStateController is used to filter for a certain state controller address.
@@ -67,10 +67,10 @@ const (
 	// QueryParameterCursor is used to pass the offset we want to start the next results from.
 	QueryParameterCursor = "cursor"
 
-	// QueryParameterCreatedBefore is used to filter for outputs that were created before the given time.
+	// QueryParameterCreatedBefore is used to filter for outputs that were created before the given slot.
 	QueryParameterCreatedBefore = "createdBefore"
 
-	// QueryParameterCreatedAfter is used to filter for outputs that were created after the given time.
+	// QueryParameterCreatedAfter is used to filter for outputs that were created after the given slot.
 	QueryParameterCreatedAfter = "createdAfter"
 
 	// QueryParameterHasNativeTokens is used to filter for outputs that have native tokens.

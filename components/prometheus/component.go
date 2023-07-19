@@ -24,10 +24,12 @@ func init() {
 		Name:      "Prometheus",
 		DepsFunc:  func(cDeps dependencies) { deps = cDeps },
 		Params:    params,
-		IsEnabled: func(_ *dig.Container) bool { return ParamsPrometheus.Enabled },
 		Provide:   provide,
 		Configure: configure,
 		Run:       run,
+		IsEnabled: func(*dig.Container) bool {
+			return ParamsPrometheus.Enabled
+		},
 	}
 }
 

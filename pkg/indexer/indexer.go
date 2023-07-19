@@ -5,11 +5,10 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/iotaledger/hive.go/logger"
-	"github.com/iotaledger/hive.go/serializer/v2"
 	"github.com/iotaledger/inx-app/pkg/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/database"
 	inx "github.com/iotaledger/inx/go"
-	iotago "github.com/iotaledger/iota.go/v3"
+	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 var (
@@ -20,7 +19,7 @@ var (
 		&basicOutput{},
 		&nft{},
 		&foundry{},
-		&alias{},
+		&account{},
 	}
 )
 
@@ -44,8 +43,8 @@ func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) 
 	}, nil
 }
 
-func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
-	iotaOutput, err := spent.GetOutput().UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
+func processSpent(spent *inx.LedgerSpent, api iotago.API, tx *gorm.DB) error {
+	iotaOutput, err := spent.GetOutput().UnwrapOutput(api)
 	if err != nil {
 		return err
 	}
@@ -54,8 +53,8 @@ func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
 	switch iotaOutput.(type) {
 	case *iotago.BasicOutput:
 		return tx.Where("output_id = ?", outputID[:]).Delete(&basicOutput{}).Error
-	case *iotago.AliasOutput:
-		return tx.Where("output_id = ?", outputID[:]).Delete(&alias{}).Error
+	case *iotago.AccountOutput:
+		return tx.Where("output_id = ?", outputID[:]).Delete(&account{}).Error
 	case *iotago.NFTOutput:
 		return tx.Where("output_id = ?", outputID[:]).Delete(&nft{}).Error
 	case *iotago.FoundryOutput:
@@ -65,16 +64,15 @@ func processSpent(spent *inx.LedgerSpent, tx *gorm.DB) error {
 	return nil
 }
 
-func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
-
-	unwrapped, err := output.UnwrapOutput(serializer.DeSeriModeNoValidation, nil)
+func processOutput(output *inx.LedgerOutput, api iotago.API, tx *gorm.DB) error {
+	unwrapped, err := output.UnwrapOutput(api)
 	if err != nil {
 		return err
 	}
 
 	outputID := output.GetOutputId().Unwrap()
 
-	entry, err := entryForOutput(outputID, unwrapped, output.GetMilestoneTimestampBooked())
+	entry, err := entryForOutput(outputID, unwrapped, iotago.SlotIndex(output.GetSlotBooked()))
 	if err != nil {
 		return err
 	}
@@ -82,7 +80,7 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 	return tx.Create(entry).Error
 }
 
-func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBooked uint32) (interface{}, error) {
+func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) (interface{}, error) {
 	var err error
 	switch iotaOutput := output.(type) {
 	case *iotago.BasicOutput:
@@ -92,7 +90,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 		basic := &basicOutput{
 			OutputID:         make([]byte, iotago.OutputIDLength),
 			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
-			CreatedAt:        unixTime(timestampBooked),
+			CreatedAt:        slotBooked,
 		}
 		copy(basic.OutputID, outputID[:])
 
@@ -103,7 +101,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 			}
 		}
 
-		if tagBlock := features.TagFeature(); tagBlock != nil {
+		if tagBlock := features.Tag(); tagBlock != nil {
 			basic.Tag = make([]byte, len(tagBlock.Tag))
 			copy(basic.Tag, tagBlock.Tag)
 		}
@@ -124,13 +122,11 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
-			time := unixTime(timelock.UnixTime)
-			basic.TimelockTime = &time
+			basic.TimelockSlot = &timelock.SlotIndex
 		}
 
 		if expiration := conditions.Expiration(); expiration != nil {
-			time := unixTime(expiration.UnixTime)
-			basic.ExpirationTime = &time
+			basic.ExpirationSlot = &expiration.SlotIndex
 			basic.ExpirationReturnAddress, err = addressBytesForAddress(expiration.ReturnAddress)
 			if err != nil {
 				return nil, err
@@ -139,27 +135,27 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 
 		return basic, nil
 
-	case *iotago.AliasOutput:
-		aliasID := iotaOutput.AliasID
-		if aliasID.Empty() {
-			// Use implicit AliasID
-			aliasID = iotago.AliasIDFromOutputID(outputID)
+	case *iotago.AccountOutput:
+		accountID := iotaOutput.AccountID
+		if accountID.Empty() {
+			// Use implicit AccountID
+			accountID = iotago.AccountIDFromOutputID(outputID)
 		}
 
 		features := iotaOutput.FeatureSet()
 		immutableFeatures := iotaOutput.ImmutableFeatureSet()
 		conditions := iotaOutput.UnlockConditionSet()
 
-		alias := &alias{
-			AliasID:          make([]byte, iotago.AliasIDLength),
+		alias := &account{
+			AccountID:        make([]byte, iotago.AccountIDLength),
 			OutputID:         make([]byte, iotago.OutputIDLength),
 			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
-			CreatedAt:        unixTime(timestampBooked),
+			CreatedAt:        slotBooked,
 		}
-		copy(alias.AliasID, aliasID[:])
+		copy(alias.AccountID, accountID[:])
 		copy(alias.OutputID, outputID[:])
 
-		if issuerBlock := immutableFeatures.IssuerFeature(); issuerBlock != nil {
+		if issuerBlock := immutableFeatures.Issuer(); issuerBlock != nil {
 			alias.Issuer, err = addressBytesForAddress(issuerBlock.Address)
 			if err != nil {
 				return nil, err
@@ -205,12 +201,12 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 			NFTID:            make([]byte, iotago.NFTIDLength),
 			OutputID:         make([]byte, iotago.OutputIDLength),
 			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
-			CreatedAt:        unixTime(timestampBooked),
+			CreatedAt:        slotBooked,
 		}
 		copy(nft.NFTID, nftID[:])
 		copy(nft.OutputID, outputID[:])
 
-		if issuerBlock := immutableFeatures.IssuerFeature(); issuerBlock != nil {
+		if issuerBlock := immutableFeatures.Issuer(); issuerBlock != nil {
 			nft.Issuer, err = addressBytesForAddress(issuerBlock.Address)
 			if err != nil {
 				return nil, err
@@ -224,7 +220,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 			}
 		}
 
-		if tagBlock := features.TagFeature(); tagBlock != nil {
+		if tagBlock := features.Tag(); tagBlock != nil {
 			nft.Tag = make([]byte, len(tagBlock.Tag))
 			copy(nft.Tag, tagBlock.Tag)
 		}
@@ -237,7 +233,8 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 		}
 
 		if storageDepositReturn := conditions.StorageDepositReturn(); storageDepositReturn != nil {
-			nft.StorageDepositReturn = &storageDepositReturn.Amount
+			amount := uint64(storageDepositReturn.Amount)
+			nft.StorageDepositReturn = &amount
 			nft.StorageDepositReturnAddress, err = addressBytesForAddress(storageDepositReturn.ReturnAddress)
 			if err != nil {
 				return nil, err
@@ -245,13 +242,11 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
-			time := unixTime(timelock.UnixTime)
-			nft.TimelockTime = &time
+			nft.TimelockTime = &timelock.SlotIndex
 		}
 
 		if expiration := conditions.Expiration(); expiration != nil {
-			time := unixTime(expiration.UnixTime)
-			nft.ExpirationTime = &time
+			nft.ExpirationTime = &expiration.SlotIndex
 			nft.ExpirationReturnAddress, err = addressBytesForAddress(expiration.ReturnAddress)
 			if err != nil {
 				return nil, err
@@ -272,12 +267,12 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBoo
 			FoundryID:        foundryID[:],
 			OutputID:         make([]byte, iotago.OutputIDLength),
 			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
-			CreatedAt:        unixTime(timestampBooked),
+			CreatedAt:        slotBooked,
 		}
 		copy(foundry.OutputID, outputID[:])
 
-		if aliasUnlock := conditions.ImmutableAlias(); aliasUnlock != nil {
-			foundry.AliasAddress, err = addressBytesForAddress(aliasUnlock.Address)
+		if accountUnlock := conditions.ImmutableAccount(); accountUnlock != nil {
+			foundry.AccountAddress, err = addressBytesForAddress(accountUnlock.Address)
 			if err != nil {
 				return nil, err
 			}
@@ -328,22 +323,22 @@ func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
 		for _, spent := range update.Consumed {
 			outputID := spent.GetOutput().GetOutputId().GetId()
 			spentOutputs[string(outputID)] = struct{}{}
-			if err := processSpent(spent, tx); err != nil {
+			if err := processSpent(spent, update.API, tx); err != nil {
 				return err
 			}
 		}
 
 		for _, output := range update.Created {
-			if _, wasSpentInSameMilestone := spentOutputs[string(output.GetOutputId().GetId())]; wasSpentInSameMilestone {
+			if _, wasSpentInSameSlot := spentOutputs[string(output.GetOutputId().GetId())]; wasSpentInSameSlot {
 				// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
 				continue
 			}
-			if err := processOutput(output, tx); err != nil {
+			if err := processOutput(output, update.API, tx); err != nil {
 				return err
 			}
 		}
 
-		tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.MilestoneIndex)
+		tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.SlotIndex)
 
 		return nil
 	})

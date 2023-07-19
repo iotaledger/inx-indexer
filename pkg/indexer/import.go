@@ -1,4 +1,3 @@
-//nolint:structcheck
 package indexer
 
 import (
@@ -15,7 +14,7 @@ import (
 	gormLogger "gorm.io/gorm/logger"
 
 	"github.com/iotaledger/hive.go/logger"
-	iotago "github.com/iotaledger/iota.go/v3"
+	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 const (
@@ -147,12 +146,12 @@ func (i *inserter[T]) closeAndWait() {
 	i.wg.Wait()
 }
 
-type processor[T fmt.Stringer] struct {
+type processor[T any] struct {
 	batcher  *batcher[T]
 	importer *inserter[T]
 }
 
-func newProcessor[T fmt.Stringer](ctx context.Context, db *gorm.DB, log *logger.Logger) *processor[T] {
+func newProcessor[T any](ctx context.Context, db *gorm.DB, log *logger.Logger) *processor[T] {
 	p := &processor[T]{
 		batcher:  newBatcher[T](log),
 		importer: newImporter[T](db, log),
@@ -185,7 +184,7 @@ type ImportTransaction struct {
 
 	basic   *processor[*basicOutput]
 	nft     *processor[*nft]
-	alias   *processor[*alias]
+	alias   *processor[*account]
 	foundry *processor[*foundry]
 }
 
@@ -202,16 +201,16 @@ func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) 
 		db:            dbSession,
 		basic:         newProcessor[*basicOutput](ctx, dbSession, log),
 		nft:           newProcessor[*nft](ctx, dbSession, log),
-		alias:         newProcessor[*alias](ctx, dbSession, log),
+		alias:         newProcessor[*account](ctx, dbSession, log),
 		foundry:       newProcessor[*foundry](ctx, dbSession, log),
 	}
 
 	return t
 }
 
-func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Output, timestampBooked uint32) error {
+func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) error {
 
-	entry, err := entryForOutput(outputID, output, timestampBooked)
+	entry, err := entryForOutput(outputID, output, slotBooked)
 	if err != nil {
 		return err
 	}
@@ -221,7 +220,7 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 		i.basic.enqueue(e)
 	case *nft:
 		i.nft.enqueue(e)
-	case *alias:
+	case *account:
 		i.alias.enqueue(e)
 	case *foundry:
 		i.foundry.enqueue(e)
@@ -230,7 +229,7 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 	return nil
 }
 
-func (i *ImportTransaction) Finalize(ledgerIndex uint32, protoParams *iotago.ProtocolParameters, databaseVersion uint32) error {
+func (i *ImportTransaction) Finalize(ledgerIndex iotago.SlotIndex, protoParams iotago.ProtocolParameters, databaseVersion uint32) error {
 
 	// drain all processors
 	i.basic.closeAndWait()
@@ -244,8 +243,7 @@ func (i *ImportTransaction) Finalize(ledgerIndex uint32, protoParams *iotago.Pro
 	status := &Status{
 		ID:              1,
 		LedgerIndex:     ledgerIndex,
-		ProtocolVersion: protoParams.Version,
-		NetworkName:     protoParams.NetworkName,
+		NetworkName:     protoParams.NetworkName(),
 		DatabaseVersion: databaseVersion,
 	}
 	i.db.Clauses(clause.OnConflict{

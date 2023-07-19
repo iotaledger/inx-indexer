@@ -3,18 +3,16 @@ package indexer
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
-	"github.com/iotaledger/hive.go/serializer/v2"
 	"github.com/iotaledger/inx-indexer/pkg/database"
-	iotago "github.com/iotaledger/iota.go/v3"
+	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 const (
-	CursorLength = 76
+	CursorLength = 84
 )
 
 var (
@@ -23,8 +21,7 @@ var (
 
 type Status struct {
 	ID              uint `gorm:"primaryKey;notnull"`
-	LedgerIndex     uint32
-	ProtocolVersion byte
+	LedgerIndex     iotago.SlotIndex
 	NetworkName     string
 	DatabaseVersion uint32
 }
@@ -32,7 +29,7 @@ type Status struct {
 type queryResult struct {
 	OutputID    []byte
 	Cursor      string
-	LedgerIndex uint32
+	LedgerIndex iotago.SlotIndex
 }
 
 type queryResults []queryResult
@@ -47,13 +44,13 @@ func (q queryResults) IDs() iotago.OutputIDs {
 }
 
 func addressBytesForAddress(addr iotago.Address) ([]byte, error) {
-	return addr.Serialize(serializer.DeSeriModeNoValidation, nil)
+	return addr.Encode()
 }
 
 //nolint:revive // better be explicit here
 type IndexerResult struct {
 	OutputIDs   iotago.OutputIDs
-	LedgerIndex uint32
+	LedgerIndex iotago.SlotIndex
 	PageSize    uint32
 	Cursor      *string
 	Error       error
@@ -65,9 +62,7 @@ func errorResult(err error) *IndexerResult {
 	}
 }
 
-func unixTime(fromValue uint32) time.Time {
-	return time.Unix(int64(fromValue), 0)
-}
+func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, cursor *string) *IndexerResult {
 
 func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string) (*gorm.DB, error) {
 	query = query.Select("output_id", "created_at").Order("created_at asc, output_id asc")
@@ -76,9 +71,9 @@ func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string)
 		//nolint:exhaustive // we have a default case.
 		switch i.engine {
 		case database.EngineSQLite:
-			cursorQuery = "printf('%08X', strftime('%s', `created_at`)) || hex(output_id) as cursor"
+			cursorQuery = "printf('%016X', created_at) || hex(output_id) as cursor"
 		case database.EnginePostgreSQL:
-			cursorQuery = "lpad(to_hex(extract(epoch from created_at)::integer), 8, '0') || encode(output_id, 'hex') as cursor"
+			cursorQuery = "lpad(to_hex(created_at), 16, '0') || encode(output_id, 'hex') as cursor"
 		default:
 			i.LogErrorfAndExit("Unsupported db engine pagination queries: %s", i.engine)
 		}
@@ -95,7 +90,7 @@ func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string)
 			case database.EngineSQLite:
 				query = query.Where("cursor >= ?", strings.ToUpper(*cursor))
 			case database.EnginePostgreSQL:
-				query = query.Where("lpad(to_hex(extract(epoch from created_at)::integer), 8, '0') || encode(output_id, 'hex') >= ?", *cursor)
+				query = query.Where("lpad(to_hex(created_at), 16, '0') || encode(output_id, 'hex') >= ?", *cursor)
 			default:
 				i.LogErrorfAndExit("Unsupported db engine pagination queries: %s", i.engine)
 			}
@@ -155,7 +150,7 @@ func (i *Indexer) resultsForQuery(query *gorm.DB, pageSize uint32) *IndexerResul
 		return errorResult(err)
 	}
 
-	var ledgerIndex uint32
+	var ledgerIndex iotago.SlotIndex
 	if len(results) > 0 {
 		ledgerIndex = results[0].LedgerIndex
 	} else {

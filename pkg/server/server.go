@@ -4,7 +4,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
-	iotago "github.com/iotaledger/iota.go/v3"
+	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 const (

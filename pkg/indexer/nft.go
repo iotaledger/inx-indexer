@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/iotaledger/hive.go/runtime/options"
-	iotago "github.com/iotaledger/iota.go/v3"
+	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 type nft struct {
@@ -21,10 +21,10 @@ type nft struct {
 	Address                     []byte `gorm:"notnull;index:nfts_address"`
 	StorageDepositReturn        *uint64
 	StorageDepositReturnAddress []byte `gorm:"index:nfts_storage_deposit_return_address"`
-	TimelockTime                *time.Time
-	ExpirationTime              *time.Time
+	TimelockTime                *iotago.SlotIndex
+	ExpirationTime              *iotago.SlotIndex
 	ExpirationReturnAddress     []byte    `gorm:"index:nfts_expiration_return_address"`
-	CreatedAt                   time.Time `gorm:"notnull;index:nfts_created_at"`
+	CreatedAt                   iotago.SlotIndex `gorm:"notnull;index:nfts_created_at"`
 }
 
 func (o *nft) String() string {
@@ -41,18 +41,18 @@ type NFTFilterOptions struct {
 	storageDepositReturnAddress      *iotago.Address
 	hasExpirationCondition           *bool
 	expirationReturnAddress          *iotago.Address
-	expiresBefore                    *time.Time
-	expiresAfter                     *time.Time
+	expiresBefore                    *iotago.SlotIndex
+	expiresAfter                     *iotago.SlotIndex
 	hasTimelockCondition             *bool
-	timelockedBefore                 *time.Time
-	timelockedAfter                  *time.Time
+	timelockedBefore                 *iotago.SlotIndex
+	timelockedAfter                  *iotago.SlotIndex
 	issuer                           *iotago.Address
 	sender                           *iotago.Address
 	tag                              []byte
 	pageSize                         uint32
 	cursor                           *string
-	createdBefore                    *time.Time
-	createdAfter                     *time.Time
+	createdBefore                    *iotago.SlotIndex
+	createdAfter                     *iotago.SlotIndex
 }
 
 func NFTHasNativeTokens(value bool) options.Option[NFTFilterOptions] {
@@ -109,15 +109,15 @@ func NFTHasExpirationCondition(value bool) options.Option[NFTFilterOptions] {
 	}
 }
 
-func NFTExpiresBefore(time time.Time) options.Option[NFTFilterOptions] {
+func NFTExpiresBefore(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
-		args.expiresBefore = &time
+		args.expiresBefore = &slot
 	}
 }
 
-func NFTExpiresAfter(time time.Time) options.Option[NFTFilterOptions] {
+func NFTExpiresAfter(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
-		args.expiresAfter = &time
+		args.expiresAfter = &slot
 	}
 }
 
@@ -127,15 +127,15 @@ func NFTHasTimelockCondition(value bool) options.Option[NFTFilterOptions] {
 	}
 }
 
-func NFTTimelockedBefore(time time.Time) options.Option[NFTFilterOptions] {
+func NFTTimelockedBefore(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
-		args.timelockedBefore = &time
+		args.timelockedBefore = &slot
 	}
 }
 
-func NFTTimelockedAfter(time time.Time) options.Option[NFTFilterOptions] {
+func NFTTimelockedAfter(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
-		args.timelockedAfter = &time
+		args.timelockedAfter = &slot
 	}
 }
 
@@ -169,15 +169,15 @@ func NFTCursor(cursor string) options.Option[NFTFilterOptions] {
 	}
 }
 
-func NFTCreatedBefore(time time.Time) options.Option[NFTFilterOptions] {
+func NFTCreatedBefore(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
-		args.createdBefore = &time
+		args.createdBefore = &slot
 	}
 }
 
-func NFTCreatedAfter(time time.Time) options.Option[NFTFilterOptions] {
+func NFTCreatedAfter(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
-		args.createdAfter = &time
+		args.createdAfter = &slot
 	}
 }
 
