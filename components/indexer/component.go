@@ -329,7 +329,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 			output := unspentOutput.GetOutput()
 			slotBooked := iotago.SlotIndex(output.GetSlotBooked())
 
-			unwrapped, err := output.UnwrapOutput(deps.NodeBridge.APIProvider().APIForSlot(slotBooked), nil)
+			unwrapped, err := output.UnwrapOutput(deps.NodeBridge.APIProvider().APIForSlot(slotBooked))
 			if err != nil {
 				innerErr = err
 				receiveCancel()
