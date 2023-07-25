@@ -107,7 +107,7 @@ func accountFilterOptions(optionalOptions []AccountFilterOption) *AccountFilterO
 	return result
 }
 
-func (i *Indexer) AccountOutput(accountID *iotago.AccountID) *IndexerResult {
+func (i *Indexer) AccountOutput(accountID iotago.AccountID) *IndexerResult {
 	query := i.db.Model(&account{}).
 		Where("account_id = ?", accountID[:]).
 		Limit(1)

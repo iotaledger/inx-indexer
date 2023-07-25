@@ -83,7 +83,7 @@ func foundryFilterOptions(optionalOptions []FoundryFilterOption) *FoundryFilterO
 	return result
 }
 
-func (i *Indexer) FoundryOutput(foundryID *iotago.FoundryID) *IndexerResult {
+func (i *Indexer) FoundryOutput(foundryID iotago.FoundryID) *IndexerResult {
 	query := i.db.Model(&foundry{}).
 		Where("foundry_id = ?", foundryID[:]).
 		Limit(1)

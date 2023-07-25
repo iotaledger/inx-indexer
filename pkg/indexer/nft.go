@@ -175,7 +175,7 @@ func nftFilterOptions(optionalOptions []NFTFilterOption) *NFTFilterOptions {
 	return result
 }
 
-func (i *Indexer) NFTOutput(nftID *iotago.NFTID) *IndexerResult {
+func (i *Indexer) NFTOutput(nftID iotago.NFTID) *IndexerResult {
 	query := i.db.Model(&nft{}).
 		Where("nft_id = ?", nftID[:]).
 		Limit(1)
