@@ -287,7 +287,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresBefore)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterExpiresBefore)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterExpiresBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -295,7 +295,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresAfter)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterExpiresAfter)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterExpiresAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -311,7 +311,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedBefore)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterTimelockedBefore)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterTimelockedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -319,7 +319,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedAfter)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterTimelockedAfter)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterTimelockedAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -351,7 +351,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedBefore)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -359,7 +359,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedAfter)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -455,7 +455,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedBefore)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -463,7 +463,7 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedAfter)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -558,7 +558,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresBefore)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterExpiresBefore)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterExpiresBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -566,7 +566,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresAfter)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterExpiresAfter)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterExpiresAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -582,7 +582,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedBefore)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterTimelockedBefore)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterTimelockedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -590,7 +590,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedAfter)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterTimelockedAfter)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterTimelockedAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -630,7 +630,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedBefore)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -638,7 +638,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedAfter)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedAfter)
 		if err != nil {
 			return nil, err
 		}
@@ -706,7 +706,7 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedBefore)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -714,7 +714,7 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
-		slot, err := httpserver.ParseSlotIndexQueryParam(c, QueryParameterCreatedAfter)
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedAfter)
 		if err != nil {
 			return nil, err
 		}

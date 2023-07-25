@@ -181,7 +181,7 @@ func NFTCreatedAfter(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	}
 }
 
-func (i *Indexer) NFTOutput(nftID *iotago.NFTID) *IndexerResult {
+func (i *Indexer) NFTOutput(nftID iotago.NFTID) *IndexerResult {
 	query := i.db.Model(&nft{}).
 		Where("nft_id = ?", nftID[:]).
 		Limit(1)
