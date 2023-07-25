@@ -42,8 +42,6 @@ type AliasFilterOptions struct {
 	createdAfter        *iotago.SlotIndex
 }
 
-type AccountFilterOption func(*AccountFilterOptions)
-
 func AccountHasNativeTokens(value bool) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.hasNativeTokens = &value
@@ -115,7 +113,6 @@ func AccountCreatedAfter(slot iotago.SlotIndex) options.Option[AccountFilterOpti
 		args.createdAfter = &slot
 	}
 }
-
 
 func (i *Indexer) AccountOutput(accountID iotago.AccountID) *IndexerResult {
 	query := i.db.Model(&account{}).

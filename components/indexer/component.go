@@ -30,7 +30,7 @@ const (
 )
 
 const (
-	APIRoute = "indexer/v1"
+	APIRoute = "indexer/v2"
 )
 
 func init() {

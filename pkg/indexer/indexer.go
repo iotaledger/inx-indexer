@@ -59,6 +59,8 @@ func processSpent(spent *inx.LedgerSpent, api iotago.API, tx *gorm.DB) error {
 		return tx.Where("output_id = ?", outputID[:]).Delete(&nft{}).Error
 	case *iotago.FoundryOutput:
 		return tx.Where("output_id = ?", outputID[:]).Delete(&foundry{}).Error
+	case *iotago.DelegationOutput:
+		return tx.Where("output_id = ?", outputID[:]).Delete(&delegation{}).Error
 	}
 
 	return nil
@@ -279,6 +281,31 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		return foundry, nil
+
+	case *iotago.DelegationOutput:
+		delegationID := iotaOutput.DelegationID
+		if delegationID.Empty() {
+			// Use implicit DelegationID
+			delegationID = iotago.DelegationIDFromOutputID(outputID)
+		}
+
+		delegation := &delegation{
+			DelegationID: make(delegationIDBytes, iotago.DelegationIDLength),
+			OutputID:     make(outputIDBytes, iotago.OutputIDLength),
+			CreatedAt:    slotBooked,
+		}
+		copy(delegation.DelegationID, delegationID[:])
+		copy(delegation.OutputID, outputID[:])
+
+		validatorAddress := new(iotago.AccountAddress)
+		copy(validatorAddress[:], iotaOutput.ValidatorID[:])
+
+		delegation.Validator, err = addressBytesForAddress(validatorAddress)
+		if err != nil {
+			return nil, err
+		}
+
+		return delegation, nil
 	}
 
 	return nil, errors.New("unknown output type")
