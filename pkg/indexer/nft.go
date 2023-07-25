@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"github.com/iotaledger/hive.go/runtime/options"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
 
@@ -43,136 +44,124 @@ type NFTFilterOptions struct {
 	createdAfter                     *iotago.SlotIndex
 }
 
-type NFTFilterOption func(*NFTFilterOptions)
-
-func NFTHasNativeTokens(value bool) NFTFilterOption {
+func NFTHasNativeTokens(value bool) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.hasNativeTokens = &value
 	}
 }
 
-func NFTMinNativeTokenCount(value uint32) NFTFilterOption {
+func NFTMinNativeTokenCount(value uint32) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.minNativeTokenCount = &value
 	}
 }
 
-func NFTMaxNativeTokenCount(value uint32) NFTFilterOption {
+func NFTMaxNativeTokenCount(value uint32) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.maxNativeTokenCount = &value
 	}
 }
 
-func NFTUnlockableByAddress(address iotago.Address) NFTFilterOption {
+func NFTUnlockableByAddress(address iotago.Address) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.unlockableByAddress = &address
 	}
 }
 
-func NFTHasStorageDepositReturnCondition(value bool) NFTFilterOption {
+func NFTHasStorageDepositReturnCondition(value bool) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.hasStorageDepositReturnCondition = &value
 	}
 }
 
-func NFTStorageDepositReturnAddress(address iotago.Address) NFTFilterOption {
+func NFTStorageDepositReturnAddress(address iotago.Address) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.storageDepositReturnAddress = &address
 	}
 }
 
-func NFTExpirationReturnAddress(address iotago.Address) NFTFilterOption {
+func NFTExpirationReturnAddress(address iotago.Address) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.expirationReturnAddress = &address
 	}
 }
 
-func NFTHasExpirationCondition(value bool) NFTFilterOption {
+func NFTHasExpirationCondition(value bool) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.hasExpirationCondition = &value
 	}
 }
 
-func NFTExpiresBefore(slot iotago.SlotIndex) NFTFilterOption {
+func NFTExpiresBefore(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.expiresBefore = &slot
 	}
 }
 
-func NFTExpiresAfter(slot iotago.SlotIndex) NFTFilterOption {
+func NFTExpiresAfter(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.expiresAfter = &slot
 	}
 }
 
-func NFTHasTimelockCondition(value bool) NFTFilterOption {
+func NFTHasTimelockCondition(value bool) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.hasTimelockCondition = &value
 	}
 }
 
-func NFTTimelockedBefore(slot iotago.SlotIndex) NFTFilterOption {
+func NFTTimelockedBefore(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.timelockedBefore = &slot
 	}
 }
 
-func NFTTimelockedAfter(slot iotago.SlotIndex) NFTFilterOption {
+func NFTTimelockedAfter(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.timelockedAfter = &slot
 	}
 }
 
-func NFTIssuer(address iotago.Address) NFTFilterOption {
+func NFTIssuer(address iotago.Address) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.issuer = &address
 	}
 }
 
-func NFTSender(address iotago.Address) NFTFilterOption {
+func NFTSender(address iotago.Address) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.sender = &address
 	}
 }
 
-func NFTTag(tag []byte) NFTFilterOption {
+func NFTTag(tag []byte) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.tag = tag
 	}
 }
 
-func NFTPageSize(pageSize uint32) NFTFilterOption {
+func NFTPageSize(pageSize uint32) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.pageSize = pageSize
 	}
 }
 
-func NFTCursor(cursor string) NFTFilterOption {
+func NFTCursor(cursor string) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.cursor = &cursor
 	}
 }
 
-func NFTCreatedBefore(slot iotago.SlotIndex) NFTFilterOption {
+func NFTCreatedBefore(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.createdBefore = &slot
 	}
 }
 
-func NFTCreatedAfter(slot iotago.SlotIndex) NFTFilterOption {
+func NFTCreatedAfter(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
 		args.createdAfter = &slot
 	}
-}
-
-func nftFilterOptions(optionalOptions []NFTFilterOption) *NFTFilterOptions {
-	result := &NFTFilterOptions{}
-
-	for _, optionalOption := range optionalOptions {
-		optionalOption(result)
-	}
-
-	return result
 }
 
 func (i *Indexer) NFTOutput(nftID iotago.NFTID) *IndexerResult {
@@ -183,8 +172,8 @@ func (i *Indexer) NFTOutput(nftID iotago.NFTID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) NFTOutputsWithFilters(filters ...NFTFilterOption) *IndexerResult {
-	opts := nftFilterOptions(filters)
+func (i *Indexer) NFTOutputsWithFilters(filters ...options.Option[NFTFilterOptions]) *IndexerResult {
+	opts := options.Apply(new(NFTFilterOptions), filters)
 	query := i.db.Model(&nft{})
 
 	if opts.hasNativeTokens != nil {

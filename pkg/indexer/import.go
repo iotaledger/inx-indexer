@@ -182,10 +182,11 @@ type ImportTransaction struct {
 
 	db *gorm.DB
 
-	basic   *processor[*basicOutput]
-	nft     *processor[*nft]
-	alias   *processor[*account]
-	foundry *processor[*foundry]
+	basic      *processor[*basicOutput]
+	nft        *processor[*nft]
+	alias      *processor[*account]
+	foundry    *processor[*foundry]
+	delegation *processor[*delegation]
 }
 
 func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) *ImportTransaction {
@@ -203,6 +204,7 @@ func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) 
 		nft:           newProcessor[*nft](ctx, dbSession, log),
 		alias:         newProcessor[*account](ctx, dbSession, log),
 		foundry:       newProcessor[*foundry](ctx, dbSession, log),
+		delegation:    newProcessor[*delegation](ctx, dbSession, log),
 	}
 
 	return t
@@ -224,6 +226,8 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 		i.alias.enqueue(e)
 	case *foundry:
 		i.foundry.enqueue(e)
+	case *delegation:
+		i.delegation.enqueue(e)
 	}
 
 	return nil
@@ -236,6 +240,7 @@ func (i *ImportTransaction) Finalize(ledgerIndex iotago.SlotIndex, protoParams i
 	i.nft.closeAndWait()
 	i.alias.closeAndWait()
 	i.foundry.closeAndWait()
+	i.delegation.closeAndWait()
 
 	i.LogInfo("Finished insertion, update ledger index")
 

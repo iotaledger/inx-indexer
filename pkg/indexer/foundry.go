@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"github.com/iotaledger/hive.go/runtime/options"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
 
@@ -23,64 +24,52 @@ type FoundryFilterOptions struct {
 	createdAfter        *iotago.SlotIndex
 }
 
-type FoundryFilterOption func(*FoundryFilterOptions)
-
-func FoundryHasNativeTokens(value bool) FoundryFilterOption {
+func FoundryHasNativeTokens(value bool) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.hasNativeTokens = &value
 	}
 }
 
-func FoundryMinNativeTokenCount(value uint32) FoundryFilterOption {
+func FoundryMinNativeTokenCount(value uint32) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.minNativeTokenCount = &value
 	}
 }
 
-func FoundryMaxNativeTokenCount(value uint32) FoundryFilterOption {
+func FoundryMaxNativeTokenCount(value uint32) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.maxNativeTokenCount = &value
 	}
 }
 
-func FoundryWithAccountAddress(address *iotago.AccountAddress) FoundryFilterOption {
+func FoundryWithAccountAddress(address *iotago.AccountAddress) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.accountAddress = address
 	}
 }
 
-func FoundryPageSize(pageSize uint32) FoundryFilterOption {
+func FoundryPageSize(pageSize uint32) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.pageSize = pageSize
 	}
 }
 
-func FoundryCursor(cursor string) FoundryFilterOption {
+func FoundryCursor(cursor string) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.cursor = &cursor
 	}
 }
 
-func FoundryCreatedBefore(slot iotago.SlotIndex) FoundryFilterOption {
+func FoundryCreatedBefore(slot iotago.SlotIndex) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.createdBefore = &slot
 	}
 }
 
-func FoundryCreatedAfter(slot iotago.SlotIndex) FoundryFilterOption {
+func FoundryCreatedAfter(slot iotago.SlotIndex) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.createdAfter = &slot
 	}
-}
-
-func foundryFilterOptions(optionalOptions []FoundryFilterOption) *FoundryFilterOptions {
-	result := &FoundryFilterOptions{}
-
-	for _, optionalOption := range optionalOptions {
-		optionalOption(result)
-	}
-
-	return result
 }
 
 func (i *Indexer) FoundryOutput(foundryID iotago.FoundryID) *IndexerResult {
@@ -91,8 +80,8 @@ func (i *Indexer) FoundryOutput(foundryID iotago.FoundryID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) FoundryOutputsWithFilters(filters ...FoundryFilterOption) *IndexerResult {
-	opts := foundryFilterOptions(filters)
+func (i *Indexer) FoundryOutputsWithFilters(filters ...options.Option[FoundryFilterOptions]) *IndexerResult {
+	opts := options.Apply(new(FoundryFilterOptions), filters)
 	query := i.db.Model(&foundry{})
 
 	if opts.hasNativeTokens != nil {

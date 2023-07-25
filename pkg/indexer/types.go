@@ -17,6 +17,7 @@ const (
 type outputIDBytes []byte
 type addressBytes []byte
 type nftIDBytes []byte
+type delegationIDBytes []byte
 type accountIDBytes []byte
 type foundryIDBytes []byte
 

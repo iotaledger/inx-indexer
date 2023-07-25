@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"github.com/iotaledger/hive.go/runtime/options"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
 
@@ -29,82 +30,70 @@ type AccountFilterOptions struct {
 	createdAfter        *iotago.SlotIndex
 }
 
-type AccountFilterOption func(*AccountFilterOptions)
-
-func AccountHasNativeTokens(value bool) AccountFilterOption {
+func AccountHasNativeTokens(value bool) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.hasNativeTokens = &value
 	}
 }
 
-func AccountMinNativeTokenCount(value uint32) AccountFilterOption {
+func AccountMinNativeTokenCount(value uint32) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.minNativeTokenCount = &value
 	}
 }
 
-func AccountMaxNativeTokenCount(value uint32) AccountFilterOption {
+func AccountMaxNativeTokenCount(value uint32) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.maxNativeTokenCount = &value
 	}
 }
 
-func AccountStateController(address iotago.Address) AccountFilterOption {
+func AccountStateController(address iotago.Address) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.stateController = &address
 	}
 }
 
-func AccountGovernor(address iotago.Address) AccountFilterOption {
+func AccountGovernor(address iotago.Address) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.governor = &address
 	}
 }
 
-func AccountSender(address iotago.Address) AccountFilterOption {
+func AccountSender(address iotago.Address) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.sender = &address
 	}
 }
 
-func AccountIssuer(address iotago.Address) AccountFilterOption {
+func AccountIssuer(address iotago.Address) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.issuer = &address
 	}
 }
 
-func AccountPageSize(pageSize uint32) AccountFilterOption {
+func AccountPageSize(pageSize uint32) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.pageSize = pageSize
 	}
 }
 
-func AccountCursor(cursor string) AccountFilterOption {
+func AccountCursor(cursor string) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.cursor = &cursor
 	}
 }
 
-func AccountCreatedBefore(slot iotago.SlotIndex) AccountFilterOption {
+func AccountCreatedBefore(slot iotago.SlotIndex) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.createdBefore = &slot
 	}
 }
 
-func AccountCreatedAfter(slot iotago.SlotIndex) AccountFilterOption {
+func AccountCreatedAfter(slot iotago.SlotIndex) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.createdAfter = &slot
 	}
-}
-
-func accountFilterOptions(optionalOptions []AccountFilterOption) *AccountFilterOptions {
-	result := &AccountFilterOptions{}
-
-	for _, optionalOption := range optionalOptions {
-		optionalOption(result)
-	}
-
-	return result
 }
 
 func (i *Indexer) AccountOutput(accountID iotago.AccountID) *IndexerResult {
@@ -115,8 +104,8 @@ func (i *Indexer) AccountOutput(accountID iotago.AccountID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) AccountOutputsWithFilters(filter ...AccountFilterOption) *IndexerResult {
-	opts := accountFilterOptions(filter)
+func (i *Indexer) AccountOutputsWithFilters(filter ...options.Option[AccountFilterOptions]) *IndexerResult {
+	opts := options.Apply(new(AccountFilterOptions), filter)
 	query := i.db.Model(&account{})
 
 	if opts.hasNativeTokens != nil {
