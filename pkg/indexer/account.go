@@ -19,7 +19,7 @@ type account struct {
 	Governor         []byte     `gorm:"notnull;index:account_governor"`
 	Issuer           []byte     `gorm:"index:account_issuer"`
 	Sender           []byte     `gorm:"index:account_sender"`
-	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:alias_created_at"`
+	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:account_created_at"`
 }
 type AccountFilterOptions struct {
 

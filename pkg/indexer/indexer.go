@@ -148,44 +148,44 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		immutableFeatures := iotaOutput.ImmutableFeatureSet()
 		conditions := iotaOutput.UnlockConditionSet()
 
-		alias := &account{
+		acc := &account{
 			AccountID:        make([]byte, iotago.AccountIDLength),
 			OutputID:         make([]byte, iotago.OutputIDLength),
 			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
 			CreatedAt:        slotBooked,
 		}
-		copy(alias.AccountID, accountID[:])
-		copy(alias.OutputID, outputID[:])
+		copy(acc.AccountID, accountID[:])
+		copy(acc.OutputID, outputID[:])
 
 		if issuerBlock := immutableFeatures.Issuer(); issuerBlock != nil {
-			alias.Issuer, err = addressBytesForAddress(issuerBlock.Address)
+			acc.Issuer, err = addressBytesForAddress(issuerBlock.Address)
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
-			alias.Sender, err = addressBytesForAddress(senderBlock.Address)
+			acc.Sender, err = addressBytesForAddress(senderBlock.Address)
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		if stateController := conditions.StateControllerAddress(); stateController != nil {
-			alias.StateController, err = addressBytesForAddress(stateController.Address)
+			acc.StateController, err = addressBytesForAddress(stateController.Address)
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		if governor := conditions.GovernorAddress(); governor != nil {
-			alias.Governor, err = addressBytesForAddress(governor.Address)
+			acc.Governor, err = addressBytesForAddress(governor.Address)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		return alias, nil
+		return acc, nil
 
 	case *iotago.NFTOutput:
 		features := iotaOutput.FeatureSet()
