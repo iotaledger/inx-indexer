@@ -58,6 +58,14 @@ func DelegationCreatedAfter(slot iotago.SlotIndex) options.Option[DelegationFilt
 	}
 }
 
+func (i *Indexer) DelegationOutput(delegationID iotago.DelegationID) *IndexerResult {
+	query := i.db.Model(&delegation{}).
+		Where("delegation_id = ?", delegationID[:]).
+		Limit(1)
+
+	return i.combineOutputIDFilteredQuery(query, 0, nil)
+}
+
 func (i *Indexer) DelegationsWithFilters(filters ...options.Option[DelegationFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(DelegationFilterOptions), filters)
 	query := i.db.Model(&delegation{})
