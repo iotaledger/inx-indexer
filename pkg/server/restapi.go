@@ -7,6 +7,9 @@ const (
 	// ParameterAccountID is used to identify an account by its ID.
 	ParameterAccountID = "accountID"
 
+	// ParameterDelegationID is used to identify a delegation by its ID.
+	ParameterDelegationID = "delegationID"
+
 	// ParameterNFTID is used to identify a nft by its ID.
 	ParameterNFTID = "nftID"
 
@@ -27,6 +30,9 @@ const (
 
 	// QueryParameterTag is used to filter for a certain tag.
 	QueryParameterTag = "tag"
+
+	// QueryParameterValidator is used to filter for a certain validator.
+	QueryParameterValidator = "validator"
 
 	// QueryParameterHasStorageDepositReturn is used to filter for outputs having a storage deposit return unlock condition.
 	QueryParameterHasStorageDepositReturn = "hasStorageDepositReturn"

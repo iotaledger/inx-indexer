@@ -68,6 +68,16 @@ const (
 	// RouteOutputsFoundryByID is the route for getting foundries by their foundryID.
 	// GET returns the outputIDs or 404 if no record is found.
 	RouteOutputsFoundryByID = "/outputs/foundry/:" + ParameterFoundryID
+
+	// RouteOutputsDelegations is the route for getting delegations filtered by the given parameters.
+	// GET with query parameter returns all outputIDs that fit these filter criteria.
+	// Query parameters: "address", "validator", "createdBefore", "createdAfter"
+	// Returns an empty list if no results are found.
+	RouteOutputsDelegations = "/outputs/delegation"
+
+	// RouteOutputsDelegationByID is the route for getting delegations by their delegationID.
+	// GET returns the outputIDs or 404 if no record is found.
+	RouteOutputsDelegationByID = "/outputs/delegation/:" + ParameterDelegationID
 )
 
 const (
@@ -722,6 +732,66 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 	}
 
 	return outputsResponseFromResult(s.Indexer.FoundryOutputsWithFilters(filters...))
+}
+
+func (s *IndexerServer) delegationByID(c echo.Context) (*outputsResponse, error) {
+	delegationID, err := httpserver.ParseDelegationIDParam(c, ParameterDelegationID)
+	if err != nil {
+		return nil, err
+	}
+
+	return singleOutputResponseFromResult(s.Indexer.DelegationOutput(delegationID))
+}
+
+func (s *IndexerServer) delegationsWithFilter(c echo.Context) (*outputsResponse, error) {
+	filters := []options.Option[indexer.DelegationFilterOptions]{indexer.DelegationPageSize(s.pageSizeFromContext(c))}
+
+	if len(c.QueryParam(QueryParameterAddress)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAddress)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.DelegationUnlockableByAddress(addr))
+	}
+
+	if len(c.QueryParam(QueryParameterValidator)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterValidator)
+		if err != nil {
+			return nil, err
+		}
+		if addr.Type() != iotago.AddressAccount {
+			return nil, errors.WithMessagef(httpserver.ErrInvalidParameter, "invalid address: %s, not an account address", addr.Bech32(s.Bech32HRP))
+		}
+
+		//nolint:forcetypeassert // we already checked the type
+		filters = append(filters, indexer.DelegationValidator(addr.(*iotago.AccountAddress)))
+	}
+
+	if len(c.QueryParam(QueryParameterCursor)) > 0 {
+		cursor, pageSize, err := s.parseCursorQueryParameter(c)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.DelegationCursor(cursor), indexer.DelegationPageSize(pageSize))
+	}
+
+	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedBefore)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.DelegationCreatedBefore(slot))
+	}
+
+	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedAfter)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.DelegationCreatedAfter(slot))
+	}
+
+	return outputsResponseFromResult(s.Indexer.DelegationsWithFilters(filters...))
 }
 
 func singleOutputResponseFromResult(result *indexer.IndexerResult) (*outputsResponse, error) {
