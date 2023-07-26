@@ -17,7 +17,7 @@ type FoundryFilterOptions struct {
 	hasNativeTokens     *bool
 	minNativeTokenCount *uint32
 	maxNativeTokenCount *uint32
-	accountAddress      *iotago.AccountAddress
+	account             *iotago.AccountAddress
 	pageSize            uint32
 	cursor              *string
 	createdBefore       *iotago.SlotIndex
@@ -44,7 +44,7 @@ func FoundryMaxNativeTokenCount(value uint32) options.Option[FoundryFilterOption
 
 func FoundryWithAccountAddress(address *iotago.AccountAddress) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
-		args.accountAddress = address
+		args.account = address
 	}
 }
 
@@ -100,12 +100,12 @@ func (i *Indexer) FoundryOutputsWithFilters(filters ...options.Option[FoundryFil
 		query = query.Where("native_token_count <= ?", *opts.maxNativeTokenCount)
 	}
 
-	if opts.accountAddress != nil {
-		addr, err := addressBytesForAddress(opts.accountAddress)
+	if opts.account != nil {
+		addr, err := addressBytesForAddress(opts.account)
 		if err != nil {
 			return errorResult(err)
 		}
-		query = query.Where("alias_address = ?", addr[:])
+		query = query.Where("account = ?", addr[:])
 	}
 
 	if opts.createdBefore != nil {

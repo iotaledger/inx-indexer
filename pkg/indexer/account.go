@@ -13,7 +13,7 @@ type account struct {
 	Governor         addressBytes     `gorm:"notnull;index:account_governor"`
 	Issuer           addressBytes     `gorm:"index:account_issuer"`
 	Sender           addressBytes     `gorm:"index:account_sender"`
-	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:alias_created_at"`
+	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:account_created_at"`
 }
 
 type AccountFilterOptions struct {

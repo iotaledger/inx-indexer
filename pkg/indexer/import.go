@@ -184,7 +184,7 @@ type ImportTransaction struct {
 
 	basic      *processor[*basicOutput]
 	nft        *processor[*nft]
-	alias      *processor[*account]
+	account    *processor[*account]
 	foundry    *processor[*foundry]
 	delegation *processor[*delegation]
 }
@@ -202,7 +202,7 @@ func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) 
 		db:            dbSession,
 		basic:         newProcessor[*basicOutput](ctx, dbSession, log),
 		nft:           newProcessor[*nft](ctx, dbSession, log),
-		alias:         newProcessor[*account](ctx, dbSession, log),
+		account:       newProcessor[*account](ctx, dbSession, log),
 		foundry:       newProcessor[*foundry](ctx, dbSession, log),
 		delegation:    newProcessor[*delegation](ctx, dbSession, log),
 	}
@@ -223,7 +223,7 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 	case *nft:
 		i.nft.enqueue(e)
 	case *account:
-		i.alias.enqueue(e)
+		i.account.enqueue(e)
 	case *foundry:
 		i.foundry.enqueue(e)
 	case *delegation:
@@ -238,7 +238,7 @@ func (i *ImportTransaction) Finalize(ledgerIndex iotago.SlotIndex, protoParams i
 	// drain all processors
 	i.basic.closeAndWait()
 	i.nft.closeAndWait()
-	i.alias.closeAndWait()
+	i.account.closeAndWait()
 	i.foundry.closeAndWait()
 	i.delegation.closeAndWait()
 

@@ -13,8 +13,8 @@ const (
 	// QueryParameterAddress is used to filter for a certain address.
 	QueryParameterAddress = "address"
 
-	// QueryParameterAccountAddress is used to filter for a certain account address.
-	QueryParameterAccountAddress = "accountAddress"
+	// QueryParameterAccount is used to filter for a certain account.
+	QueryParameterAccount = "account"
 
 	// QueryParameterIssuer is used to filter for a certain issuer.
 	QueryParameterIssuer = "issuer"

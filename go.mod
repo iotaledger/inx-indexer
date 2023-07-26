@@ -7,7 +7,7 @@ require (
 	github.com/iotaledger/hive.go/app v0.0.0-20230706083020-ef6c3248369d
 	github.com/iotaledger/hive.go/logger v0.0.0-20230706083020-ef6c3248369d
 	github.com/iotaledger/hive.go/runtime v0.0.0-20230706083020-ef6c3248369d
-	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20230725124635-2aac55bb9a84
+	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20230726062951-9394fe754f94
 	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20230725124538-2e508b412c2c
 	github.com/iotaledger/iota.go/v4 v4.0.0-20230720082722-b4589df61bea
 	github.com/labstack/echo-contrib v0.13.1
@@ -58,7 +58,7 @@ require (
 	github.com/labstack/gommon v0.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
-	github.com/mattn/go-sqlite3 v1.14.16 // indirect
+	github.com/mattn/go-sqlite3 v1.14.15 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -85,7 +85,7 @@ require (
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230724170836-66ad5b6ff146 // indirect
 	google.golang.org/grpc v1.56.2 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

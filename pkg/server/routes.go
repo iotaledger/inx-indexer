@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 
+	"github.com/iotaledger/hive.go/runtime/options"
 	"github.com/iotaledger/inx-app/pkg/httpserver"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v4"
@@ -55,7 +56,7 @@ const (
 	// RouteOutputsFoundries is the route for getting foundries filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "aliasAddress", "createdBefore", "createdAfter"
+	//					 "account", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsFoundries = "/outputs/foundry"
 
@@ -80,7 +81,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 	})
 
 	routeGroup.GET(RouteOutputsAccounts, func(c echo.Context) error {
-		resp, err := s.aliasesWithFilter(c)
+		resp, err := s.accountsWithFilter(c)
 		if err != nil {
 			return err
 		}
@@ -89,7 +90,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 	})
 
 	routeGroup.GET(RouteOutputsAccountByID, func(c echo.Context) error {
-		resp, err := s.aliasByID(c)
+		resp, err := s.accountByID(c)
 		if err != nil {
 			return err
 		}
@@ -135,7 +136,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 }
 
 func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
-	filters := []indexer.BasicOutputFilterOption{indexer.BasicOutputPageSize(s.pageSizeFromContext(c))}
+	filters := []options.Option[indexer.BasicOutputFilterOptions]{indexer.BasicOutputPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
 		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
@@ -284,7 +285,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	return outputsResponseFromResult(s.Indexer.BasicOutputsWithFilters(filters...))
 }
 
-func (s *IndexerServer) aliasByID(c echo.Context) (*outputsResponse, error) {
+func (s *IndexerServer) accountByID(c echo.Context) (*outputsResponse, error) {
 	accountID, err := httpserver.ParseAccountIDParam(c, ParameterAccountID)
 	if err != nil {
 		return nil, err
@@ -293,8 +294,8 @@ func (s *IndexerServer) aliasByID(c echo.Context) (*outputsResponse, error) {
 	return singleOutputResponseFromResult(s.Indexer.AccountOutput(accountID))
 }
 
-func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, error) {
-	filters := []indexer.AccountFilterOption{indexer.AccountPageSize(s.pageSizeFromContext(c))}
+func (s *IndexerServer) accountsWithFilter(c echo.Context) (*outputsResponse, error) {
+	filters := []options.Option[indexer.AccountFilterOptions]{indexer.AccountPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
 		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
@@ -389,7 +390,7 @@ func (s *IndexerServer) nftByID(c echo.Context) (*outputsResponse, error) {
 }
 
 func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error) {
-	filters := []indexer.NFTFilterOption{indexer.NFTPageSize(s.pageSizeFromContext(c))}
+	filters := []options.Option[indexer.NFTFilterOptions]{indexer.NFTPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
 		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
@@ -556,7 +557,7 @@ func (s *IndexerServer) foundryByID(c echo.Context) (*outputsResponse, error) {
 }
 
 func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, error) {
-	filters := []indexer.FoundryFilterOption{indexer.FoundryPageSize(s.pageSizeFromContext(c))}
+	filters := []options.Option[indexer.FoundryFilterOptions]{indexer.FoundryPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
 		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
@@ -582,17 +583,17 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 		filters = append(filters, indexer.FoundryMaxNativeTokenCount(value))
 	}
 
-	if len(c.QueryParam(QueryParameterAccountAddress)) > 0 {
-		address, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAccountAddress)
+	if len(c.QueryParam(QueryParameterAccount)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAccount)
 		if err != nil {
 			return nil, err
 		}
-		if address.Type() != iotago.AddressAccount {
-			return nil, errors.WithMessagef(httpserver.ErrInvalidParameter, "invalid address: %s, not an alias address", address.Bech32(s.Bech32HRP))
+		if addr.Type() != iotago.AddressAccount {
+			return nil, errors.WithMessagef(httpserver.ErrInvalidParameter, "invalid address: %s, not an account address", addr.Bech32(s.Bech32HRP))
 		}
 
 		//nolint:forcetypeassert // we already checked the type
-		filters = append(filters, indexer.FoundryWithAccountAddress(address.(*iotago.AccountAddress)))
+		filters = append(filters, indexer.FoundryWithAccountAddress(addr.(*iotago.AccountAddress)))
 	}
 
 	if len(c.QueryParam(QueryParameterCursor)) > 0 {
