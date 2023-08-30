@@ -1,6 +1,9 @@
 package indexer
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"github.com/iotaledger/hive.go/runtime/options"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
@@ -17,6 +20,10 @@ type basicOutput struct {
 	ExpirationSlot              *iotago.SlotIndex
 	ExpirationReturnAddress     addressBytes     `gorm:"index:basic_outputs_expiration_return_address"`
 	CreatedAt                   iotago.SlotIndex `gorm:"notnull;index:basic_outputs_created_at"`
+}
+
+func (o *basicOutput) String() string {
+	return fmt.Sprintf("basic output => OutputID: %s", hex.EncodeToString(o.OutputID))
 }
 
 type BasicOutputFilterOptions struct {

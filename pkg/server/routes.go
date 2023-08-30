@@ -32,7 +32,6 @@ const (
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
 	//					 "stateController", "governor", "issuer", "sender",
 	//					 "createdBefore", "createdAfter"
-	// Query parameters:
 	// Returns an empty list if no results are found.
 	RouteOutputsAccounts = "/outputs/account"
 
@@ -750,14 +749,18 @@ func (s *IndexerServer) parseCursorQueryParameter(c echo.Context) (string, uint3
 }
 
 func (s *IndexerServer) pageSizeFromContext(c echo.Context) uint32 {
-	pageSize := uint32(s.RestAPILimitsMaxResults)
+	maxPageSize := uint32(s.RestAPILimitsMaxResults)
 	if len(c.QueryParam(QueryParameterPageSize)) > 0 {
-		i, err := httpserver.ParseUint32QueryParam(c, QueryParameterPageSize, pageSize)
+		pageSizeQueryParam, err := httpserver.ParseUint32QueryParam(c, QueryParameterPageSize, maxPageSize)
 		if err != nil {
-			return pageSize
+			return maxPageSize
 		}
-		pageSize = i
+
+		if pageSizeQueryParam < maxPageSize {
+			// use the smaller page size given by the request
+			maxPageSize = pageSizeQueryParam
+		}
 	}
 
-	return pageSize
+	return maxPageSize
 }

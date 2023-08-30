@@ -5,8 +5,8 @@ import (
 	"github.com/iotaledger/hive.go/app/components/profiling"
 	"github.com/iotaledger/hive.go/app/components/shutdown"
 	"github.com/iotaledger/inx-app/core/inx"
-	"github.com/iotaledger/inx-indexer/core/indexer"
-	"github.com/iotaledger/inx-indexer/plugins/prometheus"
+	"github.com/iotaledger/inx-indexer/components/indexer"
+	"github.com/iotaledger/inx-indexer/components/prometheus"
 )
 
 var (

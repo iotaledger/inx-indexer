@@ -1,6 +1,9 @@
 package indexer
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"github.com/iotaledger/hive.go/runtime/options"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
@@ -14,6 +17,10 @@ type account struct {
 	Issuer           addressBytes     `gorm:"index:account_issuer"`
 	Sender           addressBytes     `gorm:"index:account_sender"`
 	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:account_created_at"`
+}
+
+func (a *account) String() string {
+	return fmt.Sprintf("account output => AccountID: %s, OutputID: %s ", hex.EncodeToString(a.AccountID), hex.EncodeToString(a.OutputID))
 }
 
 type AccountFilterOptions struct {

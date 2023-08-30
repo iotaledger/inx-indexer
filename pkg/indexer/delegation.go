@@ -1,6 +1,9 @@
 package indexer
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"github.com/iotaledger/hive.go/runtime/options"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
@@ -11,6 +14,10 @@ type delegation struct {
 	Address      addressBytes      `gorm:"notnull;index:delegation_outputs_address"`
 	Validator    addressBytes      `gorm:"index:delegation_outputs_validator"`
 	CreatedAt    iotago.SlotIndex  `gorm:"notnull;index:delegation_outputs_created_at"`
+}
+
+func (d *delegation) String() string {
+	return fmt.Sprintf("delegation output => DelegationID: %s, OutputID: %s", hex.EncodeToString(d.DelegationID), hex.EncodeToString(d.OutputID))
 }
 
 type DelegationFilterOptions struct {

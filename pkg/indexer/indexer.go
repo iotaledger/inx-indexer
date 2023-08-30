@@ -78,11 +78,8 @@ func processOutput(output *inx.LedgerOutput, api iotago.API, tx *gorm.DB) error 
 	if err != nil {
 		return err
 	}
-	if err := tx.Create(entry).Error; err != nil {
-		return err
-	}
 
-	return nil
+	return tx.Create(entry).Error
 }
 
 func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) (interface{}, error) {
