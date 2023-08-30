@@ -1,6 +1,8 @@
 package indexer
 
 import (
+	"encoding/hex"
+	"fmt"
 	"time"
 
 	iotago "github.com/iotaledger/iota.go/v3"
@@ -18,6 +20,10 @@ type basicOutput struct {
 	ExpirationTime              *time.Time
 	ExpirationReturnAddress     addressBytes `gorm:"index:basic_outputs_expiration_return_address"`
 	CreatedAt                   time.Time    `gorm:"notnull;index:basic_outputs_created_at"`
+}
+
+func (o *basicOutput) String() string {
+	return fmt.Sprintf("basic output => outputID: %s", hex.EncodeToString(o.OutputID))
 }
 
 type BasicOutputFilterOptions struct {

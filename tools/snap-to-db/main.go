@@ -9,11 +9,11 @@ import (
 	"github.com/pkg/errors"
 	flag "github.com/spf13/pflag"
 
-	"github.com/iotaledger/hive.go/core/configuration"
-	"github.com/iotaledger/hive.go/core/logger"
+	"github.com/iotaledger/hive.go/app/configuration"
+	"github.com/iotaledger/hive.go/logger"
 	"github.com/iotaledger/hornet/v2/pkg/model/utxo"
 	"github.com/iotaledger/hornet/v2/pkg/snapshot"
-	indexerComponent "github.com/iotaledger/inx-indexer/core/indexer"
+	indexerComponent "github.com/iotaledger/inx-indexer/components/indexer"
 	"github.com/iotaledger/inx-indexer/pkg/database"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v3"
@@ -59,11 +59,12 @@ func convert() error {
 		return err
 	}
 	config.UpdateBoundParameters()
-	if err := logger.InitGlobalLogger(config); err != nil {
+
+	logger, err := logger.NewRootLogger(logger.DefaultCfg)
+	if err != nil {
 		return err
 	}
-
-	log := logger.NewLogger("snap-to-db")
+	log := logger.Named("snap-to-db")
 
 	engine, err := database.EngineFromStringAllowed(dbParams.Engine, database.EngineSQLite, database.EnginePostgreSQL)
 	if err != nil {
@@ -152,7 +153,7 @@ func convert() error {
 	if err != nil {
 		return err
 	}
-	if err := importer.Finalize(snapshotHeader.LedgerMilestoneIndex, protoParams); err != nil {
+	if err := importer.Finalize(snapshotHeader.LedgerMilestoneIndex, protoParams, indexerComponent.DBVersion); err != nil {
 		return err
 	}
 

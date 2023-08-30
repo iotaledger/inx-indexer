@@ -1,6 +1,8 @@
 package indexer
 
 import (
+	"encoding/hex"
+	"fmt"
 	"time"
 
 	iotago "github.com/iotaledger/iota.go/v3"
@@ -15,6 +17,10 @@ type alias struct {
 	Issuer           addressBytes  `gorm:"index:alias_issuer"`
 	Sender           addressBytes  `gorm:"index:alias_sender"`
 	CreatedAt        time.Time     `gorm:"notnull;index:alias_created_at"`
+}
+
+func (o *alias) String() string {
+	return fmt.Sprintf("alias output => AliasID: %s outputID: %s", hex.EncodeToString(o.AliasID), hex.EncodeToString(o.OutputID))
 }
 
 type AliasFilterOptions struct {

@@ -4,7 +4,7 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
-	"github.com/iotaledger/hive.go/core/logger"
+	"github.com/iotaledger/hive.go/logger"
 	"github.com/iotaledger/hive.go/serializer/v2"
 	"github.com/iotaledger/inx-app/pkg/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/database"
@@ -78,11 +78,8 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 	if err != nil {
 		return err
 	}
-	if err := tx.Create(entry).Error; err != nil {
-		return err
-	}
 
-	return nil
+	return tx.Create(entry).Error
 }
 
 func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBooked uint32) (interface{}, error) {

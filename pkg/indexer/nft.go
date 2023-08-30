@@ -1,6 +1,8 @@
 package indexer
 
 import (
+	"encoding/hex"
+	"fmt"
 	"time"
 
 	iotago "github.com/iotaledger/iota.go/v3"
@@ -20,6 +22,10 @@ type nft struct {
 	ExpirationTime              *time.Time
 	ExpirationReturnAddress     addressBytes `gorm:"index:nfts_expiration_return_address"`
 	CreatedAt                   time.Time    `gorm:"notnull;index:nfts_created_at"`
+}
+
+func (o *nft) String() string {
+	return fmt.Sprintf("nft output => NFTID: %s outputID: %s", hex.EncodeToString(o.NFTID), hex.EncodeToString(o.OutputID))
 }
 
 type NFTFilterOptions struct {
