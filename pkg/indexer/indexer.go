@@ -78,11 +78,8 @@ func processOutput(output *inx.LedgerOutput, tx *gorm.DB) error {
 	if err != nil {
 		return err
 	}
-	if err := tx.Create(entry).Error; err != nil {
-		return err
-	}
 
-	return nil
+	return tx.Create(entry).Error
 }
 
 func entryForOutput(outputID iotago.OutputID, output iotago.Output, timestampBooked uint32) (interface{}, error) {

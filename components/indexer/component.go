@@ -90,17 +90,13 @@ func provide(c *dig.Container) error {
 		return err
 	}
 
-	if err := c.Provide(func() *echo.Echo {
+	return c.Provide(func() *echo.Echo {
 		return httpserver.NewEcho(
 			Component.Logger(),
 			nil,
 			ParamsRestAPI.DebugRequestLoggerEnabled,
 		)
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func run() error {

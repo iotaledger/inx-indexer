@@ -1,3 +1,4 @@
+//nolint:structcheck
 package indexer
 
 import (
