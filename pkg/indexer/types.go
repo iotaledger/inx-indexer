@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -124,6 +125,32 @@ func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, 
 	}
 
 	return i.resultsForQuery(query, pageSize)
+}
+
+func (i *Indexer) combineOutputIDFilteredQueries(queries []*gorm.DB, pageSize uint32, cursor *string) *IndexerResult {
+	// Cast to []interface{} so that we can pass them to i.db.Raw as parameters
+	filteredQueries := make([]interface{}, len(queries))
+	for q, query := range queries {
+		filtered, err := i.filteredQuery(query, pageSize, cursor)
+		if err != nil {
+			return errorResult(err)
+		}
+		filteredQueries[q] = filtered
+	}
+
+	unionQueryItem := "SELECT output_id, created_at FROM (?);"
+	if pageSize > 0 {
+		unionQueryItem = "SELECT output_id, created_at, cursor FROM (?);"
+	}
+	repeatedUnionQueryItem := strings.Split(strings.Repeat(unionQueryItem, len(queries)), ";")
+	unionQuery := strings.Join(repeatedUnionQueryItem[:len(repeatedUnionQueryItem)-1], " UNION ")
+
+	unionQuery = fmt.Sprintf("%s ORDER BY created_at asc, output_id asc LIMIT %d", unionQuery, pageSize+1)
+
+	rawQuery := i.db.Raw(unionQuery, filteredQueries...)
+	rawQuery = rawQuery.Order("created_at asc, output_id asc")
+
+	return i.resultsForQuery(rawQuery, pageSize)
 }
 
 func (i *Indexer) resultsForQuery(query *gorm.DB, pageSize uint32) *IndexerResult {
