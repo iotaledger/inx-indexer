@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"gorm.io/gorm"
+
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
@@ -31,6 +33,7 @@ type BasicOutputFilterOptions struct {
 	minNativeTokenCount              *uint32
 	maxNativeTokenCount              *uint32
 	unlockableByAddress              *iotago.Address
+	address                          *iotago.Address
 	hasStorageDepositReturnCondition *bool
 	storageDepositReturnAddress      *iotago.Address
 	hasExpirationCondition           *bool
@@ -71,6 +74,12 @@ func BasicOutputMaxNativeTokenCount(value uint32) BasicOutputFilterOption {
 func BasicOutputUnlockableByAddress(address iotago.Address) BasicOutputFilterOption {
 	return func(args *BasicOutputFilterOptions) {
 		args.unlockableByAddress = &address
+	}
+}
+
+func BasicOutputUnlockAddress(address iotago.Address) BasicOutputFilterOption {
+	return func(args *BasicOutputFilterOptions) {
+		args.address = &address
 	}
 }
 
@@ -174,8 +183,7 @@ func basicOutputFilterOptions(optionalOptions []BasicOutputFilterOption) *BasicO
 	return result
 }
 
-func (i *Indexer) BasicOutputsWithFilters(filters ...BasicOutputFilterOption) *IndexerResult {
-	opts := basicOutputFilterOptions(filters)
+func (i *Indexer) basicOutputsQueryWithFilter(opts *BasicOutputFilterOptions) (*gorm.DB, error) {
 	query := i.db.Model(&basicOutput{})
 
 	if opts.hasNativeTokens != nil {
@@ -197,7 +205,15 @@ func (i *Indexer) BasicOutputsWithFilters(filters ...BasicOutputFilterOption) *I
 	if opts.unlockableByAddress != nil {
 		addr, err := addressBytesForAddress(*opts.unlockableByAddress)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
+		}
+		query = query.Where("(address = ? OR expiration_return_address = ? OR storage_deposit_return_address = ?)", addr[:], addr[:], addr[:])
+	}
+
+	if opts.address != nil {
+		addr, err := addressBytesForAddress(*opts.address)
+		if err != nil {
+			return nil, err
 		}
 		query = query.Where("address = ?", addr[:])
 	}
@@ -213,7 +229,7 @@ func (i *Indexer) BasicOutputsWithFilters(filters ...BasicOutputFilterOption) *I
 	if opts.storageDepositReturnAddress != nil {
 		addr, err := addressBytesForAddress(*opts.storageDepositReturnAddress)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
 		query = query.Where("storage_deposit_return_address = ?", addr[:])
 	}
@@ -229,7 +245,7 @@ func (i *Indexer) BasicOutputsWithFilters(filters ...BasicOutputFilterOption) *I
 	if opts.expirationReturnAddress != nil {
 		addr, err := addressBytesForAddress(*opts.expirationReturnAddress)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
 		query = query.Where("expiration_return_address = ?", addr[:])
 	}
@@ -261,7 +277,7 @@ func (i *Indexer) BasicOutputsWithFilters(filters ...BasicOutputFilterOption) *I
 	if opts.sender != nil {
 		addr, err := addressBytesForAddress(*opts.sender)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
 		query = query.Where("sender = ?", addr[:])
 	}
@@ -276,6 +292,16 @@ func (i *Indexer) BasicOutputsWithFilters(filters ...BasicOutputFilterOption) *I
 
 	if opts.createdAfter != nil {
 		query = query.Where("created_at > ?", *opts.createdAfter)
+	}
+
+	return query, nil
+}
+
+func (i *Indexer) BasicOutputsWithFilters(filters ...BasicOutputFilterOption) *IndexerResult {
+	opts := basicOutputFilterOptions(filters)
+	query, err := i.basicOutputsQueryWithFilter(opts)
+	if err != nil {
+		return errorResult(err)
 	}
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

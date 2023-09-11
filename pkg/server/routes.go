@@ -156,12 +156,20 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		filters = append(filters, indexer.BasicOutputMaxNativeTokenCount(value))
 	}
 
+	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterUnlockableByAddress)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.BasicOutputUnlockableByAddress(addr))
+	}
+
 	if len(c.QueryParam(QueryParameterAddress)) > 0 {
 		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAddress)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputUnlockableByAddress(addr))
+		filters = append(filters, indexer.BasicOutputUnlockAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterHasStorageDepositReturn)) > 0 {
@@ -315,6 +323,14 @@ func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, err
 		filters = append(filters, indexer.AliasMaxNativeTokenCount(value))
 	}
 
+	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterUnlockableByAddress)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.AliasUnlockableByAddress(addr))
+	}
+
 	if len(c.QueryParam(QueryParameterStateController)) > 0 {
 		stateController, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStateController)
 		if err != nil {
@@ -410,12 +426,20 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 		filters = append(filters, indexer.NFTMaxNativeTokenCount(value))
 	}
 
+	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterUnlockableByAddress)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.NFTUnlockableByAddress(addr))
+	}
+
 	if len(c.QueryParam(QueryParameterAddress)) > 0 {
 		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAddress)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.NFTUnlockableByAddress(addr))
+		filters = append(filters, indexer.NFTUnlockAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterHasStorageDepositReturn)) > 0 {
