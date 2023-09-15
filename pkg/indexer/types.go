@@ -126,9 +126,9 @@ func (i *Indexer) combineOutputIDFilteredQueries(queries []*gorm.DB, pageSize ui
 		filteredQueries[q] = filtered
 	}
 
-	unionQueryItem := "SELECT output_id, created_at FROM (?);"
+	unionQueryItem := "SELECT output_id, created_at FROM (?) as temp;"
 	if pageSize > 0 {
-		unionQueryItem = "SELECT output_id, created_at, cursor FROM (?);"
+		unionQueryItem = "SELECT output_id, created_at, cursor FROM (?) as temp;"
 	}
 	repeatedUnionQueryItem := strings.Split(strings.Repeat(unionQueryItem, len(queries)), ";")
 	unionQuery := strings.Join(repeatedUnionQueryItem[:len(repeatedUnionQueryItem)-1], " UNION ")
