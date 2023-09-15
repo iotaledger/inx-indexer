@@ -224,7 +224,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("(address = ? OR expiration_return_address = ? OR storage_deposit_return_address = ?)", addr[:], addr[:], addr[:])
+		query = query.Where("(address = ? OR expiration_return_address = ? OR storage_deposit_return_address = ?)", addr, addr, addr)
 	}
 
 	if opts.address != nil {
@@ -232,7 +232,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("address = ?", addr[:])
+		query = query.Where("address = ?", addr)
 	}
 
 	if opts.hasStorageDepositReturnCondition != nil {
@@ -248,7 +248,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("storage_deposit_return_address = ?", addr[:])
+		query = query.Where("storage_deposit_return_address = ?", addr)
 	}
 
 	if opts.hasExpirationCondition != nil {
@@ -264,7 +264,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("expiration_return_address = ?", addr[:])
+		query = query.Where("expiration_return_address = ?", addr)
 	}
 
 	if opts.expiresBefore != nil {
@@ -296,7 +296,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("issuer = ?", addr[:])
+		query = query.Where("issuer = ?", addr)
 	}
 
 	if opts.sender != nil {
@@ -304,7 +304,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("sender = ?", addr[:])
+		query = query.Where("sender = ?", addr)
 	}
 
 	if opts.tag != nil && len(opts.tag) > 0 {

@@ -156,7 +156,7 @@ func (i *Indexer) aliasQueryWithFilter(opts *AliasFilterOptions) (*gorm.DB, erro
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("(state_controller = ? OR governor = ?)", addr[:], addr[:])
+		query = query.Where("(state_controller = ? OR governor = ?)", addr, addr)
 	}
 
 	if opts.stateController != nil {
@@ -164,7 +164,7 @@ func (i *Indexer) aliasQueryWithFilter(opts *AliasFilterOptions) (*gorm.DB, erro
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("state_controller = ?", addr[:])
+		query = query.Where("state_controller = ?", addr)
 	}
 
 	if opts.governor != nil {
@@ -172,7 +172,7 @@ func (i *Indexer) aliasQueryWithFilter(opts *AliasFilterOptions) (*gorm.DB, erro
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("governor = ?", addr[:])
+		query = query.Where("governor = ?", addr)
 	}
 
 	if opts.sender != nil {
@@ -180,7 +180,7 @@ func (i *Indexer) aliasQueryWithFilter(opts *AliasFilterOptions) (*gorm.DB, erro
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("sender = ?", addr[:])
+		query = query.Where("sender = ?", addr)
 	}
 
 	if opts.issuer != nil {
@@ -188,7 +188,7 @@ func (i *Indexer) aliasQueryWithFilter(opts *AliasFilterOptions) (*gorm.DB, erro
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("issuer = ?", addr[:])
+		query = query.Where("issuer = ?", addr)
 	}
 
 	if opts.createdBefore != nil {
