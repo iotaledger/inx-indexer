@@ -22,10 +22,11 @@ var (
 )
 
 type outputIDBytes []byte
-type addressBytes []byte
-type nftIDBytes []byte
-type aliasIDBytes []byte
-type foundryIDBytes []byte
+
+//type addressBytes []byte
+//type nftIDBytes []byte
+//type aliasIDBytes []byte
+//type foundryIDBytes []byte
 
 type Status struct {
 	ID              uint `gorm:"primaryKey;notnull"`
@@ -59,7 +60,7 @@ func (q queryResults) IDs() iotago.OutputIDs {
 	return outputIDs
 }
 
-func addressBytesForAddress(addr iotago.Address) (addressBytes, error) {
+func addressBytesForAddress(addr iotago.Address) ([]byte, error) {
 	return addr.Serialize(serializer.DeSeriModeNoValidation, nil)
 }
 

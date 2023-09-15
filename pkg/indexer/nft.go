@@ -11,19 +11,19 @@ import (
 )
 
 type nft struct {
-	NFTID                       nftIDBytes    `gorm:"primaryKey;notnull"`
-	OutputID                    outputIDBytes `gorm:"unique;notnull"`
-	NativeTokenCount            uint32        `gorm:"notnull;type:integer"`
-	Issuer                      addressBytes  `gorm:"index:nfts_issuer"`
-	Sender                      addressBytes  `gorm:"index:nfts_sender_tag"`
-	Tag                         []byte        `gorm:"index:nfts_sender_tag"`
-	Address                     addressBytes  `gorm:"notnull;index:nfts_address"`
+	NFTID                       []byte `gorm:"primaryKey;notnull"`
+	OutputID                    []byte `gorm:"unique;notnull"`
+	NativeTokenCount            uint32 `gorm:"notnull;type:integer"`
+	Issuer                      []byte `gorm:"index:nfts_issuer"`
+	Sender                      []byte `gorm:"index:nfts_sender_tag"`
+	Tag                         []byte `gorm:"index:nfts_sender_tag"`
+	Address                     []byte `gorm:"notnull;index:nfts_address"`
 	StorageDepositReturn        *uint64
-	StorageDepositReturnAddress addressBytes `gorm:"index:nfts_storage_deposit_return_address"`
+	StorageDepositReturnAddress []byte `gorm:"index:nfts_storage_deposit_return_address"`
 	TimelockTime                *time.Time
 	ExpirationTime              *time.Time
-	ExpirationReturnAddress     addressBytes `gorm:"index:nfts_expiration_return_address"`
-	CreatedAt                   time.Time    `gorm:"notnull;index:nfts_created_at"`
+	ExpirationReturnAddress     []byte    `gorm:"index:nfts_expiration_return_address"`
+	CreatedAt                   time.Time `gorm:"notnull;index:nfts_created_at"`
 }
 
 func (o *nft) String() string {

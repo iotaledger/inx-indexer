@@ -11,11 +11,11 @@ import (
 )
 
 type foundry struct {
-	FoundryID        foundryIDBytes `gorm:"primaryKey;notnull"`
-	OutputID         outputIDBytes  `gorm:"unique;notnull"`
-	NativeTokenCount uint32         `gorm:"notnull;type:integer"`
-	AliasAddress     addressBytes   `gorm:"notnull;index:foundries_alias_address"`
-	CreatedAt        time.Time      `gorm:"notnull;index:foundries_created_at"`
+	FoundryID        []byte    `gorm:"primaryKey;notnull"`
+	OutputID         []byte    `gorm:"unique;notnull"`
+	NativeTokenCount uint32    `gorm:"notnull;type:integer"`
+	AliasAddress     []byte    `gorm:"notnull;index:foundries_alias_address"`
+	CreatedAt        time.Time `gorm:"notnull;index:foundries_created_at"`
 }
 
 func (o *foundry) String() string {

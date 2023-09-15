@@ -11,17 +11,17 @@ import (
 )
 
 type basicOutput struct {
-	OutputID                    outputIDBytes `gorm:"primaryKey;notnull"`
-	NativeTokenCount            uint32        `gorm:"notnull;type:integer"`
-	Sender                      addressBytes  `gorm:"index:basic_outputs_sender_tag"`
-	Tag                         []byte        `gorm:"index:basic_outputs_sender_tag"`
-	Address                     addressBytes  `gorm:"notnull;index:basic_outputs_address"`
+	OutputID                    []byte `gorm:"primaryKey;notnull"`
+	NativeTokenCount            uint32 `gorm:"notnull;type:integer"`
+	Sender                      []byte `gorm:"index:basic_outputs_sender_tag"`
+	Tag                         []byte `gorm:"index:basic_outputs_sender_tag"`
+	Address                     []byte `gorm:"notnull;index:basic_outputs_address"`
 	StorageDepositReturn        *uint64
-	StorageDepositReturnAddress addressBytes `gorm:"index:basic_outputs_storage_deposit_return_address"`
+	StorageDepositReturnAddress []byte `gorm:"index:basic_outputs_storage_deposit_return_address"`
 	TimelockTime                *time.Time
 	ExpirationTime              *time.Time
-	ExpirationReturnAddress     addressBytes `gorm:"index:basic_outputs_expiration_return_address"`
-	CreatedAt                   time.Time    `gorm:"notnull;index:basic_outputs_created_at"`
+	ExpirationReturnAddress     []byte    `gorm:"index:basic_outputs_expiration_return_address"`
+	CreatedAt                   time.Time `gorm:"notnull;index:basic_outputs_created_at"`
 }
 
 func (o *basicOutput) String() string {

@@ -11,14 +11,14 @@ import (
 )
 
 type alias struct {
-	AliasID          aliasIDBytes  `gorm:"primaryKey;notnull"`
-	OutputID         outputIDBytes `gorm:"unique;notnull"`
-	NativeTokenCount uint32        `gorm:"notnull;type:integer"`
-	StateController  addressBytes  `gorm:"notnull;index:alias_state_controller"`
-	Governor         addressBytes  `gorm:"notnull;index:alias_governor"`
-	Issuer           addressBytes  `gorm:"index:alias_issuer"`
-	Sender           addressBytes  `gorm:"index:alias_sender"`
-	CreatedAt        time.Time     `gorm:"notnull;index:alias_created_at"`
+	AliasID          []byte    `gorm:"primaryKey;notnull"`
+	OutputID         []byte    `gorm:"unique;notnull"`
+	NativeTokenCount uint32    `gorm:"notnull;type:integer"`
+	StateController  []byte    `gorm:"notnull;index:alias_state_controller"`
+	Governor         []byte    `gorm:"notnull;index:alias_governor"`
+	Issuer           []byte    `gorm:"index:alias_issuer"`
+	Sender           []byte    `gorm:"index:alias_sender"`
+	CreatedAt        time.Time `gorm:"notnull;index:alias_created_at"`
 }
 
 func (o *alias) String() string {
