@@ -21,13 +21,6 @@ var (
 	NullOutputID = iotago.OutputID{}
 )
 
-type outputIDBytes []byte
-
-//type addressBytes []byte
-//type nftIDBytes []byte
-//type aliasIDBytes []byte
-//type foundryIDBytes []byte
-
 type Status struct {
 	ID              uint `gorm:"primaryKey;notnull"`
 	LedgerIndex     uint32
@@ -37,16 +30,9 @@ type Status struct {
 }
 
 type queryResult struct {
-	OutputID    outputIDBytes
+	OutputID    []byte
 	Cursor      string
 	LedgerIndex uint32
-}
-
-func (o outputIDBytes) ID() iotago.OutputID {
-	id := iotago.OutputID{}
-	copy(id[:], o)
-
-	return id
 }
 
 type queryResults []queryResult
@@ -54,7 +40,7 @@ type queryResults []queryResult
 func (q queryResults) IDs() iotago.OutputIDs {
 	outputIDs := iotago.OutputIDs{}
 	for _, r := range q {
-		outputIDs = append(outputIDs, r.OutputID.ID())
+		outputIDs = append(outputIDs, iotago.OutputID(r.OutputID))
 	}
 
 	return outputIDs
