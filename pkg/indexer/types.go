@@ -96,6 +96,7 @@ func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string)
 			i.LogErrorfAndExit("Unsupported db engine pagination queries: %s", i.engine)
 		}
 
+		// We use pageSize + 1 to load the next item to use as the cursor
 		query = query.Select("output_id", "created_at", cursorQuery).Limit(int(pageSize + 1))
 
 		if cursor != nil {
@@ -145,6 +146,7 @@ func (i *Indexer) combineOutputIDFilteredQueries(queries []*gorm.DB, pageSize ui
 	repeatedUnionQueryItem := strings.Split(strings.Repeat(unionQueryItem, len(queries)), ";")
 	unionQuery := strings.Join(repeatedUnionQueryItem[:len(repeatedUnionQueryItem)-1], " UNION ")
 
+	// We use pageSize + 1 to load the next item to use as the cursor
 	unionQuery = fmt.Sprintf("%s ORDER BY created_at asc, output_id asc LIMIT %d", unionQuery, pageSize+1)
 
 	rawQuery := i.db.Raw(unionQuery, filteredQueries...)
