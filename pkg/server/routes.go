@@ -428,7 +428,6 @@ func (s *IndexerServer) accountsWithFilter(c echo.Context) (*outputsResponse, er
 	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
 		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
 		if err != nil {
-			filters = append(filters, indexer.AccountMaxNativeTokenCount(value))
 			return nil, err
 		}
 		filters = append(filters, indexer.AccountMaxNativeTokenCount(value))
