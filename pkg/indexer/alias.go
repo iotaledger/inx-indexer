@@ -5,18 +5,20 @@ import (
 	"fmt"
 	"time"
 
+	"gorm.io/gorm"
+
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
 type alias struct {
-	AliasID          aliasIDBytes  `gorm:"primaryKey;notnull"`
-	OutputID         outputIDBytes `gorm:"unique;notnull"`
-	NativeTokenCount uint32        `gorm:"notnull;type:integer"`
-	StateController  addressBytes  `gorm:"notnull;index:alias_state_controller"`
-	Governor         addressBytes  `gorm:"notnull;index:alias_governor"`
-	Issuer           addressBytes  `gorm:"index:alias_issuer"`
-	Sender           addressBytes  `gorm:"index:alias_sender"`
-	CreatedAt        time.Time     `gorm:"notnull;index:alias_created_at"`
+	AliasID          []byte    `gorm:"primaryKey;notnull"`
+	OutputID         []byte    `gorm:"unique;notnull"`
+	NativeTokenCount uint32    `gorm:"notnull;type:integer"`
+	StateController  []byte    `gorm:"notnull;index:alias_state_controller"`
+	Governor         []byte    `gorm:"notnull;index:alias_governor"`
+	Issuer           []byte    `gorm:"index:alias_issuer"`
+	Sender           []byte    `gorm:"index:alias_sender"`
+	CreatedAt        time.Time `gorm:"notnull;index:alias_created_at"`
 }
 
 func (o *alias) String() string {
@@ -27,6 +29,7 @@ type AliasFilterOptions struct {
 	hasNativeTokens     *bool
 	minNativeTokenCount *uint32
 	maxNativeTokenCount *uint32
+	unlockableByAddress *iotago.Address
 	stateController     *iotago.Address
 	governor            *iotago.Address
 	issuer              *iotago.Address
@@ -54,6 +57,12 @@ func AliasMinNativeTokenCount(value uint32) AliasFilterOption {
 func AliasMaxNativeTokenCount(value uint32) AliasFilterOption {
 	return func(args *AliasFilterOptions) {
 		args.maxNativeTokenCount = &value
+	}
+}
+
+func AliasUnlockableByAddress(address iotago.Address) AliasFilterOption {
+	return func(args *AliasFilterOptions) {
+		args.unlockableByAddress = &address
 	}
 }
 
@@ -123,8 +132,7 @@ func (i *Indexer) AliasOutput(aliasID *iotago.AliasID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) AliasOutputsWithFilters(filter ...AliasFilterOption) *IndexerResult {
-	opts := aliasFilterOptions(filter)
+func (i *Indexer) aliasQueryWithFilter(opts *AliasFilterOptions) (*gorm.DB, error) {
 	query := i.db.Model(&alias{})
 
 	if opts.hasNativeTokens != nil {
@@ -143,36 +151,44 @@ func (i *Indexer) AliasOutputsWithFilters(filter ...AliasFilterOption) *IndexerR
 		query = query.Where("native_token_count <= ?", *opts.maxNativeTokenCount)
 	}
 
+	if opts.unlockableByAddress != nil {
+		addr, err := addressBytesForAddress(*opts.unlockableByAddress)
+		if err != nil {
+			return nil, err
+		}
+		query = query.Where("(state_controller = ? OR governor = ?)", addr, addr)
+	}
+
 	if opts.stateController != nil {
 		addr, err := addressBytesForAddress(*opts.stateController)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("state_controller = ?", addr[:])
+		query = query.Where("state_controller = ?", addr)
 	}
 
 	if opts.governor != nil {
 		addr, err := addressBytesForAddress(*opts.governor)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("governor = ?", addr[:])
+		query = query.Where("governor = ?", addr)
 	}
 
 	if opts.sender != nil {
 		addr, err := addressBytesForAddress(*opts.sender)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("sender = ?", addr[:])
+		query = query.Where("sender = ?", addr)
 	}
 
 	if opts.issuer != nil {
 		addr, err := addressBytesForAddress(*opts.issuer)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("issuer = ?", addr[:])
+		query = query.Where("issuer = ?", addr)
 	}
 
 	if opts.createdBefore != nil {
@@ -181,6 +197,16 @@ func (i *Indexer) AliasOutputsWithFilters(filter ...AliasFilterOption) *IndexerR
 
 	if opts.createdAfter != nil {
 		query = query.Where("created_at > ?", *opts.createdAfter)
+	}
+
+	return query, nil
+}
+
+func (i *Indexer) AliasOutputsWithFilters(filter ...AliasFilterOption) *IndexerResult {
+	opts := aliasFilterOptions(filter)
+	query, err := i.aliasQueryWithFilter(opts)
+	if err != nil {
+		return errorResult(err)
 	}
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

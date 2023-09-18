@@ -5,23 +5,25 @@ import (
 	"fmt"
 	"time"
 
+	"gorm.io/gorm"
+
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
 type nft struct {
-	NFTID                       nftIDBytes    `gorm:"primaryKey;notnull"`
-	OutputID                    outputIDBytes `gorm:"unique;notnull"`
-	NativeTokenCount            uint32        `gorm:"notnull;type:integer"`
-	Issuer                      addressBytes  `gorm:"index:nfts_issuer"`
-	Sender                      addressBytes  `gorm:"index:nfts_sender_tag"`
-	Tag                         []byte        `gorm:"index:nfts_sender_tag"`
-	Address                     addressBytes  `gorm:"notnull;index:nfts_address"`
+	NFTID                       []byte `gorm:"primaryKey;notnull"`
+	OutputID                    []byte `gorm:"unique;notnull"`
+	NativeTokenCount            uint32 `gorm:"notnull;type:integer"`
+	Issuer                      []byte `gorm:"index:nfts_issuer"`
+	Sender                      []byte `gorm:"index:nfts_sender_tag"`
+	Tag                         []byte `gorm:"index:nfts_sender_tag"`
+	Address                     []byte `gorm:"notnull;index:nfts_address"`
 	StorageDepositReturn        *uint64
-	StorageDepositReturnAddress addressBytes `gorm:"index:nfts_storage_deposit_return_address"`
+	StorageDepositReturnAddress []byte `gorm:"index:nfts_storage_deposit_return_address"`
 	TimelockTime                *time.Time
 	ExpirationTime              *time.Time
-	ExpirationReturnAddress     addressBytes `gorm:"index:nfts_expiration_return_address"`
-	CreatedAt                   time.Time    `gorm:"notnull;index:nfts_created_at"`
+	ExpirationReturnAddress     []byte    `gorm:"index:nfts_expiration_return_address"`
+	CreatedAt                   time.Time `gorm:"notnull;index:nfts_created_at"`
 }
 
 func (o *nft) String() string {
@@ -33,6 +35,7 @@ type NFTFilterOptions struct {
 	minNativeTokenCount              *uint32
 	maxNativeTokenCount              *uint32
 	unlockableByAddress              *iotago.Address
+	address                          *iotago.Address
 	hasStorageDepositReturnCondition *bool
 	storageDepositReturnAddress      *iotago.Address
 	hasExpirationCondition           *bool
@@ -74,6 +77,12 @@ func NFTMaxNativeTokenCount(value uint32) NFTFilterOption {
 func NFTUnlockableByAddress(address iotago.Address) NFTFilterOption {
 	return func(args *NFTFilterOptions) {
 		args.unlockableByAddress = &address
+	}
+}
+
+func NFTUnlockAddress(address iotago.Address) NFTFilterOption {
+	return func(args *NFTFilterOptions) {
+		args.address = &address
 	}
 }
 
@@ -191,8 +200,7 @@ func (i *Indexer) NFTOutput(nftID *iotago.NFTID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) NFTOutputsWithFilters(filters ...NFTFilterOption) *IndexerResult {
-	opts := nftFilterOptions(filters)
+func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, error) {
 	query := i.db.Model(&nft{})
 
 	if opts.hasNativeTokens != nil {
@@ -214,9 +222,17 @@ func (i *Indexer) NFTOutputsWithFilters(filters ...NFTFilterOption) *IndexerResu
 	if opts.unlockableByAddress != nil {
 		addr, err := addressBytesForAddress(*opts.unlockableByAddress)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("address = ?", addr[:])
+		query = query.Where("(address = ? OR expiration_return_address = ? OR storage_deposit_return_address = ?)", addr, addr, addr)
+	}
+
+	if opts.address != nil {
+		addr, err := addressBytesForAddress(*opts.address)
+		if err != nil {
+			return nil, err
+		}
+		query = query.Where("address = ?", addr)
 	}
 
 	if opts.hasStorageDepositReturnCondition != nil {
@@ -230,9 +246,9 @@ func (i *Indexer) NFTOutputsWithFilters(filters ...NFTFilterOption) *IndexerResu
 	if opts.storageDepositReturnAddress != nil {
 		addr, err := addressBytesForAddress(*opts.storageDepositReturnAddress)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("storage_deposit_return_address = ?", addr[:])
+		query = query.Where("storage_deposit_return_address = ?", addr)
 	}
 
 	if opts.hasExpirationCondition != nil {
@@ -246,9 +262,9 @@ func (i *Indexer) NFTOutputsWithFilters(filters ...NFTFilterOption) *IndexerResu
 	if opts.expirationReturnAddress != nil {
 		addr, err := addressBytesForAddress(*opts.expirationReturnAddress)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("expiration_return_address = ?", addr[:])
+		query = query.Where("expiration_return_address = ?", addr)
 	}
 
 	if opts.expiresBefore != nil {
@@ -278,17 +294,17 @@ func (i *Indexer) NFTOutputsWithFilters(filters ...NFTFilterOption) *IndexerResu
 	if opts.issuer != nil {
 		addr, err := addressBytesForAddress(*opts.issuer)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("issuer = ?", addr[:])
+		query = query.Where("issuer = ?", addr)
 	}
 
 	if opts.sender != nil {
 		addr, err := addressBytesForAddress(*opts.sender)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("sender = ?", addr[:])
+		query = query.Where("sender = ?", addr)
 	}
 
 	if opts.tag != nil && len(opts.tag) > 0 {
@@ -301,6 +317,16 @@ func (i *Indexer) NFTOutputsWithFilters(filters ...NFTFilterOption) *IndexerResu
 
 	if opts.createdAfter != nil {
 		query = query.Where("created_at > ?", *opts.createdAfter)
+	}
+
+	return query, nil
+}
+
+func (i *Indexer) NFTOutputsWithFilters(filters ...NFTFilterOption) *IndexerResult {
+	opts := nftFilterOptions(filters)
+	query, err := i.nftOutputsQueryWithFilter(opts)
+	if err != nil {
+		return errorResult(err)
 	}
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"time"
 
+	"gorm.io/gorm"
+
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
 type foundry struct {
-	FoundryID        foundryIDBytes `gorm:"primaryKey;notnull"`
-	OutputID         outputIDBytes  `gorm:"unique;notnull"`
-	NativeTokenCount uint32         `gorm:"notnull;type:integer"`
-	AliasAddress     addressBytes   `gorm:"notnull;index:foundries_alias_address"`
-	CreatedAt        time.Time      `gorm:"notnull;index:foundries_created_at"`
+	FoundryID        []byte    `gorm:"primaryKey;notnull"`
+	OutputID         []byte    `gorm:"unique;notnull"`
+	NativeTokenCount uint32    `gorm:"notnull;type:integer"`
+	AliasAddress     []byte    `gorm:"notnull;index:foundries_alias_address"`
+	CreatedAt        time.Time `gorm:"notnull;index:foundries_created_at"`
 }
 
 func (o *foundry) String() string {
@@ -99,8 +101,7 @@ func (i *Indexer) FoundryOutput(foundryID *iotago.FoundryID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) FoundryOutputsWithFilters(filters ...FoundryFilterOption) *IndexerResult {
-	opts := foundryFilterOptions(filters)
+func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) (*gorm.DB, error) {
 	query := i.db.Model(&foundry{})
 
 	if opts.hasNativeTokens != nil {
@@ -122,9 +123,9 @@ func (i *Indexer) FoundryOutputsWithFilters(filters ...FoundryFilterOption) *Ind
 	if opts.aliasAddress != nil {
 		addr, err := addressBytesForAddress(opts.aliasAddress)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("alias_address = ?", addr[:])
+		query = query.Where("alias_address = ?", addr)
 	}
 
 	if opts.createdBefore != nil {
@@ -133,6 +134,16 @@ func (i *Indexer) FoundryOutputsWithFilters(filters ...FoundryFilterOption) *Ind
 
 	if opts.createdAfter != nil {
 		query = query.Where("created_at > ?", *opts.createdAfter)
+	}
+
+	return query, nil
+}
+
+func (i *Indexer) FoundryOutputsWithFilters(filters ...FoundryFilterOption) *IndexerResult {
+	opts := foundryFilterOptions(filters)
+	query, err := i.foundryOutputsQueryWithFilter(opts)
+	if err != nil {
+		return errorResult(err)
 	}
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)
