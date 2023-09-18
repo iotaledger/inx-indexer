@@ -113,7 +113,7 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) (*go
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("account = ?", addr)
+		query = query.Where("account_address = ?", addr)
 	}
 
 	if opts.createdBefore != nil {
