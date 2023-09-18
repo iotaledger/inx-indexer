@@ -7,6 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/iotaledger/hive.go/runtime/options"
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
@@ -33,64 +34,52 @@ type FoundryFilterOptions struct {
 	createdAfter        *time.Time
 }
 
-type FoundryFilterOption func(*FoundryFilterOptions)
-
-func FoundryHasNativeTokens(value bool) FoundryFilterOption {
+func FoundryHasNativeTokens(value bool) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.hasNativeTokens = &value
 	}
 }
 
-func FoundryMinNativeTokenCount(value uint32) FoundryFilterOption {
+func FoundryMinNativeTokenCount(value uint32) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.minNativeTokenCount = &value
 	}
 }
 
-func FoundryMaxNativeTokenCount(value uint32) FoundryFilterOption {
+func FoundryMaxNativeTokenCount(value uint32) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.maxNativeTokenCount = &value
 	}
 }
 
-func FoundryWithAliasAddress(address *iotago.AliasAddress) FoundryFilterOption {
+func FoundryWithAliasAddress(address *iotago.AliasAddress) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.aliasAddress = address
 	}
 }
 
-func FoundryPageSize(pageSize uint32) FoundryFilterOption {
+func FoundryPageSize(pageSize uint32) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.pageSize = pageSize
 	}
 }
 
-func FoundryCursor(cursor string) FoundryFilterOption {
+func FoundryCursor(cursor string) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.cursor = &cursor
 	}
 }
 
-func FoundryCreatedBefore(time time.Time) FoundryFilterOption {
+func FoundryCreatedBefore(time time.Time) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.createdBefore = &time
 	}
 }
 
-func FoundryCreatedAfter(time time.Time) FoundryFilterOption {
+func FoundryCreatedAfter(time time.Time) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.createdAfter = &time
 	}
-}
-
-func foundryFilterOptions(optionalOptions []FoundryFilterOption) *FoundryFilterOptions {
-	result := &FoundryFilterOptions{}
-
-	for _, optionalOption := range optionalOptions {
-		optionalOption(result)
-	}
-
-	return result
 }
 
 func (i *Indexer) FoundryOutput(foundryID *iotago.FoundryID) *IndexerResult {
@@ -139,8 +128,8 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) (*go
 	return query, nil
 }
 
-func (i *Indexer) FoundryOutputsWithFilters(filters ...FoundryFilterOption) *IndexerResult {
-	opts := foundryFilterOptions(filters)
+func (i *Indexer) FoundryOutputsWithFilters(filters ...options.Option[FoundryFilterOptions]) *IndexerResult {
+	opts := options.Apply(new(FoundryFilterOptions), filters)
 	query, err := i.foundryOutputsQueryWithFilter(opts)
 	if err != nil {
 		return errorResult(err)

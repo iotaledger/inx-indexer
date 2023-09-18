@@ -7,6 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/iotaledger/hive.go/runtime/options"
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
@@ -51,136 +52,124 @@ type BasicOutputFilterOptions struct {
 	createdAfter                     *time.Time
 }
 
-type BasicOutputFilterOption func(*BasicOutputFilterOptions)
-
-func BasicOutputHasNativeTokens(value bool) BasicOutputFilterOption {
+func BasicOutputHasNativeTokens(value bool) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.hasNativeTokens = &value
 	}
 }
 
-func BasicOutputMinNativeTokenCount(value uint32) BasicOutputFilterOption {
+func BasicOutputMinNativeTokenCount(value uint32) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.minNativeTokenCount = &value
 	}
 }
 
-func BasicOutputMaxNativeTokenCount(value uint32) BasicOutputFilterOption {
+func BasicOutputMaxNativeTokenCount(value uint32) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.maxNativeTokenCount = &value
 	}
 }
 
-func BasicOutputUnlockableByAddress(address iotago.Address) BasicOutputFilterOption {
+func BasicOutputUnlockableByAddress(address iotago.Address) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.unlockableByAddress = &address
 	}
 }
 
-func BasicOutputUnlockAddress(address iotago.Address) BasicOutputFilterOption {
+func BasicOutputUnlockAddress(address iotago.Address) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.address = &address
 	}
 }
 
-func BasicOutputHasStorageDepositReturnCondition(value bool) BasicOutputFilterOption {
+func BasicOutputHasStorageDepositReturnCondition(value bool) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.hasStorageDepositReturnCondition = &value
 	}
 }
 
-func BasicOutputStorageDepositReturnAddress(address iotago.Address) BasicOutputFilterOption {
+func BasicOutputStorageDepositReturnAddress(address iotago.Address) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.storageDepositReturnAddress = &address
 	}
 }
 
-func BasicOutputHasExpirationCondition(value bool) BasicOutputFilterOption {
+func BasicOutputHasExpirationCondition(value bool) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.hasExpirationCondition = &value
 	}
 }
 
-func BasicOutputExpiresBefore(time time.Time) BasicOutputFilterOption {
+func BasicOutputExpiresBefore(time time.Time) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.expiresBefore = &time
 	}
 }
 
-func BasicOutputExpiresAfter(time time.Time) BasicOutputFilterOption {
+func BasicOutputExpiresAfter(time time.Time) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.expiresAfter = &time
 	}
 }
 
-func BasicOutputHasTimelockCondition(value bool) BasicOutputFilterOption {
+func BasicOutputHasTimelockCondition(value bool) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.hasTimelockCondition = &value
 	}
 }
 
-func BasicOutputTimelockedBefore(time time.Time) BasicOutputFilterOption {
+func BasicOutputTimelockedBefore(time time.Time) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.timelockedBefore = &time
 	}
 }
 
-func BasicOutputTimelockedAfter(time time.Time) BasicOutputFilterOption {
+func BasicOutputTimelockedAfter(time time.Time) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.timelockedAfter = &time
 	}
 }
 
-func BasicOutputExpirationReturnAddress(address iotago.Address) BasicOutputFilterOption {
+func BasicOutputExpirationReturnAddress(address iotago.Address) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.expirationReturnAddress = &address
 	}
 }
 
-func BasicOutputSender(address iotago.Address) BasicOutputFilterOption {
+func BasicOutputSender(address iotago.Address) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.sender = &address
 	}
 }
 
-func BasicOutputTag(tag []byte) BasicOutputFilterOption {
+func BasicOutputTag(tag []byte) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.tag = tag
 	}
 }
 
-func BasicOutputPageSize(pageSize uint32) BasicOutputFilterOption {
+func BasicOutputPageSize(pageSize uint32) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.pageSize = pageSize
 	}
 }
 
-func BasicOutputCursor(cursor string) BasicOutputFilterOption {
+func BasicOutputCursor(cursor string) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.cursor = &cursor
 	}
 }
 
-func BasicOutputCreatedBefore(time time.Time) BasicOutputFilterOption {
+func BasicOutputCreatedBefore(time time.Time) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.createdBefore = &time
 	}
 }
 
-func BasicOutputCreatedAfter(time time.Time) BasicOutputFilterOption {
+func BasicOutputCreatedAfter(time time.Time) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.createdAfter = &time
 	}
-}
-
-func basicOutputFilterOptions(optionalOptions []BasicOutputFilterOption) *BasicOutputFilterOptions {
-	result := &BasicOutputFilterOptions{}
-
-	for _, optionalOption := range optionalOptions {
-		optionalOption(result)
-	}
-
-	return result
 }
 
 func (i *Indexer) basicOutputsQueryWithFilter(opts *BasicOutputFilterOptions) (*gorm.DB, error) {
@@ -297,8 +286,8 @@ func (i *Indexer) basicOutputsQueryWithFilter(opts *BasicOutputFilterOptions) (*
 	return query, nil
 }
 
-func (i *Indexer) BasicOutputsWithFilters(filters ...BasicOutputFilterOption) *IndexerResult {
-	opts := basicOutputFilterOptions(filters)
+func (i *Indexer) BasicOutputsWithFilters(filters ...options.Option[BasicOutputFilterOptions]) *IndexerResult {
+	opts := options.Apply(new(BasicOutputFilterOptions), filters)
 	query, err := i.basicOutputsQueryWithFilter(opts)
 	if err != nil {
 		return errorResult(err)

@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/iotaledger/hive.go/runtime/options"
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
@@ -19,64 +20,52 @@ type CombinedFilterOptions struct {
 	createdAfter        *time.Time
 }
 
-type CombinedFilterOption func(*CombinedFilterOptions)
-
-func CombinedHasNativeTokens(value bool) CombinedFilterOption {
+func CombinedHasNativeTokens(value bool) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
 		args.hasNativeTokens = &value
 	}
 }
 
-func CombinedMinNativeTokenCount(value uint32) CombinedFilterOption {
+func CombinedMinNativeTokenCount(value uint32) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
 		args.minNativeTokenCount = &value
 	}
 }
 
-func CombinedMaxNativeTokenCount(value uint32) CombinedFilterOption {
+func CombinedMaxNativeTokenCount(value uint32) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
 		args.maxNativeTokenCount = &value
 	}
 }
 
-func CombinedUnlockableByAddress(address iotago.Address) CombinedFilterOption {
+func CombinedUnlockableByAddress(address iotago.Address) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
 		args.unlockableByAddress = &address
 	}
 }
 
-func CombinedPageSize(pageSize uint32) CombinedFilterOption {
+func CombinedPageSize(pageSize uint32) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
 		args.pageSize = pageSize
 	}
 }
 
-func CombinedCursor(cursor string) CombinedFilterOption {
+func CombinedCursor(cursor string) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
 		args.cursor = &cursor
 	}
 }
 
-func CombinedCreatedBefore(time time.Time) CombinedFilterOption {
+func CombinedCreatedBefore(time time.Time) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
 		args.createdBefore = &time
 	}
 }
 
-func CombinedCreatedAfter(time time.Time) CombinedFilterOption {
+func CombinedCreatedAfter(time time.Time) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
 		args.createdAfter = &time
 	}
-}
-
-func combinedFilterOptions(optionalOptions []CombinedFilterOption) *CombinedFilterOptions {
-	result := &CombinedFilterOptions{}
-
-	for _, optionalOption := range optionalOptions {
-		optionalOption(result)
-	}
-
-	return result
 }
 
 func (o *CombinedFilterOptions) BasicFilterOptions() *BasicOutputFilterOptions {
@@ -118,8 +107,8 @@ func (o *CombinedFilterOptions) NFTFilterOptions() *NFTFilterOptions {
 	}
 }
 
-func (i *Indexer) CombinedOutputsWithFilters(filters ...CombinedFilterOption) *IndexerResult {
-	opts := combinedFilterOptions(filters)
+func (i *Indexer) CombinedOutputsWithFilters(filter ...options.Option[CombinedFilterOptions]) *IndexerResult {
+	opts := options.Apply(new(CombinedFilterOptions), filter)
 
 	basicQuery, err := i.basicOutputsQueryWithFilter(opts.BasicFilterOptions())
 	if err != nil {
