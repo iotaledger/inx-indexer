@@ -19,7 +19,7 @@ type foundry struct {
 }
 
 func (o *foundry) String() string {
-	return fmt.Sprintf("foundry output => foundryID: %s outputID: %s", hex.EncodeToString(o.FoundryID), hex.EncodeToString(o.OutputID))
+	return fmt.Sprintf("foundry output => FoundryID: %s, OutputID: %s", hex.EncodeToString(o.FoundryID), hex.EncodeToString(o.OutputID))
 }
 
 type FoundryFilterOptions struct {
@@ -113,7 +113,7 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) (*go
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("account = ?", addr[:])
+		query = query.Where("account = ?", addr)
 	}
 
 	if opts.createdBefore != nil {

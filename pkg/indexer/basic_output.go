@@ -25,7 +25,7 @@ type basicOutput struct {
 }
 
 func (o *basicOutput) String() string {
-	return fmt.Sprintf("basic output => outputID: %s", hex.EncodeToString(o.OutputID))
+	return fmt.Sprintf("basic output => OutputID: %s", hex.EncodeToString(o.OutputID))
 }
 
 type BasicFilterOptions struct {

@@ -15,10 +15,6 @@ const (
 	CursorLength = 84
 )
 
-var (
-	NullOutputID = iotago.OutputID{}
-)
-
 type Status struct {
 	ID              uint `gorm:"primaryKey;notnull"`
 	LedgerIndex     iotago.SlotIndex

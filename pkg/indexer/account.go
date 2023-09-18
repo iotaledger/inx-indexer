@@ -21,8 +21,8 @@ type account struct {
 	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:account_created_at"`
 }
 
-func (o *account) String() string {
-	return fmt.Sprintf("account output => AccountID: %s outputID: %s", hex.EncodeToString(o.AccountID), hex.EncodeToString(o.OutputID))
+func (a *account) String() string {
+	return fmt.Sprintf("account output => AccountID: %s, OutputID %s", hex.EncodeToString(a.AccountID), hex.EncodeToString(a.OutputID))
 }
 
 type AccountFilterOptions struct {

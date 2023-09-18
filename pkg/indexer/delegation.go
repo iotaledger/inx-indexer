@@ -18,8 +18,8 @@ type delegation struct {
 	CreatedAt    iotago.SlotIndex `gorm:"notnull;index:delegation_outputs_created_at"`
 }
 
-func (o *delegation) String() string {
-	return fmt.Sprintf("delegation output => DelegationID: %s outputID: %s", hex.EncodeToString(o.DelegationID), hex.EncodeToString(o.OutputID))
+func (d *delegation) String() string {
+	return fmt.Sprintf("delegation output => DelegationID: %s, OutputID: %s", hex.EncodeToString(d.DelegationID), hex.EncodeToString(d.OutputID))
 }
 
 type DelegationFilterOptions struct {
@@ -83,7 +83,7 @@ func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) (*gor
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("address = ?", addr[:])
+		query = query.Where("address = ?", addr)
 	}
 
 	if opts.validator != nil {
@@ -91,7 +91,7 @@ func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) (*gor
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("validator = ?", addr[:])
+		query = query.Where("validator = ?", addr)
 	}
 
 	if opts.createdBefore != nil {

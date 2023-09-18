@@ -27,7 +27,7 @@ type nft struct {
 }
 
 func (o *nft) String() string {
-	return fmt.Sprintf("nft output => NFTID: %s outputID: %s", hex.EncodeToString(o.NFTID), hex.EncodeToString(o.OutputID))
+	return fmt.Sprintf("nft output => NFTID: %s, OutputID: %s", hex.EncodeToString(o.NFTID), hex.EncodeToString(o.OutputID))
 }
 
 type NFTFilterOptions struct {
