@@ -240,7 +240,7 @@ func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsRespo
 }
 
 func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
-	filters := []options.Option[indexer.BasicFilterOptions]{indexer.BasicOutputPageSize(s.pageSizeFromContext(c))}
+	filters := []options.Option[indexer.BasicOutputFilterOptions]{indexer.BasicOutputPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
 		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)

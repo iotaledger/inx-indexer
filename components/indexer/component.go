@@ -30,10 +30,6 @@ const (
 	DBVersion uint32 = 2
 )
 
-const (
-	APIRoute = "indexer/v2"
-)
-
 func init() {
 	Component = &app.Component{
 		Name:     "Indexer",
