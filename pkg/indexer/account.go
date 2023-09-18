@@ -22,7 +22,7 @@ type account struct {
 }
 
 func (a *account) String() string {
-	return fmt.Sprintf("account output => AccountID: %s, OutputID %s", hex.EncodeToString(a.AccountID), hex.EncodeToString(a.OutputID))
+	return fmt.Sprintf("account output => AccountID: %s, OutputID: %s", hex.EncodeToString(a.AccountID), hex.EncodeToString(a.OutputID))
 }
 
 type AccountFilterOptions struct {

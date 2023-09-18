@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -88,17 +89,13 @@ func provide(c *dig.Container) error {
 		return err
 	}
 
-	if err := c.Provide(func() *echo.Echo {
+	return c.Provide(func() *echo.Echo {
 		return httpserver.NewEcho(
 			Component.Logger(),
 			nil,
 			ParamsRestAPI.DebugRequestLoggerEnabled,
 		)
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func run() error {
@@ -173,7 +170,8 @@ func run() error {
 			advertisedAddress = ParamsRestAPI.AdvertiseAddress
 		}
 
-		if err := deps.NodeBridge.RegisterAPIRoute(ctxRegister, APIRoute, advertisedAddress, ""); err != nil {
+		routeName := strings.Replace(server.APIRoute, "/api/", "", 1)
+		if err := deps.NodeBridge.RegisterAPIRoute(ctxRegister, routeName, advertisedAddress, server.APIRoute); err != nil {
 			Component.LogErrorfAndExit("Registering INX api route failed: %s", err)
 		}
 		cancelRegister()
@@ -186,7 +184,7 @@ func run() error {
 		defer cancelUnregister()
 
 		//nolint:contextcheck // false positive
-		if err := deps.NodeBridge.UnregisterAPIRoute(ctxUnregister, APIRoute); err != nil {
+		if err := deps.NodeBridge.UnregisterAPIRoute(ctxUnregister, routeName); err != nil {
 			Component.LogWarnf("Unregistering INX api route failed: %s", err)
 		}
 
@@ -224,7 +222,6 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		needsToFillIndexer = true
 	} else {
 		// Checking current indexer state to see if it needs a reset or not
-		//nodeStatus := deps.NodeBridge.NodeStatus()
 		status, err = deps.Indexer.Status()
 		if err != nil {
 			if !errors.Is(err, indexer.ErrNotFound) {
