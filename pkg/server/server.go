@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	APIRoute = "/api/indexer/v1"
+	APIRoute = "/api/indexer/v2"
 )
 
 type IndexerServer struct {
