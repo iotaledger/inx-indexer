@@ -90,7 +90,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		conditions := iotaOutput.UnlockConditionSet()
 
 		basic := &basicOutput{
-			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
+			OutputID:         make([]byte, iotago.OutputIDLength),
 			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
 			CreatedAt:        slotBooked,
 		}
@@ -149,8 +149,8 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		conditions := iotaOutput.UnlockConditionSet()
 
 		acc := &account{
-			AccountID:        make(accountIDBytes, iotago.AccountIDLength),
-			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
+			AccountID:        make([]byte, iotago.AccountIDLength),
+			OutputID:         make([]byte, iotago.OutputIDLength),
 			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
 			CreatedAt:        slotBooked,
 		}
@@ -200,8 +200,8 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		nft := &nft{
-			NFTID:            make(nftIDBytes, iotago.NFTIDLength),
-			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
+			NFTID:            make([]byte, iotago.NFTIDLength),
+			OutputID:         make([]byte, iotago.OutputIDLength),
 			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
 			CreatedAt:        slotBooked,
 		}
@@ -267,7 +267,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		foundry := &foundry{
 			FoundryID:        foundryID[:],
-			OutputID:         make(outputIDBytes, iotago.OutputIDLength),
+			OutputID:         make([]byte, iotago.OutputIDLength),
 			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
 			CreatedAt:        slotBooked,
 		}
@@ -290,8 +290,8 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		delegation := &delegation{
-			DelegationID: make(delegationIDBytes, iotago.DelegationIDLength),
-			OutputID:     make(outputIDBytes, iotago.OutputIDLength),
+			DelegationID: make([]byte, iotago.DelegationIDLength),
+			OutputID:     make([]byte, iotago.OutputIDLength),
 			CreatedAt:    slotBooked,
 		}
 		copy(delegation.DelegationID, delegationID[:])

@@ -30,10 +30,6 @@ const (
 	DBVersion uint32 = 2
 )
 
-const (
-	APIRoute = "indexer/v2"
-)
-
 func init() {
 	Component = &app.Component{
 		Name:     "Indexer",
@@ -222,7 +218,6 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		needsToFillIndexer = true
 	} else {
 		// Checking current indexer state to see if it needs a reset or not
-		//nodeStatus := deps.NodeBridge.NodeStatus()
 		status, err = deps.Indexer.Status()
 		if err != nil {
 			if !errors.Is(err, indexer.ErrNotFound) {

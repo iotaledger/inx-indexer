@@ -4,7 +4,7 @@ import (
 	"github.com/iotaledger/hive.go/app"
 	"github.com/iotaledger/hive.go/app/components/profiling"
 	"github.com/iotaledger/hive.go/app/components/shutdown"
-	"github.com/iotaledger/inx-app/core/inx"
+	"github.com/iotaledger/inx-app/components/inx"
 	"github.com/iotaledger/inx-indexer/components/indexer"
 	"github.com/iotaledger/inx-indexer/components/prometheus"
 )
@@ -14,19 +14,19 @@ var (
 	Name = "inx-indexer"
 
 	// Version of the app.
-	Version = "2.0.0-alpha.1"
+	Version = "2.0.0-alpha.2"
 )
 
 func App() *app.App {
 	return app.New(Name, Version,
 		app.WithInitComponent(InitComponent),
-		app.WithComponents([]*app.Component{
+		app.WithComponents(
 			inx.Component,
 			indexer.Component,
 			shutdown.Component,
 			profiling.Component,
 			prometheus.Component,
-		}...),
+		),
 	)
 }
 

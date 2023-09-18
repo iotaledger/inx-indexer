@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -14,13 +15,6 @@ const (
 	CursorLength = 84
 )
 
-type outputIDBytes []byte
-type addressBytes []byte
-type nftIDBytes []byte
-type delegationIDBytes []byte
-type accountIDBytes []byte
-type foundryIDBytes []byte
-
 type Status struct {
 	ID              uint `gorm:"primaryKey;notnull"`
 	LedgerIndex     iotago.SlotIndex
@@ -29,16 +23,9 @@ type Status struct {
 }
 
 type queryResult struct {
-	OutputID    outputIDBytes
+	OutputID    []byte
 	Cursor      string
 	LedgerIndex iotago.SlotIndex
-}
-
-func (o outputIDBytes) ID() iotago.OutputID {
-	id := iotago.OutputID{}
-	copy(id[:], o)
-
-	return id
 }
 
 type queryResults []queryResult
@@ -46,13 +33,13 @@ type queryResults []queryResult
 func (q queryResults) IDs() iotago.OutputIDs {
 	outputIDs := iotago.OutputIDs{}
 	for _, r := range q {
-		outputIDs = append(outputIDs, r.OutputID.ID())
+		outputIDs = append(outputIDs, iotago.OutputID(r.OutputID))
 	}
 
 	return outputIDs
 }
 
-func addressBytesForAddress(addr iotago.Address) (addressBytes, error) {
+func addressBytesForAddress(addr iotago.Address) ([]byte, error) {
 	return addr.Encode()
 }
 
@@ -71,9 +58,8 @@ func errorResult(err error) *IndexerResult {
 	}
 }
 
-func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, cursor *string) *IndexerResult {
-
-	query = query.Select("output_id").Order("created_at asc, output_id asc")
+func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string) (*gorm.DB, error) {
+	query = query.Select("output_id", "created_at").Order("created_at asc, output_id asc")
 	if pageSize > 0 {
 		var cursorQuery string
 		//nolint:exhaustive // we have a default case.
@@ -86,11 +72,12 @@ func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, 
 			i.LogErrorfAndExit("Unsupported db engine pagination queries: %s", i.engine)
 		}
 
-		query = query.Select("output_id", cursorQuery).Limit(int(pageSize + 1))
+		// We use pageSize + 1 to load the next item to use as the cursor
+		query = query.Select("output_id", "created_at", cursorQuery).Limit(int(pageSize + 1))
 
 		if cursor != nil {
 			if len(*cursor) != CursorLength {
-				return errorResult(errors.Errorf("Invalid cursor length: %d", len(*cursor)))
+				return nil, errors.Errorf("Invalid cursor length: %d", len(*cursor))
 			}
 			//nolint:exhaustive // we have a default case.
 			switch i.engine {
@@ -104,9 +91,49 @@ func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, 
 		}
 	}
 
+	return query, nil
+}
+
+func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, cursor *string) *IndexerResult {
+	var err error
+	query, err = i.filteredQuery(query, pageSize, cursor)
+	if err != nil {
+		return errorResult(err)
+	}
+
+	return i.resultsForQuery(query, pageSize)
+}
+
+func (i *Indexer) combineOutputIDFilteredQueries(queries []*gorm.DB, pageSize uint32, cursor *string) *IndexerResult {
+	// Cast to []interface{} so that we can pass them to i.db.Raw as parameters
+	filteredQueries := make([]interface{}, len(queries))
+	for q, query := range queries {
+		filtered, err := i.filteredQuery(query, pageSize, cursor)
+		if err != nil {
+			return errorResult(err)
+		}
+		filteredQueries[q] = filtered
+	}
+
+	unionQueryItem := "SELECT output_id, created_at FROM (?) as temp;"
+	if pageSize > 0 {
+		unionQueryItem = "SELECT output_id, created_at, cursor FROM (?) as temp;"
+	}
+	repeatedUnionQueryItem := strings.Split(strings.Repeat(unionQueryItem, len(queries)), ";")
+	unionQuery := strings.Join(repeatedUnionQueryItem[:len(repeatedUnionQueryItem)-1], " UNION ")
+
+	// We use pageSize + 1 to load the next item to use as the cursor
+	unionQuery = fmt.Sprintf("%s ORDER BY created_at asc, output_id asc LIMIT %d", unionQuery, pageSize+1)
+
+	rawQuery := i.db.Raw(unionQuery, filteredQueries...)
+	rawQuery = rawQuery.Order("created_at asc, output_id asc")
+
+	return i.resultsForQuery(rawQuery, pageSize)
+}
+
+func (i *Indexer) resultsForQuery(query *gorm.DB, pageSize uint32) *IndexerResult {
 	// This combines the query with a second query that checks for the current ledger_index.
 	// This way we do not need to lock anything and we know the index matches the results.
-	//TODO: measure performance for big datasets
 	ledgerIndexQuery := i.db.Model(&Status{}).Select("ledger_index")
 	joinedQuery := i.db.Table("(?) as results, (?) as status", query, ledgerIndexQuery)
 

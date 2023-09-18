@@ -13,6 +13,9 @@ const (
 	// ParameterNFTID is used to identify a nft by its ID.
 	ParameterNFTID = "nftID"
 
+	// QueryParameterUnlockableByAddress is used to filter for all unlock conditions regarding a certain address.
+	QueryParameterUnlockableByAddress = "unlockableByAddress"
+
 	// QueryParameterAddress is used to filter for a certain address.
 	QueryParameterAddress = "address"
 

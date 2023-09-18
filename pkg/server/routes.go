@@ -16,11 +16,17 @@ import (
 )
 
 const (
+	// RouteOutputs is the route for getting basic, account, delegation and nft outputs filtered by the given parameters.
+	// GET with query parameter returns all outputIDs that fit these filter criteria.
+	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
+	//					 "unlockableByAddress", "createdBefore", "createdAfter"
+	// Returns an empty list if no results are found.
+	RouteOutputs = "/outputs"
 
 	// RouteOutputsBasic is the route for getting basic outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "address", "hasStorageDepositReturn", "storageDepositReturnAddress",
+	//					 "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
 	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
 	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "sender", "tag",
 	//					 "createdBefore", "createdAfter"
@@ -30,7 +36,7 @@ const (
 	// RouteOutputsAccounts is the route for getting accounts filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "stateController", "governor", "issuer", "sender",
+	//					 "unlockableByAddress", "stateController", "governor", "issuer", "sender",
 	//					 "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsAccounts = "/outputs/account"
@@ -41,7 +47,7 @@ const (
 
 	// RouteOutputsNFTs is the route for getting NFT filtered by the given parameters.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "address", "hasStorageDepositReturn", "storageDepositReturnAddress",
+	//					 "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
 	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
 	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "issuer", "sender", "tag",
 	//					 "createdBefore", "createdAfter"
@@ -79,6 +85,15 @@ const (
 )
 
 func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
+
+	routeGroup.GET(RouteOutputs, func(c echo.Context) error {
+		resp, err := s.combinedOutputsWithFilter(c)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, resp)
+	})
 
 	routeGroup.GET(RouteOutputsBasic, func(c echo.Context) error {
 		resp, err := s.basicOutputsWithFilter(c)
@@ -142,6 +157,86 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 
 		return c.JSON(http.StatusOK, resp)
 	})
+
+	routeGroup.GET(RouteOutputsDelegations, func(c echo.Context) error {
+		resp, err := s.delegationsWithFilter(c)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, resp)
+	})
+
+	routeGroup.GET(RouteOutputsDelegationByID, func(c echo.Context) error {
+		resp, err := s.delegationByID(c)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, resp)
+	})
+}
+
+func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
+	filters := []options.Option[indexer.CombinedFilterOptions]{indexer.CombinedPageSize(s.pageSizeFromContext(c))}
+
+	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.CombinedHasNativeTokens(value))
+	}
+
+	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.CombinedMinNativeTokenCount(value))
+	}
+
+	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.CombinedMaxNativeTokenCount(value))
+	}
+
+	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterUnlockableByAddress)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.CombinedUnlockableByAddress(addr))
+	}
+
+	if len(c.QueryParam(QueryParameterCursor)) > 0 {
+		cursor, pageSize, err := s.parseCursorQueryParameter(c)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.CombinedCursor(cursor), indexer.CombinedPageSize(pageSize))
+	}
+
+	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedBefore)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.CombinedCreatedBefore(slot))
+	}
+
+	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedAfter)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.CombinedCreatedAfter(slot))
+	}
+
+	return outputsResponseFromResult(s.Indexer.CombinedOutputsWithFilters(filters...))
 }
 
 func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
@@ -156,7 +251,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
 		if err != nil {
 			return nil, err
 		}
@@ -164,11 +259,19 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 	}
 
 	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
 		if err != nil {
 			return nil, err
 		}
 		filters = append(filters, indexer.BasicOutputMaxNativeTokenCount(value))
+	}
+
+	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterUnlockableByAddress)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.BasicOutputUnlockableByAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterAddress)) > 0 {
@@ -176,7 +279,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputUnlockableByAddress(addr))
+		filters = append(filters, indexer.BasicOutputUnlockAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterHasStorageDepositReturn)) > 0 {
@@ -315,7 +418,7 @@ func (s *IndexerServer) accountsWithFilter(c echo.Context) (*outputsResponse, er
 	}
 
 	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
 		if err != nil {
 			return nil, err
 		}
@@ -323,11 +426,19 @@ func (s *IndexerServer) accountsWithFilter(c echo.Context) (*outputsResponse, er
 	}
 
 	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
 		if err != nil {
 			return nil, err
 		}
 		filters = append(filters, indexer.AccountMaxNativeTokenCount(value))
+	}
+
+	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterUnlockableByAddress)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.AccountUnlockableByAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterStateController)) > 0 {
@@ -410,7 +521,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
 		if err != nil {
 			return nil, err
 		}
@@ -418,11 +529,19 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 	}
 
 	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
 		if err != nil {
 			return nil, err
 		}
 		filters = append(filters, indexer.NFTMaxNativeTokenCount(value))
+	}
+
+	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterUnlockableByAddress)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.NFTUnlockableByAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterAddress)) > 0 {
@@ -430,7 +549,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.NFTUnlockableByAddress(addr))
+		filters = append(filters, indexer.NFTUnlockAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterHasStorageDepositReturn)) > 0 {
@@ -577,7 +696,7 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 	}
 
 	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
 		if err != nil {
 			return nil, err
 		}
@@ -585,7 +704,7 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 	}
 
 	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput)
+		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
 		if err != nil {
 			return nil, err
 		}
@@ -649,7 +768,7 @@ func (s *IndexerServer) delegationsWithFilter(c echo.Context) (*outputsResponse,
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.DelegationUnlockableByAddress(addr))
+		filters = append(filters, indexer.DelegationAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterValidator)) > 0 {

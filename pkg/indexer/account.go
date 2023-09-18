@@ -4,29 +4,32 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"gorm.io/gorm"
+
 	"github.com/iotaledger/hive.go/runtime/options"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 type account struct {
-	AccountID        accountIDBytes   `gorm:"primaryKey;notnull"`
-	OutputID         outputIDBytes    `gorm:"unique;notnull"`
+	AccountID        []byte           `gorm:"primaryKey;notnull"`
+	OutputID         []byte           `gorm:"unique;notnull"`
 	NativeTokenCount uint32           `gorm:"notnull;type:integer"`
-	StateController  addressBytes     `gorm:"notnull;index:account_state_controller"`
-	Governor         addressBytes     `gorm:"notnull;index:account_governor"`
-	Issuer           addressBytes     `gorm:"index:account_issuer"`
-	Sender           addressBytes     `gorm:"index:account_sender"`
+	StateController  []byte           `gorm:"notnull;index:account_state_controller"`
+	Governor         []byte           `gorm:"notnull;index:account_governor"`
+	Issuer           []byte           `gorm:"index:account_issuer"`
+	Sender           []byte           `gorm:"index:account_sender"`
 	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:account_created_at"`
 }
 
 func (a *account) String() string {
-	return fmt.Sprintf("account output => AccountID: %s, OutputID: %s ", hex.EncodeToString(a.AccountID), hex.EncodeToString(a.OutputID))
+	return fmt.Sprintf("account output => AccountID: %s, OutputID: %s", hex.EncodeToString(a.AccountID), hex.EncodeToString(a.OutputID))
 }
 
 type AccountFilterOptions struct {
 	hasNativeTokens     *bool
 	minNativeTokenCount *uint32
 	maxNativeTokenCount *uint32
+	unlockableByAddress *iotago.Address
 	stateController     *iotago.Address
 	governor            *iotago.Address
 	issuer              *iotago.Address
@@ -52,6 +55,12 @@ func AccountMinNativeTokenCount(value uint32) options.Option[AccountFilterOption
 func AccountMaxNativeTokenCount(value uint32) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.maxNativeTokenCount = &value
+	}
+}
+
+func AccountUnlockableByAddress(address iotago.Address) options.Option[AccountFilterOptions] {
+	return func(args *AccountFilterOptions) {
+		args.unlockableByAddress = &address
 	}
 }
 
@@ -111,8 +120,7 @@ func (i *Indexer) AccountOutput(accountID iotago.AccountID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) AccountOutputsWithFilters(filter ...options.Option[AccountFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(AccountFilterOptions), filter)
+func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) (*gorm.DB, error) {
 	query := i.db.Model(&account{})
 
 	if opts.hasNativeTokens != nil {
@@ -131,36 +139,44 @@ func (i *Indexer) AccountOutputsWithFilters(filter ...options.Option[AccountFilt
 		query = query.Where("native_token_count <= ?", *opts.maxNativeTokenCount)
 	}
 
+	if opts.unlockableByAddress != nil {
+		addr, err := addressBytesForAddress(*opts.unlockableByAddress)
+		if err != nil {
+			return nil, err
+		}
+		query = query.Where("(state_controller = ? OR governor = ?)", addr, addr)
+	}
+
 	if opts.stateController != nil {
 		addr, err := addressBytesForAddress(*opts.stateController)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("state_controller = ?", addr[:])
+		query = query.Where("state_controller = ?", addr)
 	}
 
 	if opts.governor != nil {
 		addr, err := addressBytesForAddress(*opts.governor)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("governor = ?", addr[:])
+		query = query.Where("governor = ?", addr)
 	}
 
 	if opts.sender != nil {
 		addr, err := addressBytesForAddress(*opts.sender)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("sender = ?", addr[:])
+		query = query.Where("sender = ?", addr)
 	}
 
 	if opts.issuer != nil {
 		addr, err := addressBytesForAddress(*opts.issuer)
 		if err != nil {
-			return errorResult(err)
+			return nil, err
 		}
-		query = query.Where("issuer = ?", addr[:])
+		query = query.Where("issuer = ?", addr)
 	}
 
 	if opts.createdBefore != nil {
@@ -169,6 +185,16 @@ func (i *Indexer) AccountOutputsWithFilters(filter ...options.Option[AccountFilt
 
 	if opts.createdAfter != nil {
 		query = query.Where("created_at > ?", *opts.createdAfter)
+	}
+
+	return query, nil
+}
+
+func (i *Indexer) AccountOutputsWithFilters(filters ...options.Option[AccountFilterOptions]) *IndexerResult {
+	opts := options.Apply(new(AccountFilterOptions), filters)
+	query, err := i.accountQueryWithFilter(opts)
+	if err != nil {
+		return errorResult(err)
 	}
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)
