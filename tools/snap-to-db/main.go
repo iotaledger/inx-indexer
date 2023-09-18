@@ -5,12 +5,14 @@ const (
 )
 
 func main() {
-	//if err := convert(); err != nil {
-	//	if !errors.Is(err, flag.ErrHelp) {
-	//		fmt.Printf("\nERROR: %s\n", err.Error())
-	//	}
-	//	os.Exit(1)
-	//}
+	/*
+		if err := convert(); err != nil {
+			if !errors.Is(err, flag.ErrHelp) {
+				fmt.Printf("\nERROR: %s\n", err.Error())
+			}
+			os.Exit(1)
+		}
+	*/
 	panic("This tool needs to be updated to the iota-core snapshot format")
 }
 
@@ -19,6 +21,7 @@ type ParametersSnapshot struct {
 }
 
 func convert() error {
+	panic("This tool needs to be updated to the iota-core snapshot format")
 	/*
 		indexerParams := indexerComponent.ParametersIndexer{}
 		dbParams := &indexerParams.Database
