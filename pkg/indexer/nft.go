@@ -3,7 +3,6 @@ package indexer
 import (
 	"encoding/hex"
 	"fmt"
-	"time"
 
 	"gorm.io/gorm"
 
@@ -23,7 +22,7 @@ type nft struct {
 	StorageDepositReturnAddress []byte `gorm:"index:nfts_storage_deposit_return_address"`
 	TimelockTime                *iotago.SlotIndex
 	ExpirationTime              *iotago.SlotIndex
-	ExpirationReturnAddress     []byte    `gorm:"index:nfts_expiration_return_address"`
+	ExpirationReturnAddress     []byte           `gorm:"index:nfts_expiration_return_address"`
 	CreatedAt                   iotago.SlotIndex `gorm:"notnull;index:nfts_created_at"`
 }
 
@@ -189,7 +188,7 @@ func (i *Indexer) NFTOutput(nftID iotago.NFTID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, error) {
+func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, error) {
 	query := i.db.Model(&nft{})
 
 	if opts.hasNativeTokens != nil {
@@ -313,7 +312,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 
 func (i *Indexer) NFTOutputsWithFilters(filters ...options.Option[NFTFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(NFTFilterOptions), filters)
-	query, err := i.nftOutputsQueryWithFilter(opts)
+	query, err := i.nftQueryWithFilter(opts)
 	if err != nil {
 		return errorResult(err)
 	}

@@ -62,8 +62,6 @@ func errorResult(err error) *IndexerResult {
 	}
 }
 
-func (i *Indexer) combineOutputIDFilteredQuery(query *gorm.DB, pageSize uint32, cursor *string) *IndexerResult {
-
 func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string) (*gorm.DB, error) {
 	query = query.Select("output_id", "created_at").Order("created_at asc, output_id asc")
 	if pageSize > 0 {

@@ -3,7 +3,6 @@ package indexer
 import (
 	"encoding/hex"
 	"fmt"
-	"time"
 
 	"gorm.io/gorm"
 
@@ -12,10 +11,10 @@ import (
 )
 
 type foundry struct {
-	FoundryID        []byte   `gorm:"primaryKey;notnull"`
-	OutputID         []byte    `gorm:"unique;notnull"`
+	FoundryID        []byte           `gorm:"primaryKey;notnull"`
+	OutputID         []byte           `gorm:"unique;notnull"`
 	NativeTokenCount uint32           `gorm:"notnull;type:integer"`
-	AccountAddress   []byte     `gorm:"notnull;index:foundries_account_address"`
+	AccountAddress   []byte           `gorm:"notnull;index:foundries_account_address"`
 	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:foundries_created_at"`
 }
 

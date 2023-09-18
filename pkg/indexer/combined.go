@@ -1,12 +1,10 @@
 package indexer
 
 import (
-	"time"
-
 	"gorm.io/gorm"
 
 	"github.com/iotaledger/hive.go/runtime/options"
-	iotago "github.com/iotaledger/iota.go/v3"
+	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 type CombinedFilterOptions struct {
@@ -16,8 +14,8 @@ type CombinedFilterOptions struct {
 	unlockableByAddress *iotago.Address
 	pageSize            uint32
 	cursor              *string
-	createdBefore       *time.Time
-	createdAfter        *time.Time
+	createdBefore       *iotago.SlotIndex
+	createdAfter        *iotago.SlotIndex
 }
 
 func CombinedHasNativeTokens(value bool) options.Option[CombinedFilterOptions] {
@@ -56,20 +54,20 @@ func CombinedCursor(cursor string) options.Option[CombinedFilterOptions] {
 	}
 }
 
-func CombinedCreatedBefore(time time.Time) options.Option[CombinedFilterOptions] {
+func CombinedCreatedBefore(slot iotago.SlotIndex) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
-		args.createdBefore = &time
+		args.createdBefore = &slot
 	}
 }
 
-func CombinedCreatedAfter(time time.Time) options.Option[CombinedFilterOptions] {
+func CombinedCreatedAfter(slot iotago.SlotIndex) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
-		args.createdAfter = &time
+		args.createdAfter = &slot
 	}
 }
 
-func (o *CombinedFilterOptions) BasicFilterOptions() *BasicOutputFilterOptions {
-	return &BasicOutputFilterOptions{
+func (o *CombinedFilterOptions) BasicFilterOptions() *BasicFilterOptions {
+	return &BasicFilterOptions{
 		hasNativeTokens:     o.hasNativeTokens,
 		minNativeTokenCount: o.minNativeTokenCount,
 		maxNativeTokenCount: o.maxNativeTokenCount,
@@ -81,8 +79,8 @@ func (o *CombinedFilterOptions) BasicFilterOptions() *BasicOutputFilterOptions {
 	}
 }
 
-func (o *CombinedFilterOptions) AliasFilterOptions() *AliasFilterOptions {
-	return &AliasFilterOptions{
+func (o *CombinedFilterOptions) AccountFilterOptions() *AccountFilterOptions {
+	return &AccountFilterOptions{
 		hasNativeTokens:     o.hasNativeTokens,
 		minNativeTokenCount: o.minNativeTokenCount,
 		maxNativeTokenCount: o.maxNativeTokenCount,
@@ -107,25 +105,40 @@ func (o *CombinedFilterOptions) NFTFilterOptions() *NFTFilterOptions {
 	}
 }
 
+func (o *CombinedFilterOptions) DelegationFilterOptions() *DelegationFilterOptions {
+	return &DelegationFilterOptions{
+		address:       o.unlockableByAddress,
+		pageSize:      o.pageSize,
+		cursor:        o.cursor,
+		createdBefore: o.createdBefore,
+		createdAfter:  o.createdAfter,
+	}
+}
+
 func (i *Indexer) CombinedOutputsWithFilters(filter ...options.Option[CombinedFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(CombinedFilterOptions), filter)
 
-	basicQuery, err := i.basicOutputsQueryWithFilter(opts.BasicFilterOptions())
+	basicQuery, err := i.basicQueryWithFilter(opts.BasicFilterOptions())
 	if err != nil {
 		return errorResult(err)
 	}
 
-	aliasQuery, err := i.aliasQueryWithFilter(opts.AliasFilterOptions())
+	accountQuery, err := i.accountQueryWithFilter(opts.AccountFilterOptions())
 	if err != nil {
 		return errorResult(err)
 	}
 
-	nftQuery, err := i.nftOutputsQueryWithFilter(opts.NFTFilterOptions())
+	nftQuery, err := i.nftQueryWithFilter(opts.NFTFilterOptions())
 	if err != nil {
 		return errorResult(err)
 	}
 
-	queries := []*gorm.DB{basicQuery, aliasQuery, nftQuery}
+	delegationQuery, err := i.delegationQueryWithFilter(opts.DelegationFilterOptions())
+	if err != nil {
+		return errorResult(err)
+	}
+
+	queries := []*gorm.DB{basicQuery, accountQuery, nftQuery, delegationQuery}
 
 	return i.combineOutputIDFilteredQueries(queries, opts.pageSize, opts.cursor)
 }

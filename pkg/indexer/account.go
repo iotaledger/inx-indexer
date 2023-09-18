@@ -3,7 +3,6 @@ package indexer
 import (
 	"encoding/hex"
 	"fmt"
-	"time"
 
 	"gorm.io/gorm"
 
@@ -12,22 +11,21 @@ import (
 )
 
 type account struct {
-	AccountID        []byte   `gorm:"primaryKey;notnull"`
-	OutputID         []byte    `gorm:"unique;notnull"`
+	AccountID        []byte           `gorm:"primaryKey;notnull"`
+	OutputID         []byte           `gorm:"unique;notnull"`
 	NativeTokenCount uint32           `gorm:"notnull;type:integer"`
-	StateController  []byte     `gorm:"notnull;index:account_state_controller"`
-	Governor         []byte     `gorm:"notnull;index:account_governor"`
-	Issuer           []byte     `gorm:"index:account_issuer"`
-	Sender           []byte     `gorm:"index:account_sender"`
+	StateController  []byte           `gorm:"notnull;index:account_state_controller"`
+	Governor         []byte           `gorm:"notnull;index:account_governor"`
+	Issuer           []byte           `gorm:"index:account_issuer"`
+	Sender           []byte           `gorm:"index:account_sender"`
 	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:account_created_at"`
 }
-type AccountFilterOptions struct {
 
-func (o *alias) String() string {
-	return fmt.Sprintf("alias output => AliasID: %s outputID: %s", hex.EncodeToString(o.AliasID), hex.EncodeToString(o.OutputID))
+func (o *account) String() string {
+	return fmt.Sprintf("account output => AccountID: %s outputID: %s", hex.EncodeToString(o.AccountID), hex.EncodeToString(o.OutputID))
 }
 
-type AliasFilterOptions struct {
+type AccountFilterOptions struct {
 	hasNativeTokens     *bool
 	minNativeTokenCount *uint32
 	maxNativeTokenCount *uint32
@@ -60,14 +58,14 @@ func AccountMaxNativeTokenCount(value uint32) options.Option[AccountFilterOption
 	}
 }
 
-func AccountStateController(address iotago.Address) options.Option[AccountFilterOptions] {
+func AccountUnlockableByAddress(address iotago.Address) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
 		args.unlockableByAddress = &address
 	}
 }
 
-func AliasStateController(address iotago.Address) options.Option[AccountFilterOptions] {
-	return func(args *AliasFilterOptions) {
+func AccountStateController(address iotago.Address) options.Option[AccountFilterOptions] {
+	return func(args *AccountFilterOptions) {
 		args.stateController = &address
 	}
 }
@@ -123,7 +121,6 @@ func (i *Indexer) AccountOutput(accountID iotago.AccountID) *IndexerResult {
 }
 
 func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) (*gorm.DB, error) {
-	opts := accountFilterOptions(filters)
 	query := i.db.Model(&account{})
 
 	if opts.hasNativeTokens != nil {

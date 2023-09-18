@@ -290,8 +290,8 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		delegation := &delegation{
-			DelegationID: make(delegationIDBytes, iotago.DelegationIDLength),
-			OutputID:     make(outputIDBytes, iotago.OutputIDLength),
+			DelegationID: make([]byte, iotago.DelegationIDLength),
+			OutputID:     make([]byte, iotago.OutputIDLength),
 			CreatedAt:    slotBooked,
 		}
 		copy(delegation.DelegationID, delegationID[:])
