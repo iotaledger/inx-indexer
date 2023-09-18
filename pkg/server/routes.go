@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 
+	"github.com/iotaledger/hive.go/runtime/options"
 	"github.com/iotaledger/inx-app/pkg/httpserver"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v3"
@@ -145,7 +146,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 }
 
 func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
-	filters := []indexer.CombinedFilterOption{indexer.CombinedPageSize(s.pageSizeFromContext(c))}
+	filters := []options.Option[indexer.CombinedFilterOptions]{indexer.CombinedPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
 		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
@@ -207,7 +208,7 @@ func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsRespo
 }
 
 func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
-	filters := []indexer.BasicOutputFilterOption{indexer.BasicOutputPageSize(s.pageSizeFromContext(c))}
+	filters := []options.Option[indexer.BasicOutputFilterOptions]{indexer.BasicOutputPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
 		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
@@ -374,7 +375,7 @@ func (s *IndexerServer) aliasByID(c echo.Context) (*outputsResponse, error) {
 }
 
 func (s *IndexerServer) aliasesWithFilter(c echo.Context) (*outputsResponse, error) {
-	filters := []indexer.AliasFilterOption{indexer.AliasPageSize(s.pageSizeFromContext(c))}
+	filters := []options.Option[indexer.AliasFilterOptions]{indexer.AliasPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
 		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
@@ -477,7 +478,7 @@ func (s *IndexerServer) nftByID(c echo.Context) (*outputsResponse, error) {
 }
 
 func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error) {
-	filters := []indexer.NFTFilterOption{indexer.NFTPageSize(s.pageSizeFromContext(c))}
+	filters := []options.Option[indexer.NFTFilterOptions]{indexer.NFTPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
 		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
@@ -652,7 +653,7 @@ func (s *IndexerServer) foundryByID(c echo.Context) (*outputsResponse, error) {
 }
 
 func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, error) {
-	filters := []indexer.FoundryFilterOption{indexer.FoundryPageSize(s.pageSizeFromContext(c))}
+	filters := []options.Option[indexer.FoundryFilterOptions]{indexer.FoundryPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
 		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)

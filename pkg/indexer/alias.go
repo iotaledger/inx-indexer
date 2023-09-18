@@ -7,6 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/iotaledger/hive.go/runtime/options"
 	iotago "github.com/iotaledger/iota.go/v3"
 )
 
@@ -40,88 +41,76 @@ type AliasFilterOptions struct {
 	createdAfter        *time.Time
 }
 
-type AliasFilterOption func(*AliasFilterOptions)
-
-func AliasHasNativeTokens(value bool) AliasFilterOption {
+func AliasHasNativeTokens(value bool) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
 		args.hasNativeTokens = &value
 	}
 }
 
-func AliasMinNativeTokenCount(value uint32) AliasFilterOption {
+func AliasMinNativeTokenCount(value uint32) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
 		args.minNativeTokenCount = &value
 	}
 }
 
-func AliasMaxNativeTokenCount(value uint32) AliasFilterOption {
+func AliasMaxNativeTokenCount(value uint32) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
 		args.maxNativeTokenCount = &value
 	}
 }
 
-func AliasUnlockableByAddress(address iotago.Address) AliasFilterOption {
+func AliasUnlockableByAddress(address iotago.Address) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
 		args.unlockableByAddress = &address
 	}
 }
 
-func AliasStateController(address iotago.Address) AliasFilterOption {
+func AliasStateController(address iotago.Address) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
 		args.stateController = &address
 	}
 }
 
-func AliasGovernor(address iotago.Address) AliasFilterOption {
+func AliasGovernor(address iotago.Address) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
 		args.governor = &address
 	}
 }
 
-func AliasSender(address iotago.Address) AliasFilterOption {
+func AliasSender(address iotago.Address) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
 		args.sender = &address
 	}
 }
 
-func AliasIssuer(address iotago.Address) AliasFilterOption {
+func AliasIssuer(address iotago.Address) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
 		args.issuer = &address
 	}
 }
 
-func AliasPageSize(pageSize uint32) AliasFilterOption {
+func AliasPageSize(pageSize uint32) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
 		args.pageSize = pageSize
 	}
 }
 
-func AliasCursor(cursor string) AliasFilterOption {
+func AliasCursor(cursor string) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
 		args.cursor = &cursor
 	}
 }
 
-func AliasCreatedBefore(time time.Time) AliasFilterOption {
+func AliasCreatedBefore(time time.Time) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
 		args.createdBefore = &time
 	}
 }
 
-func AliasCreatedAfter(time time.Time) AliasFilterOption {
+func AliasCreatedAfter(time time.Time) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
 		args.createdAfter = &time
 	}
-}
-
-func aliasFilterOptions(optionalOptions []AliasFilterOption) *AliasFilterOptions {
-	result := &AliasFilterOptions{}
-
-	for _, optionalOption := range optionalOptions {
-		optionalOption(result)
-	}
-
-	return result
 }
 
 func (i *Indexer) AliasOutput(aliasID *iotago.AliasID) *IndexerResult {
@@ -202,8 +191,8 @@ func (i *Indexer) aliasQueryWithFilter(opts *AliasFilterOptions) (*gorm.DB, erro
 	return query, nil
 }
 
-func (i *Indexer) AliasOutputsWithFilters(filter ...AliasFilterOption) *IndexerResult {
-	opts := aliasFilterOptions(filter)
+func (i *Indexer) AliasOutputsWithFilters(filters ...options.Option[AliasFilterOptions]) *IndexerResult {
+	opts := options.Apply(new(AliasFilterOptions), filters)
 	query, err := i.aliasQueryWithFilter(opts)
 	if err != nil {
 		return errorResult(err)
