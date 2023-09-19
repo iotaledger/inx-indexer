@@ -30,11 +30,11 @@ type AliasFilterOptions struct {
 	hasNativeTokens     *bool
 	minNativeTokenCount *uint32
 	maxNativeTokenCount *uint32
-	unlockableByAddress *iotago.Address
-	stateController     *iotago.Address
-	governor            *iotago.Address
-	issuer              *iotago.Address
-	sender              *iotago.Address
+	unlockableByAddress iotago.Address
+	stateController     iotago.Address
+	governor            iotago.Address
+	issuer              iotago.Address
+	sender              iotago.Address
 	pageSize            uint32
 	cursor              *string
 	createdBefore       *time.Time
@@ -61,31 +61,31 @@ func AliasMaxNativeTokenCount(value uint32) options.Option[AliasFilterOptions] {
 
 func AliasUnlockableByAddress(address iotago.Address) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
-		args.unlockableByAddress = &address
+		args.unlockableByAddress = address
 	}
 }
 
 func AliasStateController(address iotago.Address) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
-		args.stateController = &address
+		args.stateController = address
 	}
 }
 
 func AliasGovernor(address iotago.Address) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
-		args.governor = &address
+		args.governor = address
 	}
 }
 
 func AliasSender(address iotago.Address) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
-		args.sender = &address
+		args.sender = address
 	}
 }
 
 func AliasIssuer(address iotago.Address) options.Option[AliasFilterOptions] {
 	return func(args *AliasFilterOptions) {
-		args.issuer = &address
+		args.issuer = address
 	}
 }
 
@@ -141,7 +141,7 @@ func (i *Indexer) aliasQueryWithFilter(opts *AliasFilterOptions) (*gorm.DB, erro
 	}
 
 	if opts.unlockableByAddress != nil {
-		addr, err := addressBytesForAddress(*opts.unlockableByAddress)
+		addr, err := addressBytesForAddress(opts.unlockableByAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -149,7 +149,7 @@ func (i *Indexer) aliasQueryWithFilter(opts *AliasFilterOptions) (*gorm.DB, erro
 	}
 
 	if opts.stateController != nil {
-		addr, err := addressBytesForAddress(*opts.stateController)
+		addr, err := addressBytesForAddress(opts.stateController)
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +157,7 @@ func (i *Indexer) aliasQueryWithFilter(opts *AliasFilterOptions) (*gorm.DB, erro
 	}
 
 	if opts.governor != nil {
-		addr, err := addressBytesForAddress(*opts.governor)
+		addr, err := addressBytesForAddress(opts.governor)
 		if err != nil {
 			return nil, err
 		}
@@ -165,7 +165,7 @@ func (i *Indexer) aliasQueryWithFilter(opts *AliasFilterOptions) (*gorm.DB, erro
 	}
 
 	if opts.sender != nil {
-		addr, err := addressBytesForAddress(*opts.sender)
+		addr, err := addressBytesForAddress(opts.sender)
 		if err != nil {
 			return nil, err
 		}
@@ -173,7 +173,7 @@ func (i *Indexer) aliasQueryWithFilter(opts *AliasFilterOptions) (*gorm.DB, erro
 	}
 
 	if opts.issuer != nil {
-		addr, err := addressBytesForAddress(*opts.issuer)
+		addr, err := addressBytesForAddress(opts.issuer)
 		if err != nil {
 			return nil, err
 		}
