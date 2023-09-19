@@ -35,19 +35,19 @@ type NFTFilterOptions struct {
 	hasNativeTokens                  *bool
 	minNativeTokenCount              *uint32
 	maxNativeTokenCount              *uint32
-	unlockableByAddress              *iotago.Address
-	address                          *iotago.Address
+	unlockableByAddress              iotago.Address
+	address                          iotago.Address
 	hasStorageDepositReturnCondition *bool
-	storageDepositReturnAddress      *iotago.Address
+	storageDepositReturnAddress      iotago.Address
 	hasExpirationCondition           *bool
-	expirationReturnAddress          *iotago.Address
+	expirationReturnAddress          iotago.Address
 	expiresBefore                    *time.Time
 	expiresAfter                     *time.Time
 	hasTimelockCondition             *bool
 	timelockedBefore                 *time.Time
 	timelockedAfter                  *time.Time
-	issuer                           *iotago.Address
-	sender                           *iotago.Address
+	issuer                           iotago.Address
+	sender                           iotago.Address
 	tag                              []byte
 	pageSize                         uint32
 	cursor                           *string
@@ -75,13 +75,13 @@ func NFTMaxNativeTokenCount(value uint32) options.Option[NFTFilterOptions] {
 
 func NFTUnlockableByAddress(address iotago.Address) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
-		args.unlockableByAddress = &address
+		args.unlockableByAddress = address
 	}
 }
 
 func NFTUnlockAddress(address iotago.Address) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
-		args.address = &address
+		args.address = address
 	}
 }
 
@@ -93,13 +93,13 @@ func NFTHasStorageDepositReturnCondition(value bool) options.Option[NFTFilterOpt
 
 func NFTStorageDepositReturnAddress(address iotago.Address) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
-		args.storageDepositReturnAddress = &address
+		args.storageDepositReturnAddress = address
 	}
 }
 
 func NFTExpirationReturnAddress(address iotago.Address) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
-		args.expirationReturnAddress = &address
+		args.expirationReturnAddress = address
 	}
 }
 
@@ -141,13 +141,13 @@ func NFTTimelockedAfter(time time.Time) options.Option[NFTFilterOptions] {
 
 func NFTIssuer(address iotago.Address) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
-		args.issuer = &address
+		args.issuer = address
 	}
 }
 
 func NFTSender(address iotago.Address) options.Option[NFTFilterOptions] {
 	return func(args *NFTFilterOptions) {
-		args.sender = &address
+		args.sender = address
 	}
 }
 
@@ -209,7 +209,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 	}
 
 	if opts.unlockableByAddress != nil {
-		addr, err := addressBytesForAddress(*opts.unlockableByAddress)
+		addr, err := addressBytesForAddress(opts.unlockableByAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -217,7 +217,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 	}
 
 	if opts.address != nil {
-		addr, err := addressBytesForAddress(*opts.address)
+		addr, err := addressBytesForAddress(opts.address)
 		if err != nil {
 			return nil, err
 		}
@@ -233,7 +233,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 	}
 
 	if opts.storageDepositReturnAddress != nil {
-		addr, err := addressBytesForAddress(*opts.storageDepositReturnAddress)
+		addr, err := addressBytesForAddress(opts.storageDepositReturnAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -249,7 +249,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 	}
 
 	if opts.expirationReturnAddress != nil {
-		addr, err := addressBytesForAddress(*opts.expirationReturnAddress)
+		addr, err := addressBytesForAddress(opts.expirationReturnAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -281,7 +281,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 	}
 
 	if opts.issuer != nil {
-		addr, err := addressBytesForAddress(*opts.issuer)
+		addr, err := addressBytesForAddress(opts.issuer)
 		if err != nil {
 			return nil, err
 		}
@@ -289,7 +289,7 @@ func (i *Indexer) nftOutputsQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, e
 	}
 
 	if opts.sender != nil {
-		addr, err := addressBytesForAddress(*opts.sender)
+		addr, err := addressBytesForAddress(opts.sender)
 		if err != nil {
 			return nil, err
 		}

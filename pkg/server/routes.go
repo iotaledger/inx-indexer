@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	// RouteOutputs is the route for getting basic, alias and nft outputs filtered by the given parameters.
+	// RouteOutputs is the route for getting basic, foundry, alias and nft outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
 	//					 "unlockableByAddress", "createdBefore", "createdAfter"
@@ -26,7 +26,7 @@ const (
 	// RouteOutputsBasic is the route for getting basic outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "address", "hasStorageDepositReturn", "storageDepositReturnAddress",
+	//					 "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
 	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
 	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "sender", "tag",
 	//					 "createdBefore", "createdAfter"
@@ -36,7 +36,7 @@ const (
 	// RouteOutputsAliases is the route for getting aliases filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "stateController", "governor", "issuer", "sender",
+	//					 "unlockableByAddress", "stateController", "governor", "issuer", "sender",
 	//					 "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsAliases = "/outputs/alias"
@@ -47,7 +47,7 @@ const (
 
 	// RouteOutputsNFTs is the route for getting NFT filtered by the given parameters.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "address", "hasStorageDepositReturn", "storageDepositReturnAddress",
+	//					 "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
 	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
 	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "issuer", "sender", "tag",
 	//					 "createdBefore", "createdAfter"
