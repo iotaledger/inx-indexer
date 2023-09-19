@@ -32,18 +32,18 @@ type BasicOutputFilterOptions struct {
 	hasNativeTokens                  *bool
 	minNativeTokenCount              *uint32
 	maxNativeTokenCount              *uint32
-	unlockableByAddress              *iotago.Address
-	address                          *iotago.Address
+	unlockableByAddress              iotago.Address
+	address                          iotago.Address
 	hasStorageDepositReturnCondition *bool
-	storageDepositReturnAddress      *iotago.Address
+	storageDepositReturnAddress      iotago.Address
 	hasExpirationCondition           *bool
-	expirationReturnAddress          *iotago.Address
+	expirationReturnAddress          iotago.Address
 	expiresBefore                    *iotago.SlotIndex
 	expiresAfter                     *iotago.SlotIndex
 	hasTimelockCondition             *bool
 	timelockedBefore                 *iotago.SlotIndex
 	timelockedAfter                  *iotago.SlotIndex
-	sender                           *iotago.Address
+	sender                           iotago.Address
 	tag                              []byte
 	pageSize                         uint32
 	cursor                           *string
@@ -71,13 +71,13 @@ func BasicOutputMaxNativeTokenCount(value uint32) options.Option[BasicOutputFilt
 
 func BasicOutputUnlockableByAddress(address iotago.Address) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
-		args.unlockableByAddress = &address
+		args.unlockableByAddress = address
 	}
 }
 
 func BasicOutputUnlockAddress(address iotago.Address) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
-		args.address = &address
+		args.address = address
 	}
 }
 
@@ -89,7 +89,7 @@ func BasicOutputHasStorageDepositReturnCondition(value bool) options.Option[Basi
 
 func BasicOutputStorageDepositReturnAddress(address iotago.Address) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
-		args.storageDepositReturnAddress = &address
+		args.storageDepositReturnAddress = address
 	}
 }
 
@@ -131,13 +131,13 @@ func BasicOutputTimelockedAfter(slot iotago.SlotIndex) options.Option[BasicOutpu
 
 func BasicOutputExpirationReturnAddress(address iotago.Address) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
-		args.expirationReturnAddress = &address
+		args.expirationReturnAddress = address
 	}
 }
 
 func BasicOutputSender(address iotago.Address) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
-		args.sender = &address
+		args.sender = address
 	}
 }
 
@@ -191,7 +191,7 @@ func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) (*gorm.DB
 	}
 
 	if opts.unlockableByAddress != nil {
-		addr, err := addressBytesForAddress(*opts.unlockableByAddress)
+		addr, err := addressBytesForAddress(opts.unlockableByAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -199,7 +199,7 @@ func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) (*gorm.DB
 	}
 
 	if opts.address != nil {
-		addr, err := addressBytesForAddress(*opts.address)
+		addr, err := addressBytesForAddress(opts.address)
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +215,7 @@ func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) (*gorm.DB
 	}
 
 	if opts.storageDepositReturnAddress != nil {
-		addr, err := addressBytesForAddress(*opts.storageDepositReturnAddress)
+		addr, err := addressBytesForAddress(opts.storageDepositReturnAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -231,7 +231,7 @@ func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) (*gorm.DB
 	}
 
 	if opts.expirationReturnAddress != nil {
-		addr, err := addressBytesForAddress(*opts.expirationReturnAddress)
+		addr, err := addressBytesForAddress(opts.expirationReturnAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -263,7 +263,7 @@ func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) (*gorm.DB
 	}
 
 	if opts.sender != nil {
-		addr, err := addressBytesForAddress(*opts.sender)
+		addr, err := addressBytesForAddress(opts.sender)
 		if err != nil {
 			return nil, err
 		}

@@ -23,7 +23,7 @@ func (d *delegation) String() string {
 }
 
 type DelegationFilterOptions struct {
-	address       *iotago.Address
+	address       iotago.Address
 	validator     *iotago.AccountAddress
 	pageSize      uint32
 	cursor        *string
@@ -33,7 +33,7 @@ type DelegationFilterOptions struct {
 
 func DelegationAddress(address iotago.Address) options.Option[DelegationFilterOptions] {
 	return func(args *DelegationFilterOptions) {
-		args.address = &address
+		args.address = address
 	}
 }
 
@@ -79,7 +79,7 @@ func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) (*gor
 	query := i.db.Model(&delegation{})
 
 	if opts.address != nil {
-		addr, err := addressBytesForAddress(*opts.address)
+		addr, err := addressBytesForAddress(opts.address)
 		if err != nil {
 			return nil, err
 		}
