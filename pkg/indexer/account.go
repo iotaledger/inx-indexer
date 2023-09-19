@@ -29,11 +29,11 @@ type AccountFilterOptions struct {
 	hasNativeTokens     *bool
 	minNativeTokenCount *uint32
 	maxNativeTokenCount *uint32
-	unlockableByAddress *iotago.Address
-	stateController     *iotago.Address
-	governor            *iotago.Address
-	issuer              *iotago.Address
-	sender              *iotago.Address
+	unlockableByAddress iotago.Address
+	stateController     iotago.Address
+	governor            iotago.Address
+	issuer              iotago.Address
+	sender              iotago.Address
 	pageSize            uint32
 	cursor              *string
 	createdBefore       *iotago.SlotIndex
@@ -60,31 +60,31 @@ func AccountMaxNativeTokenCount(value uint32) options.Option[AccountFilterOption
 
 func AccountUnlockableByAddress(address iotago.Address) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
-		args.unlockableByAddress = &address
+		args.unlockableByAddress = address
 	}
 }
 
 func AccountStateController(address iotago.Address) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
-		args.stateController = &address
+		args.stateController = address
 	}
 }
 
 func AccountGovernor(address iotago.Address) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
-		args.governor = &address
+		args.governor = address
 	}
 }
 
 func AccountSender(address iotago.Address) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
-		args.sender = &address
+		args.sender = address
 	}
 }
 
 func AccountIssuer(address iotago.Address) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
-		args.issuer = &address
+		args.issuer = address
 	}
 }
 
@@ -140,7 +140,7 @@ func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) (*gorm.DB, 
 	}
 
 	if opts.unlockableByAddress != nil {
-		addr, err := addressBytesForAddress(*opts.unlockableByAddress)
+		addr, err := addressBytesForAddress(opts.unlockableByAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -148,7 +148,7 @@ func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) (*gorm.DB, 
 	}
 
 	if opts.stateController != nil {
-		addr, err := addressBytesForAddress(*opts.stateController)
+		addr, err := addressBytesForAddress(opts.stateController)
 		if err != nil {
 			return nil, err
 		}
@@ -156,7 +156,7 @@ func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) (*gorm.DB, 
 	}
 
 	if opts.governor != nil {
-		addr, err := addressBytesForAddress(*opts.governor)
+		addr, err := addressBytesForAddress(opts.governor)
 		if err != nil {
 			return nil, err
 		}
@@ -164,7 +164,7 @@ func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) (*gorm.DB, 
 	}
 
 	if opts.sender != nil {
-		addr, err := addressBytesForAddress(*opts.sender)
+		addr, err := addressBytesForAddress(opts.sender)
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +172,7 @@ func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) (*gorm.DB, 
 	}
 
 	if opts.issuer != nil {
-		addr, err := addressBytesForAddress(*opts.issuer)
+		addr, err := addressBytesForAddress(opts.issuer)
 		if err != nil {
 			return nil, err
 		}

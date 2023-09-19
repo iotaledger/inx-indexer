@@ -11,7 +11,7 @@ type CombinedFilterOptions struct {
 	hasNativeTokens     *bool
 	minNativeTokenCount *uint32
 	maxNativeTokenCount *uint32
-	unlockableByAddress *iotago.Address
+	unlockableByAddress iotago.Address
 	pageSize            uint32
 	cursor              *string
 	createdBefore       *iotago.SlotIndex
@@ -38,7 +38,7 @@ func CombinedMaxNativeTokenCount(value uint32) options.Option[CombinedFilterOpti
 
 func CombinedUnlockableByAddress(address iotago.Address) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
-		args.unlockableByAddress = &address
+		args.unlockableByAddress = address
 	}
 }
 
@@ -72,6 +72,28 @@ func (o *CombinedFilterOptions) BasicFilterOptions() *BasicOutputFilterOptions {
 		minNativeTokenCount: o.minNativeTokenCount,
 		maxNativeTokenCount: o.maxNativeTokenCount,
 		unlockableByAddress: o.unlockableByAddress,
+		pageSize:            o.pageSize,
+		cursor:              o.cursor,
+		createdBefore:       o.createdBefore,
+		createdAfter:        o.createdAfter,
+	}
+}
+
+func (o *CombinedFilterOptions) FoundryFilterOptions() *FoundryFilterOptions {
+	var accountAddress *iotago.AccountAddress
+	if o.unlockableByAddress != nil {
+		var ok bool
+		accountAddress, ok = o.unlockableByAddress.(*iotago.AccountAddress)
+		if !ok {
+			return nil
+		}
+	}
+
+	return &FoundryFilterOptions{
+		hasNativeTokens:     o.hasNativeTokens,
+		minNativeTokenCount: o.minNativeTokenCount,
+		maxNativeTokenCount: o.maxNativeTokenCount,
+		account:             accountAddress,
 		pageSize:            o.pageSize,
 		cursor:              o.cursor,
 		createdBefore:       o.createdBefore,
@@ -115,30 +137,50 @@ func (o *CombinedFilterOptions) DelegationFilterOptions() *DelegationFilterOptio
 	}
 }
 
-func (i *Indexer) CombinedOutputsWithFilters(filter ...options.Option[CombinedFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(CombinedFilterOptions), filter)
+func (i *Indexer) CombinedOutputsWithFilters(filters ...options.Option[CombinedFilterOptions]) *IndexerResult {
+	opts := options.Apply(new(CombinedFilterOptions), filters)
 
-	basicQuery, err := i.basicQueryWithFilter(opts.BasicFilterOptions())
-	if err != nil {
-		return errorResult(err)
+	var queries []*gorm.DB
+
+	if filter := opts.BasicFilterOptions(); filter != nil {
+		query, err := i.basicQueryWithFilter(filter)
+		if err != nil {
+			return errorResult(err)
+		}
+		queries = append(queries, query)
 	}
 
-	accountQuery, err := i.accountQueryWithFilter(opts.AccountFilterOptions())
-	if err != nil {
-		return errorResult(err)
+	if filter := opts.AccountFilterOptions(); filter != nil {
+		query, err := i.accountQueryWithFilter(filter)
+		if err != nil {
+			return errorResult(err)
+		}
+		queries = append(queries, query)
 	}
 
-	nftQuery, err := i.nftQueryWithFilter(opts.NFTFilterOptions())
-	if err != nil {
-		return errorResult(err)
+	if filter := opts.NFTFilterOptions(); filter != nil {
+		query, err := i.nftQueryWithFilter(filter)
+		if err != nil {
+			return errorResult(err)
+		}
+		queries = append(queries, query)
 	}
 
-	delegationQuery, err := i.delegationQueryWithFilter(opts.DelegationFilterOptions())
-	if err != nil {
-		return errorResult(err)
+	if filter := opts.FoundryFilterOptions(); filter != nil {
+		query, err := i.foundryOutputsQueryWithFilter(filter)
+		if err != nil {
+			return errorResult(err)
+		}
+		queries = append(queries, query)
 	}
 
-	queries := []*gorm.DB{basicQuery, accountQuery, nftQuery, delegationQuery}
+	if filter := opts.DelegationFilterOptions(); filter != nil {
+		query, err := i.delegationQueryWithFilter(filter)
+		if err != nil {
+			return errorResult(err)
+		}
+		queries = append(queries, query)
+	}
 
 	return i.combineOutputIDFilteredQueries(queries, opts.pageSize, opts.cursor)
 }

@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	// RouteOutputs is the route for getting basic, account, delegation and nft outputs filtered by the given parameters.
+	// RouteOutputs is the route for getting basic, foundry, account, delegation and nft outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
 	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
 	//					 "unlockableByAddress", "createdBefore", "createdAfter"
