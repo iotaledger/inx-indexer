@@ -92,16 +92,18 @@ func (b *batcher[T]) Run(ctx context.Context, workerCount int) {
 type inserter[T any] struct {
 	*logger.WrappedLogger
 
-	name string
-	db   *gorm.DB
-	wg   sync.WaitGroup
+	name            string
+	db              *gorm.DB
+	wg              sync.WaitGroup
+	ignoreConflicts bool
 }
 
-func newImporter[T any](db *gorm.DB, log *logger.Logger) *inserter[T] {
+func newImporter[T any](db *gorm.DB, log *logger.Logger, ignoreConflicts bool) *inserter[T] {
 	w := &inserter[T]{
-		WrappedLogger: logger.NewWrappedLogger(log),
-		name:          typeOf[T](),
-		db:            db,
+		WrappedLogger:   logger.NewWrappedLogger(log),
+		name:            typeOf[T](),
+		db:              db,
+		ignoreConflicts: ignoreConflicts,
 	}
 
 	return w
@@ -129,6 +131,10 @@ func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T
 
 				batch := b
 				if err := i.db.Transaction(func(tx *gorm.DB) error {
+					if i.ignoreConflicts {
+						tx = tx.Clauses(clause.OnConflict{DoNothing: true})
+					}
+
 					return tx.Create(batch).Error
 				}); err != nil {
 					i.LogErrorAndExit(err)
@@ -152,10 +158,10 @@ type processor[T fmt.Stringer] struct {
 	importer *inserter[T]
 }
 
-func newProcessor[T fmt.Stringer](ctx context.Context, db *gorm.DB, log *logger.Logger) *processor[T] {
+func newProcessor[T fmt.Stringer](ctx context.Context, db *gorm.DB, log *logger.Logger, ignoreConflicts bool) *processor[T] {
 	p := &processor[T]{
 		batcher:  newBatcher[T](log),
-		importer: newImporter[T](db, log),
+		importer: newImporter[T](db, log, ignoreConflicts),
 	}
 	p.batcher.Run(ctx, perBatcherWorkers)
 	p.importer.Run(ctx, perImporterWorkers, p.batcher.output)
@@ -164,8 +170,10 @@ func newProcessor[T fmt.Stringer](ctx context.Context, db *gorm.DB, log *logger.
 }
 
 //nolint:golint,revive // false positive.
-func (p *processor[T]) enqueue(item T) {
-	p.batcher.input <- item
+func (p *processor[T]) enqueue(items ...T) {
+	for _, item := range items {
+		p.batcher.input <- item
+	}
 }
 
 //nolint:golint,revive // false positive.
@@ -183,11 +191,12 @@ type ImportTransaction struct {
 
 	db *gorm.DB
 
-	basic      *processor[*basicOutput]
-	nft        *processor[*nft]
-	account    *processor[*account]
-	foundry    *processor[*foundry]
-	delegation *processor[*delegation]
+	basic        *processor[*basicOutput]
+	nft          *processor[*nft]
+	account      *processor[*account]
+	foundry      *processor[*foundry]
+	delegation   *processor[*delegation]
+	multiAddress *processor[*multiaddress]
 }
 
 func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) *ImportTransaction {
@@ -201,19 +210,19 @@ func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) 
 	t := &ImportTransaction{
 		WrappedLogger: logger.NewWrappedLogger(log),
 		db:            dbSession,
-		basic:         newProcessor[*basicOutput](ctx, dbSession, log),
-		nft:           newProcessor[*nft](ctx, dbSession, log),
-		account:       newProcessor[*account](ctx, dbSession, log),
-		foundry:       newProcessor[*foundry](ctx, dbSession, log),
-		delegation:    newProcessor[*delegation](ctx, dbSession, log),
+		basic:         newProcessor[*basicOutput](ctx, dbSession, log, false),
+		nft:           newProcessor[*nft](ctx, dbSession, log, false),
+		account:       newProcessor[*account](ctx, dbSession, log, false),
+		foundry:       newProcessor[*foundry](ctx, dbSession, log, false),
+		delegation:    newProcessor[*delegation](ctx, dbSession, log, false),
+		multiAddress:  newProcessor[*multiaddress](ctx, dbSession, log, true),
 	}
 
 	return t
 }
 
 func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) error {
-
-	entry, err := entryForOutput(outputID, output, slotBooked)
+	entry, multiAddresses, err := entryForOutput(outputID, output, slotBooked)
 	if err != nil {
 		return err
 	}
@@ -231,6 +240,8 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 		i.delegation.enqueue(e)
 	}
 
+	i.multiAddress.enqueue(multiAddresses...)
+
 	return nil
 }
 
@@ -242,6 +253,7 @@ func (i *ImportTransaction) Finalize(ledgerIndex iotago.SlotIndex, protoParams i
 	i.account.closeAndWait()
 	i.foundry.closeAndWait()
 	i.delegation.closeAndWait()
+	i.multiAddress.closeAndWait()
 
 	i.LogInfo("Finished insertion, update ledger index")
 

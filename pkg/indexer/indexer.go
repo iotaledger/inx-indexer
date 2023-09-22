@@ -3,6 +3,7 @@ package indexer
 import (
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/iotaledger/hive.go/logger"
 	"github.com/iotaledger/inx-app/pkg/nodebridge"
@@ -74,16 +75,21 @@ func processOutput(output *inx.LedgerOutput, api iotago.API, tx *gorm.DB) error 
 
 	outputID := output.GetOutputId().Unwrap()
 
-	entry, err := entryForOutput(outputID, unwrapped, iotago.SlotIndex(output.GetSlotBooked()))
+	entry, multiAddresses, err := entryForOutput(outputID, unwrapped, iotago.SlotIndex(output.GetSlotBooked()))
 	if err != nil {
 		return err
 	}
 
-	return tx.Create(entry).Error
+	if err := tx.Create(entry).Error; err != nil {
+		return err
+	}
+
+	return tx.Clauses(clause.OnConflict{DoNothing: true}).Create(multiAddresses).Error
 }
 
-func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) (interface{}, error) {
-	var err error
+func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) (interface{}, []*multiaddress, error) {
+	var entry interface{}
+	var foundAddresses []iotago.Address
 	switch iotaOutput := output.(type) {
 	case *iotago.BasicOutput:
 		features := iotaOutput.FeatureSet()
@@ -98,6 +104,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
 			basic.Sender = senderBlock.Address.ID()
+			foundAddresses = append(foundAddresses, senderBlock.Address)
 		}
 
 		if tagBlock := features.Tag(); tagBlock != nil {
@@ -107,11 +114,13 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		if addressUnlock := conditions.Address(); addressUnlock != nil {
 			basic.Address = addressUnlock.Address.ID()
+			foundAddresses = append(foundAddresses, addressUnlock.Address)
 		}
 
 		if storageDepositReturn := conditions.StorageDepositReturn(); storageDepositReturn != nil {
 			basic.StorageDepositReturn = &storageDepositReturn.Amount
 			basic.StorageDepositReturnAddress = storageDepositReturn.ReturnAddress.ID()
+			foundAddresses = append(foundAddresses, storageDepositReturn.ReturnAddress)
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
@@ -121,9 +130,10 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		if expiration := conditions.Expiration(); expiration != nil {
 			basic.ExpirationSlot = &expiration.SlotIndex
 			basic.ExpirationReturnAddress = expiration.ReturnAddress.ID()
+			foundAddresses = append(foundAddresses, expiration.ReturnAddress)
 		}
 
-		return basic, nil
+		entry = basic
 
 	case *iotago.AccountOutput:
 		accountID := iotaOutput.AccountID
@@ -147,21 +157,25 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		if issuerBlock := immutableFeatures.Issuer(); issuerBlock != nil {
 			acc.Issuer = issuerBlock.Address.ID()
+			foundAddresses = append(foundAddresses, issuerBlock.Address)
 		}
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
 			acc.Sender = senderBlock.Address.ID()
+			foundAddresses = append(foundAddresses, senderBlock.Address)
 		}
 
 		if stateController := conditions.StateControllerAddress(); stateController != nil {
 			acc.StateController = stateController.Address.ID()
+			foundAddresses = append(foundAddresses, stateController.Address)
 		}
 
 		if governor := conditions.GovernorAddress(); governor != nil {
 			acc.Governor = governor.Address.ID()
+			foundAddresses = append(foundAddresses, governor.Address)
 		}
 
-		return acc, nil
+		entry = acc
 
 	case *iotago.NFTOutput:
 		features := iotaOutput.FeatureSet()
@@ -186,10 +200,12 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		if issuerBlock := immutableFeatures.Issuer(); issuerBlock != nil {
 			nft.Issuer = issuerBlock.Address.ID()
+			foundAddresses = append(foundAddresses, issuerBlock.Address)
 		}
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
 			nft.Sender = senderBlock.Address.ID()
+			foundAddresses = append(foundAddresses, senderBlock.Address)
 		}
 
 		if tagBlock := features.Tag(); tagBlock != nil {
@@ -199,12 +215,14 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		if addressUnlock := conditions.Address(); addressUnlock != nil {
 			nft.Address = addressUnlock.Address.ID()
+			foundAddresses = append(foundAddresses, addressUnlock.Address)
 		}
 
 		if storageDepositReturn := conditions.StorageDepositReturn(); storageDepositReturn != nil {
 			amount := uint64(storageDepositReturn.Amount)
 			nft.StorageDepositReturn = &amount
 			nft.StorageDepositReturnAddress = storageDepositReturn.ReturnAddress.ID()
+			foundAddresses = append(foundAddresses, storageDepositReturn.ReturnAddress)
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
@@ -214,16 +232,17 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		if expiration := conditions.Expiration(); expiration != nil {
 			nft.ExpirationTime = &expiration.SlotIndex
 			nft.ExpirationReturnAddress = expiration.ReturnAddress.ID()
+			foundAddresses = append(foundAddresses, expiration.ReturnAddress)
 		}
 
-		return nft, err
+		entry = nft
 
 	case *iotago.FoundryOutput:
 		conditions := iotaOutput.UnlockConditionSet()
 
 		foundryID, err := iotaOutput.ID()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		foundry := &foundry{
@@ -236,9 +255,10 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		if accountUnlock := conditions.ImmutableAccount(); accountUnlock != nil {
 			foundry.AccountAddress = accountUnlock.Address.ID()
+			foundAddresses = append(foundAddresses, accountUnlock.Address)
 		}
 
-		return foundry, nil
+		entry = foundry
 
 	case *iotago.DelegationOutput:
 		delegationID := iotaOutput.DelegationID
@@ -259,11 +279,20 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		copy(validatorAddress[:], iotaOutput.ValidatorID[:])
 
 		delegation.Validator = validatorAddress.ID()
+		foundAddresses = append(foundAddresses, validatorAddress)
 
-		return delegation, nil
+		entry = delegationID
+
+	default:
+		return nil, nil, errors.New("unknown output type")
 	}
 
-	return nil, errors.New("unknown output type")
+	multiAddresses, err := multiAddressesForAddresses(foundAddresses...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return entry, multiAddresses, nil
 }
 
 func (i *Indexer) IsInitialized() bool {
