@@ -140,43 +140,24 @@ func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) (*gorm.DB, 
 	}
 
 	if opts.unlockableByAddress != nil {
-		addr, err := addressBytesForAddress(opts.unlockableByAddress)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("(state_controller = ? OR governor = ?)", addr, addr)
+		addrID := opts.unlockableByAddress.ID()
+		query = query.Where("(state_controller = ? OR governor = ?)", addrID, addrID)
 	}
 
 	if opts.stateController != nil {
-		addr, err := addressBytesForAddress(opts.stateController)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("state_controller = ?", addr)
+		query = query.Where("state_controller = ?", opts.stateController.ID())
 	}
 
 	if opts.governor != nil {
-		addr, err := addressBytesForAddress(opts.governor)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("governor = ?", addr)
+		query = query.Where("governor = ?", opts.governor.ID())
 	}
 
 	if opts.sender != nil {
-		addr, err := addressBytesForAddress(opts.sender)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("sender = ?", addr)
+		query = query.Where("sender = ?", opts.sender.ID())
 	}
 
 	if opts.issuer != nil {
-		addr, err := addressBytesForAddress(opts.issuer)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("issuer = ?", addr)
+		query = query.Where("issuer = ?", opts.issuer.ID())
 	}
 
 	if opts.createdBefore != nil {

@@ -79,19 +79,11 @@ func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) (*gor
 	query := i.db.Model(&delegation{})
 
 	if opts.address != nil {
-		addr, err := addressBytesForAddress(opts.address)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("address = ?", addr)
+		query = query.Where("address = ?", opts.address.ID())
 	}
 
 	if opts.validator != nil {
-		addr, err := addressBytesForAddress(opts.validator)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("validator = ?", addr)
+		query = query.Where("validator = ?", opts.validator.ID())
 	}
 
 	if opts.createdBefore != nil {

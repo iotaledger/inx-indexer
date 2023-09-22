@@ -97,10 +97,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		copy(basic.OutputID, outputID[:])
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
-			basic.Sender, err = addressBytesForAddress(senderBlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			basic.Sender = senderBlock.Address.ID()
 		}
 
 		if tagBlock := features.Tag(); tagBlock != nil {
@@ -109,18 +106,12 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		if addressUnlock := conditions.Address(); addressUnlock != nil {
-			basic.Address, err = addressBytesForAddress(addressUnlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			basic.Address = addressUnlock.Address.ID()
 		}
 
 		if storageDepositReturn := conditions.StorageDepositReturn(); storageDepositReturn != nil {
 			basic.StorageDepositReturn = &storageDepositReturn.Amount
-			basic.StorageDepositReturnAddress, err = addressBytesForAddress(storageDepositReturn.ReturnAddress)
-			if err != nil {
-				return nil, err
-			}
+			basic.StorageDepositReturnAddress = storageDepositReturn.ReturnAddress.ID()
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
@@ -129,10 +120,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		if expiration := conditions.Expiration(); expiration != nil {
 			basic.ExpirationSlot = &expiration.SlotIndex
-			basic.ExpirationReturnAddress, err = addressBytesForAddress(expiration.ReturnAddress)
-			if err != nil {
-				return nil, err
-			}
+			basic.ExpirationReturnAddress = expiration.ReturnAddress.ID()
 		}
 
 		return basic, nil
@@ -158,31 +146,19 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		copy(acc.OutputID, outputID[:])
 
 		if issuerBlock := immutableFeatures.Issuer(); issuerBlock != nil {
-			acc.Issuer, err = addressBytesForAddress(issuerBlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			acc.Issuer = issuerBlock.Address.ID()
 		}
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
-			acc.Sender, err = addressBytesForAddress(senderBlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			acc.Sender = senderBlock.Address.ID()
 		}
 
 		if stateController := conditions.StateControllerAddress(); stateController != nil {
-			acc.StateController, err = addressBytesForAddress(stateController.Address)
-			if err != nil {
-				return nil, err
-			}
+			acc.StateController = stateController.Address.ID()
 		}
 
 		if governor := conditions.GovernorAddress(); governor != nil {
-			acc.Governor, err = addressBytesForAddress(governor.Address)
-			if err != nil {
-				return nil, err
-			}
+			acc.Governor = governor.Address.ID()
 		}
 
 		return acc, nil
@@ -209,17 +185,11 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		copy(nft.OutputID, outputID[:])
 
 		if issuerBlock := immutableFeatures.Issuer(); issuerBlock != nil {
-			nft.Issuer, err = addressBytesForAddress(issuerBlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			nft.Issuer = issuerBlock.Address.ID()
 		}
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
-			nft.Sender, err = addressBytesForAddress(senderBlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			nft.Sender = senderBlock.Address.ID()
 		}
 
 		if tagBlock := features.Tag(); tagBlock != nil {
@@ -228,19 +198,13 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		if addressUnlock := conditions.Address(); addressUnlock != nil {
-			nft.Address, err = addressBytesForAddress(addressUnlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			nft.Address = addressUnlock.Address.ID()
 		}
 
 		if storageDepositReturn := conditions.StorageDepositReturn(); storageDepositReturn != nil {
 			amount := uint64(storageDepositReturn.Amount)
 			nft.StorageDepositReturn = &amount
-			nft.StorageDepositReturnAddress, err = addressBytesForAddress(storageDepositReturn.ReturnAddress)
-			if err != nil {
-				return nil, err
-			}
+			nft.StorageDepositReturnAddress = storageDepositReturn.ReturnAddress.ID()
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
@@ -249,10 +213,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		if expiration := conditions.Expiration(); expiration != nil {
 			nft.ExpirationTime = &expiration.SlotIndex
-			nft.ExpirationReturnAddress, err = addressBytesForAddress(expiration.ReturnAddress)
-			if err != nil {
-				return nil, err
-			}
+			nft.ExpirationReturnAddress = expiration.ReturnAddress.ID()
 		}
 
 		return nft, err
@@ -274,10 +235,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		copy(foundry.OutputID, outputID[:])
 
 		if accountUnlock := conditions.ImmutableAccount(); accountUnlock != nil {
-			foundry.AccountAddress, err = addressBytesForAddress(accountUnlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			foundry.AccountAddress = accountUnlock.Address.ID()
 		}
 
 		return foundry, nil
@@ -300,10 +258,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		validatorAddress := new(iotago.AccountAddress)
 		copy(validatorAddress[:], iotaOutput.ValidatorID[:])
 
-		delegation.Validator, err = addressBytesForAddress(validatorAddress)
-		if err != nil {
-			return nil, err
-		}
+		delegation.Validator = validatorAddress.ID()
 
 		return delegation, nil
 	}

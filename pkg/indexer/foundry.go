@@ -109,11 +109,7 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) (*go
 	}
 
 	if opts.account != nil {
-		addr, err := addressBytesForAddress(opts.account)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("account_address = ?", addr)
+		query = query.Where("account_address = ?", opts.account.ID())
 	}
 
 	if opts.createdBefore != nil {

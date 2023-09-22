@@ -208,19 +208,12 @@ func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, error) {
 	}
 
 	if opts.unlockableByAddress != nil {
-		addr, err := addressBytesForAddress(opts.unlockableByAddress)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("(address = ? OR expiration_return_address = ? OR storage_deposit_return_address = ?)", addr, addr, addr)
+		addrID := opts.unlockableByAddress.ID()
+		query = query.Where("(address = ? OR expiration_return_address = ? OR storage_deposit_return_address = ?)", addrID, addrID, addrID)
 	}
 
 	if opts.address != nil {
-		addr, err := addressBytesForAddress(opts.address)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("address = ?", addr)
+		query = query.Where("address = ?", opts.address.ID())
 	}
 
 	if opts.hasStorageDepositReturnCondition != nil {
@@ -232,11 +225,7 @@ func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, error) {
 	}
 
 	if opts.storageDepositReturnAddress != nil {
-		addr, err := addressBytesForAddress(opts.storageDepositReturnAddress)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("storage_deposit_return_address = ?", addr)
+		query = query.Where("storage_deposit_return_address = ?", opts.storageDepositReturnAddress.ID())
 	}
 
 	if opts.hasExpirationCondition != nil {
@@ -248,11 +237,7 @@ func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, error) {
 	}
 
 	if opts.expirationReturnAddress != nil {
-		addr, err := addressBytesForAddress(opts.expirationReturnAddress)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("expiration_return_address = ?", addr)
+		query = query.Where("expiration_return_address = ?", opts.expirationReturnAddress.ID())
 	}
 
 	if opts.expiresBefore != nil {
@@ -280,19 +265,11 @@ func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, error) {
 	}
 
 	if opts.issuer != nil {
-		addr, err := addressBytesForAddress(opts.issuer)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("issuer = ?", addr)
+		query = query.Where("issuer = ?", opts.issuer.ID())
 	}
 
 	if opts.sender != nil {
-		addr, err := addressBytesForAddress(opts.sender)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("sender = ?", addr)
+		query = query.Where("sender = ?", opts.sender.ID())
 	}
 
 	if opts.tag != nil && len(opts.tag) > 0 {

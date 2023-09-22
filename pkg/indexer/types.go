@@ -39,10 +39,6 @@ func (q queryResults) IDs() iotago.OutputIDs {
 	return outputIDs
 }
 
-func addressBytesForAddress(addr iotago.Address) ([]byte, error) {
-	return addr.Encode()
-}
-
 //nolint:revive // better be explicit here
 type IndexerResult struct {
 	OutputIDs   iotago.OutputIDs
