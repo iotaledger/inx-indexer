@@ -235,7 +235,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 				Component.LogInfof("> Indexer database version changed: %d vs %d", status.DatabaseVersion, DBVersion)
 				needsToClearIndexer = true
 
-			case iotago.SlotIndex(nodeStatus.GetPruningSlot()) > status.LedgerIndex:
+			case deps.NodeBridge.APIProvider().LatestAPI().TimeProvider().EpochStart(iotago.EpochIndex(nodeStatus.GetPruningEpoch())) > status.LedgerIndex:
 				Component.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
 				needsToClearIndexer = true
 			}
