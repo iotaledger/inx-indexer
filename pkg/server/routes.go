@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -78,6 +79,8 @@ const (
 	// RouteOutputsDelegationByID is the route for getting delegations by their delegationID.
 	// GET returns the outputIDs or 404 if no record is found.
 	RouteOutputsDelegationByID = "/outputs/delegation/:" + ParameterDelegationID
+
+	RouteMultiAddressByAddress = "/multiaddress/:" + ParameterAddress
 )
 
 const (
@@ -175,6 +178,8 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 
 		return c.JSON(http.StatusOK, resp)
 	})
+
+	routeGroup.GET(RouteMultiAddressByAddress, s.multiAddressByAddress)
 }
 
 func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
@@ -840,6 +845,63 @@ func outputsResponseFromResult(result *indexer.IndexerResult) (*outputsResponse,
 		Cursor:      cursor,
 		Items:       result.OutputIDs.ToHex(),
 	}, nil
+}
+
+func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
+	address, err := httpserver.ParseBech32AddressParam(c, s.Bech32HRP, ParameterAddress)
+	if err != nil {
+		return err
+	}
+
+	respondWithAddress := func(address iotago.Address) error {
+		mimeType, err := httpserver.GetAcceptHeaderContentType(c, httpserver.MIMEApplicationVendorIOTASerializerV2, echo.MIMEApplicationJSON)
+		if err != nil && err != httpserver.ErrNotAcceptable {
+			return err
+		}
+
+		switch mimeType {
+		case httpserver.MIMEApplicationVendorIOTASerializerV2:
+			b, err := iotago.CommonSerixAPI().Encode(context.TODO(), address)
+			if err != nil {
+				return err
+			}
+
+			return c.Blob(http.StatusOK, httpserver.MIMEApplicationVendorIOTASerializerV2, b)
+
+		default:
+			j, err := iotago.CommonSerixAPI().JSONEncode(context.TODO(), address)
+			if err != nil {
+				return err
+			}
+
+			return c.Blob(http.StatusOK, echo.MIMEApplicationJSON, j)
+		}
+	}
+
+	if multiAddressRef, isMultiRef := address.(*iotago.MultiAddressReference); isMultiRef {
+		multiAddress, err := s.Indexer.MultiAddressForReference(multiAddressRef)
+		if err != nil {
+			return err
+		}
+
+		return respondWithAddress(multiAddress)
+	}
+
+	if restrictedAddress, isRestricted := address.(*iotago.RestrictedAddress); isRestricted {
+		if innerMultiAddressRef, isMultiRef := restrictedAddress.Address.(*iotago.MultiAddressReference); isMultiRef {
+			multiAddress, err := s.Indexer.MultiAddressForReference(innerMultiAddressRef)
+			if err != nil {
+				return err
+			}
+
+			return respondWithAddress(&iotago.RestrictedAddress{
+				Address:             multiAddress,
+				AllowedCapabilities: restrictedAddress.AllowedCapabilities,
+			})
+		}
+	}
+
+	return echo.ErrNotFound
 }
 
 func (s *IndexerServer) parseCursorQueryParameter(c echo.Context) (string, uint32, error) {
