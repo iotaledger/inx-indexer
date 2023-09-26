@@ -3,7 +3,6 @@ package indexer
 import (
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
 	"github.com/iotaledger/hive.go/logger"
 	"github.com/iotaledger/inx-app/pkg/nodebridge"
@@ -32,7 +31,6 @@ type Indexer struct {
 }
 
 func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) {
-
 	db, engine, err := database.NewWithDefaultSettings(dbParams, true, log)
 	if err != nil {
 		return nil, err
@@ -114,7 +112,7 @@ func processSpent(spent *inx.LedgerSpent, api iotago.API, tx *gorm.DB) error {
 		return tx.Where("output_id = ?", outputID[:]).Delete(&delegation{}).Error
 	}
 
-	return nil
+	return deleteMultiAddressesFromAddresses(tx, addressesInOutput(iotaOutput))
 }
 
 func processOutput(output *inx.LedgerOutput, api iotago.API, tx *gorm.DB) error {
@@ -134,12 +132,7 @@ func processOutput(output *inx.LedgerOutput, api iotago.API, tx *gorm.DB) error 
 		return err
 	}
 
-	multiAddresses, err := multiAddressesForAddresses(addressesInOutput(unwrapped)...)
-	if err != nil {
-		return err
-	}
-
-	return tx.Clauses(clause.OnConflict{DoNothing: true}).Create(multiAddresses).Error
+	return insertMultiAddressesFromAddresses(tx, addressesInOutput(unwrapped))
 }
 
 func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) (interface{}, error) {

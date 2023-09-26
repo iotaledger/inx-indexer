@@ -30,6 +30,16 @@ func typeOf[T any]() string {
 	return reflect.TypeOf(t).Elem().Name()
 }
 
+func typeIsRefCountable[T any]() bool {
+	//nolint:gocritic // We cannot use T(nil) here
+	_, ok := interface{}(new(T)).(refCountable)
+	return ok
+}
+
+type refCountable interface {
+	refCountDelta() int
+}
+
 type batcher[T any] struct {
 	*logger.WrappedLogger
 
@@ -92,18 +102,16 @@ func (b *batcher[T]) Run(ctx context.Context, workerCount int) {
 type inserter[T any] struct {
 	*logger.WrappedLogger
 
-	name            string
-	db              *gorm.DB
-	wg              sync.WaitGroup
-	ignoreConflicts bool
+	name string
+	db   *gorm.DB
+	wg   sync.WaitGroup
 }
 
-func newImporter[T any](db *gorm.DB, log *logger.Logger, ignoreConflicts bool) *inserter[T] {
+func newImporter[T any](db *gorm.DB, log *logger.Logger) *inserter[T] {
 	w := &inserter[T]{
-		WrappedLogger:   logger.NewWrappedLogger(log),
-		name:            typeOf[T](),
-		db:              db,
-		ignoreConflicts: ignoreConflicts,
+		WrappedLogger: logger.NewWrappedLogger(log),
+		name:          typeOf[T](),
+		db:            db,
 	}
 
 	return w
@@ -111,6 +119,7 @@ func newImporter[T any](db *gorm.DB, log *logger.Logger, ignoreConflicts bool) *
 
 //nolint:golint,revive // false positive.
 func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T) {
+	useRefCounts := typeIsRefCountable[T]()
 	for n := 0; n < workerCount; n++ {
 		workerName := fmt.Sprintf("inserter-%s-%d", i.name, n)
 		i.wg.Add(1)
@@ -131,8 +140,20 @@ func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T
 
 				batch := b
 				if err := i.db.Transaction(func(tx *gorm.DB) error {
-					if i.ignoreConflicts {
-						tx = tx.Clauses(clause.OnConflict{DoNothing: true})
+					if useRefCounts {
+						for _, item := range batch {
+							if itemWithRefCount, ok := interface{}(item).(refCountable); ok {
+								if err := tx.Clauses(clause.OnConflict{
+									Columns:   []clause.Column{{Name: "id"}},
+									DoUpdates: clause.Assignments(map[string]interface{}{"ref_count": gorm.Expr("ref_count + ?", itemWithRefCount.refCountDelta())}),
+								}).Create(item).Error; err != nil {
+									return err
+								}
+							} else {
+								return fmt.Errorf("item %T does not implement RefCountable", item)
+							}
+						}
+						return nil
 					}
 
 					return tx.Create(batch).Error
@@ -158,10 +179,10 @@ type processor[T fmt.Stringer] struct {
 	importer *inserter[T]
 }
 
-func newProcessor[T fmt.Stringer](ctx context.Context, db *gorm.DB, log *logger.Logger, ignoreConflicts bool) *processor[T] {
+func newProcessor[T fmt.Stringer](ctx context.Context, db *gorm.DB, log *logger.Logger) *processor[T] {
 	p := &processor[T]{
 		batcher:  newBatcher[T](log),
-		importer: newImporter[T](db, log, ignoreConflicts),
+		importer: newImporter[T](db, log),
 	}
 	p.batcher.Run(ctx, perBatcherWorkers)
 	p.importer.Run(ctx, perImporterWorkers, p.batcher.output)
@@ -210,12 +231,12 @@ func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) 
 	t := &ImportTransaction{
 		WrappedLogger: logger.NewWrappedLogger(log),
 		db:            dbSession,
-		basic:         newProcessor[*basicOutput](ctx, dbSession, log, false),
-		nft:           newProcessor[*nft](ctx, dbSession, log, false),
-		account:       newProcessor[*account](ctx, dbSession, log, false),
-		foundry:       newProcessor[*foundry](ctx, dbSession, log, false),
-		delegation:    newProcessor[*delegation](ctx, dbSession, log, false),
-		multiAddress:  newProcessor[*multiaddress](ctx, dbSession, log, true),
+		basic:         newProcessor[*basicOutput](ctx, dbSession, log),
+		nft:           newProcessor[*nft](ctx, dbSession, log),
+		account:       newProcessor[*account](ctx, dbSession, log),
+		foundry:       newProcessor[*foundry](ctx, dbSession, log),
+		delegation:    newProcessor[*delegation](ctx, dbSession, log),
+		multiAddress:  newProcessor[*multiaddress](ctx, dbSession, log),
 	}
 
 	return t

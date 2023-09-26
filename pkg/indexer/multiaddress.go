@@ -5,16 +5,25 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	"github.com/iotaledger/hive.go/lo"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 type multiaddress struct {
 	AddressID []byte `gorm:"primaryKey;notnull"`
 	Data      []byte `gorm:"notnull"`
+	RefCount  int
 }
 
 func (m *multiaddress) String() string {
 	return fmt.Sprintf("multiaddress => AddressID: %s", hex.EncodeToString(m.AddressID))
+}
+
+func (m *multiaddress) refCountDelta() int {
+	return m.RefCount
 }
 
 func multiAddressesForAddresses(addresses ...iotago.Address) ([]*multiaddress, error) {
@@ -33,28 +42,65 @@ func multiAddressesForAddresses(addresses ...iotago.Address) ([]*multiaddress, e
 	}
 
 	// Store all passed addresses if they are or contain a MultiAddress.
-	// We also de-dup the addresses here to avoid double insertions.
-	alreadyKnownAddresses := make(map[string]struct{}, 0)
-	multiAddresses := make([]*multiaddress, 0)
+	// We increase the counter for duplicate addresses
+	multiAddresses := make(map[string]*multiaddress, 0)
 	for _, address := range addresses {
 		if multiAddress := multiAddressFromAddress(address); multiAddress != nil {
-			if _, alreadyKnown := alreadyKnownAddresses[multiAddress.Key()]; !alreadyKnown {
+			if multiAddr, alreadyKnown := multiAddresses[multiAddress.Key()]; !alreadyKnown {
 				addrData, err := iotago.CommonSerixAPI().Encode(context.TODO(), multiAddress)
 				if err != nil {
 					return nil, err
 				}
 
-				multiAddresses = append(multiAddresses, &multiaddress{
+				multiAddresses[multiAddress.Key()] = &multiaddress{
 					AddressID: multiAddress.ID(),
 					Data:      addrData,
-				})
-
-				alreadyKnownAddresses[multiAddress.Key()] = struct{}{}
+					RefCount:  1,
+				}
+			} else {
+				multiAddr.RefCount++
 			}
 		}
 	}
 
-	return multiAddresses, nil
+	return lo.Values(multiAddresses), nil
+}
+
+func insertMultiAddressesFromAddresses(tx *gorm.DB, addresses []iotago.Address) error {
+	multiAddresses, err := multiAddressesForAddresses(addresses...)
+	if err != nil {
+		return err
+	}
+
+	for _, multiAddr := range multiAddresses {
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			DoUpdates: clause.Assignments(map[string]interface{}{"ref_count": gorm.Expr("ref_count + ?", multiAddr.RefCount)}),
+		}).Create(multiAddresses).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func deleteMultiAddressesFromAddresses(tx *gorm.DB, addresses []iotago.Address) error {
+	multiAddresses, err := multiAddressesForAddresses(addresses...)
+	if err != nil {
+		return err
+	}
+
+	for _, multiAddr := range multiAddresses {
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			DoUpdates: clause.Assignments(map[string]interface{}{"ref_count": gorm.Expr("ref_count - ?", multiAddr.RefCount)}),
+		}).Create(multiAddresses).Error; err != nil {
+			return err
+		}
+	}
+
+	// Delete all addresses where no references exist anymore
+	return tx.Where("ref_count = ?", 0).Delete(&multiaddress{}).Error
 }
 
 func (i *Indexer) MultiAddressForReference(address *iotago.MultiAddressReference) (*iotago.MultiAddress, error) {
