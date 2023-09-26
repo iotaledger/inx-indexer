@@ -34,19 +34,19 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/holiman/uint256 v1.2.3 // indirect
 	github.com/iancoleman/orderedmap v0.3.0 // indirect
-	github.com/iotaledger/hive.go/constraints v0.0.0-20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/core v1.0.0-rc.3.0.20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/crypto v0.0.0-20230829152614-7afc7a4d89b3 // indirect
+	github.com/iotaledger/hive.go/constraints v0.0.0-20230921132212-c286a9bd46ea // indirect
+	github.com/iotaledger/hive.go/core v1.0.0-rc.3.0.20230921132212-c286a9bd46ea // indirect
+	github.com/iotaledger/hive.go/crypto v0.0.0-20230921132212-c286a9bd46ea // indirect
 	github.com/iotaledger/hive.go/ds v0.0.0-20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/ierrors v0.0.0-20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/lo v0.0.0-20230829152614-7afc7a4d89b3 // indirect
+	github.com/iotaledger/hive.go/ierrors v0.0.0-20230921132212-c286a9bd46ea // indirect
+	github.com/iotaledger/hive.go/lo v0.0.0-20230921132212-c286a9bd46ea // indirect
 	github.com/iotaledger/hive.go/logger v0.0.0-20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/runtime v0.0.0-20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/stringify v0.0.0-20230829152614-7afc7a4d89b3 // indirect
+	github.com/iotaledger/hive.go/runtime v0.0.0-20230921132212-c286a9bd46ea // indirect
+	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20230921132212-c286a9bd46ea // indirect
+	github.com/iotaledger/hive.go/stringify v0.0.0-20230921132212-c286a9bd46ea // indirect
 	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20230830183728-6ae24abaf20a // indirect
 	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20230829160617-69b96c7c9f9b // indirect
-	github.com/iotaledger/iota.go/v4 v4.0.0-20230829160021-46cad51e89d1 // indirect
+	github.com/iotaledger/iota.go/v4 v4.0.0-20230921143950-31fb36e1adf9 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgx/v5 v5.3.1 // indirect

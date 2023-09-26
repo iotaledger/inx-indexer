@@ -6,10 +6,10 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/iotaledger/hive.go/app v0.0.0-20230829152614-7afc7a4d89b3
 	github.com/iotaledger/hive.go/logger v0.0.0-20230829152614-7afc7a4d89b3
-	github.com/iotaledger/hive.go/runtime v0.0.0-20230829152614-7afc7a4d89b3
+	github.com/iotaledger/hive.go/runtime v0.0.0-20230921132212-c286a9bd46ea
 	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20230830183728-6ae24abaf20a
 	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20230829160617-69b96c7c9f9b
-	github.com/iotaledger/iota.go/v4 v4.0.0-20230829160021-46cad51e89d1
+	github.com/iotaledger/iota.go/v4 v4.0.0-20230925223902-b7e5b06ed993
 	github.com/labstack/echo-contrib v0.15.0
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/pkg/errors v0.9.1
@@ -43,14 +43,14 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/holiman/uint256 v1.2.3 // indirect
 	github.com/iancoleman/orderedmap v0.3.0 // indirect
-	github.com/iotaledger/hive.go/constraints v0.0.0-20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/core v1.0.0-rc.3.0.20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/crypto v0.0.0-20230829152614-7afc7a4d89b3 // indirect
+	github.com/iotaledger/hive.go/constraints v0.0.0-20230921132212-c286a9bd46ea // indirect
+	github.com/iotaledger/hive.go/core v1.0.0-rc.3.0.20230921132212-c286a9bd46ea // indirect
+	github.com/iotaledger/hive.go/crypto v0.0.0-20230921132212-c286a9bd46ea // indirect
 	github.com/iotaledger/hive.go/ds v0.0.0-20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/ierrors v0.0.0-20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/lo v0.0.0-20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20230829152614-7afc7a4d89b3 // indirect
-	github.com/iotaledger/hive.go/stringify v0.0.0-20230829152614-7afc7a4d89b3 // indirect
+	github.com/iotaledger/hive.go/ierrors v0.0.0-20230921132212-c286a9bd46ea // indirect
+	github.com/iotaledger/hive.go/lo v0.0.0-20230921132212-c286a9bd46ea // indirect
+	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20230925074643-a89732593ca8 // indirect
+	github.com/iotaledger/hive.go/stringify v0.0.0-20230921132212-c286a9bd46ea // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgx/v5 v5.3.1 // indirect

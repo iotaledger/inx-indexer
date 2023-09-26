@@ -262,6 +262,8 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		entry = foundry
 
 	case *iotago.DelegationOutput:
+		conditions := iotaOutput.UnlockConditionSet()
+
 		delegationID := iotaOutput.DelegationID
 		if delegationID.Empty() {
 			// Use implicit DelegationID
@@ -276,11 +278,13 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		copy(delegation.DelegationID, delegationID[:])
 		copy(delegation.OutputID, outputID[:])
 
-		validatorAddress := new(iotago.AccountAddress)
-		copy(validatorAddress[:], iotaOutput.ValidatorID[:])
+		delegation.Validator = iotaOutput.ValidatorAddress.ID()
+		foundAddresses = append(foundAddresses, iotaOutput.ValidatorAddress)
 
-		delegation.Validator = validatorAddress.ID()
-		foundAddresses = append(foundAddresses, validatorAddress)
+		if addressUnlock := conditions.Address(); addressUnlock != nil {
+			delegation.Address = addressUnlock.Address.ID()
+			foundAddresses = append(foundAddresses, addressUnlock.Address)
+		}
 
 		entry = delegationID
 
