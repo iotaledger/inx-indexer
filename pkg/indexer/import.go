@@ -222,7 +222,7 @@ func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) 
 }
 
 func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) error {
-	entry, multiAddresses, err := entryForOutput(outputID, output, slotBooked)
+	entry, err := entryForOutput(outputID, output, slotBooked)
 	if err != nil {
 		return err
 	}
@@ -240,13 +240,17 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 		i.delegation.enqueue(e)
 	}
 
+	multiAddresses, err := multiAddressesForAddresses(addressesInOutput(output)...)
+	if err != nil {
+		return err
+	}
+
 	i.multiAddress.enqueue(multiAddresses...)
 
 	return nil
 }
 
 func (i *ImportTransaction) Finalize(ledgerIndex iotago.SlotIndex, protoParams iotago.ProtocolParameters, databaseVersion uint32) error {
-
 	// drain all processors
 	i.basic.closeAndWait()
 	i.nft.closeAndWait()
