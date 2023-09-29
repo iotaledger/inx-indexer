@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 
+	"github.com/iotaledger/hive.go/ierrors"
 	"github.com/iotaledger/hive.go/runtime/options"
 	"github.com/iotaledger/inx-app/pkg/httpserver"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
@@ -855,7 +856,7 @@ func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
 
 	respondWithAddress := func(address iotago.Address) error {
 		mimeType, err := httpserver.GetAcceptHeaderContentType(c, httpserver.MIMEApplicationVendorIOTASerializerV2, echo.MIMEApplicationJSON)
-		if err != nil && err != httpserver.ErrNotAcceptable {
+		if err != nil && ierrors.Is(err, httpserver.ErrNotAcceptable) {
 			return err
 		}
 

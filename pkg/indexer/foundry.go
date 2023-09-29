@@ -89,7 +89,7 @@ func (i *Indexer) FoundryOutput(foundryID iotago.FoundryID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) (*gorm.DB, error) {
+func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gorm.DB {
 	query := i.db.Model(&foundry{})
 
 	if opts.hasNativeTokens != nil {
@@ -120,15 +120,12 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) (*go
 		query = query.Where("created_at > ?", *opts.createdAfter)
 	}
 
-	return query, nil
+	return query
 }
 
 func (i *Indexer) FoundryOutputsWithFilters(filters ...options.Option[FoundryFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(FoundryFilterOptions), filters)
-	query, err := i.foundryOutputsQueryWithFilter(opts)
-	if err != nil {
-		return errorResult(err)
-	}
+	query := i.foundryOutputsQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)
 }

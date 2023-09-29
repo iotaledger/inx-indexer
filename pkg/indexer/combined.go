@@ -143,43 +143,23 @@ func (i *Indexer) CombinedOutputsWithFilters(filters ...options.Option[CombinedF
 	var queries []*gorm.DB
 
 	if filter := opts.BasicFilterOptions(); filter != nil {
-		query, err := i.basicQueryWithFilter(filter)
-		if err != nil {
-			return errorResult(err)
-		}
-		queries = append(queries, query)
+		queries = append(queries, i.basicQueryWithFilter(filter))
 	}
 
 	if filter := opts.AccountFilterOptions(); filter != nil {
-		query, err := i.accountQueryWithFilter(filter)
-		if err != nil {
-			return errorResult(err)
-		}
-		queries = append(queries, query)
+		queries = append(queries, i.accountQueryWithFilter(filter))
 	}
 
 	if filter := opts.NFTFilterOptions(); filter != nil {
-		query, err := i.nftQueryWithFilter(filter)
-		if err != nil {
-			return errorResult(err)
-		}
-		queries = append(queries, query)
+		queries = append(queries, i.nftQueryWithFilter(filter))
 	}
 
 	if filter := opts.FoundryFilterOptions(); filter != nil {
-		query, err := i.foundryOutputsQueryWithFilter(filter)
-		if err != nil {
-			return errorResult(err)
-		}
-		queries = append(queries, query)
+		queries = append(queries, i.foundryOutputsQueryWithFilter(filter))
 	}
 
 	if filter := opts.DelegationFilterOptions(); filter != nil {
-		query, err := i.delegationQueryWithFilter(filter)
-		if err != nil {
-			return errorResult(err)
-		}
-		queries = append(queries, query)
+		queries = append(queries, i.delegationQueryWithFilter(filter))
 	}
 
 	return i.combineOutputIDFilteredQueries(queries, opts.pageSize, opts.cursor)

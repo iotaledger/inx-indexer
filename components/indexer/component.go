@@ -123,7 +123,7 @@ func run() error {
 				return err
 			}
 
-			Component.LogInfof("Applying slot %d with %d new and %d consumed outputs took %s", update.SlotIndex, len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
+			Component.LogInfof("Applying slot %d with %d new and %d consumed outputs took %s", update.Slot, len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
 
 			return nil
 		}); err != nil {

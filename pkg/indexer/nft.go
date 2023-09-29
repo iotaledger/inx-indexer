@@ -188,7 +188,7 @@ func (i *Indexer) NFTOutput(nftID iotago.NFTID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, error) {
+func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) *gorm.DB {
 	query := i.db.Model(&nft{})
 
 	if opts.hasNativeTokens != nil {
@@ -284,15 +284,12 @@ func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) (*gorm.DB, error) {
 		query = query.Where("created_at > ?", *opts.createdAfter)
 	}
 
-	return query, nil
+	return query
 }
 
 func (i *Indexer) NFTOutputsWithFilters(filters ...options.Option[NFTFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(NFTFilterOptions), filters)
-	query, err := i.nftQueryWithFilter(opts)
-	if err != nil {
-		return errorResult(err)
-	}
+	query := i.nftQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)
 }

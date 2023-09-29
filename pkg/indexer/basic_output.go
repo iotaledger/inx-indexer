@@ -171,7 +171,7 @@ func BasicOutputCreatedAfter(slot iotago.SlotIndex) options.Option[BasicOutputFi
 	}
 }
 
-func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) (*gorm.DB, error) {
+func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) *gorm.DB {
 	query := i.db.Model(&basicOutput{})
 
 	if opts.hasNativeTokens != nil {
@@ -263,15 +263,12 @@ func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) (*gorm.DB
 		query = query.Where("created_at > ?", *opts.createdAfter)
 	}
 
-	return query, nil
+	return query
 }
 
 func (i *Indexer) BasicOutputsWithFilters(filters ...options.Option[BasicOutputFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(BasicOutputFilterOptions), filters)
-	query, err := i.basicQueryWithFilter(opts)
-	if err != nil {
-		return errorResult(err)
-	}
+	query := i.basicQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)
 }

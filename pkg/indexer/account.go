@@ -120,7 +120,7 @@ func (i *Indexer) AccountOutput(accountID iotago.AccountID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) (*gorm.DB, error) {
+func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) *gorm.DB {
 	query := i.db.Model(&account{})
 
 	if opts.hasNativeTokens != nil {
@@ -168,15 +168,12 @@ func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) (*gorm.DB, 
 		query = query.Where("created_at > ?", *opts.createdAfter)
 	}
 
-	return query, nil
+	return query
 }
 
 func (i *Indexer) AccountOutputsWithFilters(filters ...options.Option[AccountFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(AccountFilterOptions), filters)
-	query, err := i.accountQueryWithFilter(opts)
-	if err != nil {
-		return errorResult(err)
-	}
+	query := i.accountQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)
 }

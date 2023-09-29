@@ -75,7 +75,7 @@ func (i *Indexer) DelegationOutput(delegationID iotago.DelegationID) *IndexerRes
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) (*gorm.DB, error) {
+func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) *gorm.DB {
 	query := i.db.Model(&delegation{})
 
 	if opts.address != nil {
@@ -94,15 +94,12 @@ func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) (*gor
 		query = query.Where("created_at > ?", *opts.createdAfter)
 	}
 
-	return query, nil
+	return query
 }
 
 func (i *Indexer) DelegationsWithFilters(filters ...options.Option[DelegationFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(DelegationFilterOptions), filters)
-	query, err := i.delegationQueryWithFilter(opts)
-	if err != nil {
-		return errorResult(err)
-	}
+	query := i.delegationQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)
 }

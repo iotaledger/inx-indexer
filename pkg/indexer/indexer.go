@@ -274,7 +274,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 	case *iotago.FoundryOutput:
 		conditions := iotaOutput.UnlockConditionSet()
 
-		foundryID, err := iotaOutput.ID()
+		foundryID, err := iotaOutput.FoundryID()
 		if err != nil {
 			return nil, err
 		}
@@ -379,7 +379,7 @@ func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
 			}
 		}
 
-		tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.SlotIndex)
+		tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.Slot)
 
 		return nil
 	})

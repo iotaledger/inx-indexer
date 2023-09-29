@@ -153,6 +153,7 @@ func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T
 								return fmt.Errorf("item %T does not implement RefCountable", item)
 							}
 						}
+
 						return nil
 					}
 
