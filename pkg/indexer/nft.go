@@ -204,27 +204,27 @@ func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) *gorm.DB {
 	}
 
 	if opts.expiresBefore != nil {
-		query = query.Where("expiration_time < ?", *opts.expiresBefore)
+		query = query.Where("expiration_slot < ?", *opts.expiresBefore)
 	}
 
 	if opts.expiresAfter != nil {
-		query = query.Where("expiration_time > ?", *opts.expiresAfter)
+		query = query.Where("expiration_slot > ?", *opts.expiresAfter)
 	}
 
 	if opts.hasTimelockCondition != nil {
 		if *opts.hasTimelockCondition {
-			query = query.Where("timelock_time IS NOT NULL")
+			query = query.Where("timelock_slot IS NOT NULL")
 		} else {
-			query = query.Where("timelock_time IS NULL")
+			query = query.Where("timelock_slot IS NULL")
 		}
 	}
 
 	if opts.timelockedBefore != nil {
-		query = query.Where("timelock_time < ?", *opts.timelockedBefore)
+		query = query.Where("timelock_slot < ?", *opts.timelockedBefore)
 	}
 
 	if opts.timelockedAfter != nil {
-		query = query.Where("timelock_time > ?", *opts.timelockedAfter)
+		query = query.Where("timelock_slot > ?", *opts.timelockedAfter)
 	}
 
 	if opts.issuer != nil {
