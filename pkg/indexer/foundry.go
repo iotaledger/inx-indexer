@@ -39,6 +39,12 @@ func FoundryHasNativeToken(value bool) options.Option[FoundryFilterOptions] {
 	}
 }
 
+func FoundryNativeToken(tokenID iotago.NativeTokenID) options.Option[FoundryFilterOptions] {
+	return func(args *FoundryFilterOptions) {
+		args.nativeToken = &tokenID
+	}
+}
+
 func FoundryWithAccountAddress(address *iotago.AccountAddress) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.account = address

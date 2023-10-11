@@ -58,7 +58,7 @@ const (
 
 	// RouteOutputsFoundries is the route for getting foundries filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "account", "createdBefore", "createdAfter"
+	// Query parameters: "hasNativeToken", "nativeToken", "account", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsFoundries = "/outputs/foundry"
 
@@ -630,6 +630,14 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 			return nil, err
 		}
 		filters = append(filters, indexer.FoundryHasNativeToken(value))
+	}
+
+	if len(c.QueryParam(QueryParameterNativeToken)) > 0 {
+		value, err := httpserver.ParseHexQueryParam(c, QueryParameterNativeToken, iotago.NativeTokenIDLength)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.FoundryNativeToken(iotago.NativeTokenID(value)))
 	}
 
 	if len(c.QueryParam(QueryParameterAccount)) > 0 {
