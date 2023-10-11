@@ -20,13 +20,13 @@ import (
 const (
 	// RouteOutputs is the route for getting basic, foundry, account, delegation and nft outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeTokens", "nativeToken", "unlockableByAddress", "createdBefore", "createdAfter"
+	// Query parameters: "hasNativeToken", "nativeToken", "unlockableByAddress", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputs = "/outputs"
 
 	// RouteOutputsBasic is the route for getting basic outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeTokens", "nativeToken", "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
+	// Query parameters: "hasNativeToken", "nativeToken", "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
 	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
 	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "sender", "tag",
 	//					 "createdBefore", "createdAfter"
@@ -181,12 +181,12 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
 	filters := []options.Option[indexer.CombinedFilterOptions]{indexer.CombinedPageSize(s.pageSizeFromContext(c))}
 
-	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
+	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeToken)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.CombinedHasNativeTokens(value))
+		filters = append(filters, indexer.CombinedHasNativeToken(value))
 	}
 
 	if len(c.QueryParam(QueryParameterNativeToken)) > 0 {
@@ -235,12 +235,12 @@ func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsRespo
 func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
 	filters := []options.Option[indexer.BasicOutputFilterOptions]{indexer.BasicOutputPageSize(s.pageSizeFromContext(c))}
 
-	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
+	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeToken)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputHasNativeTokens(value))
+		filters = append(filters, indexer.BasicOutputHasNativeToken(value))
 	}
 
 	if len(c.QueryParam(QueryParameterNativeToken)) > 0 {
@@ -624,12 +624,12 @@ func (s *IndexerServer) foundryByID(c echo.Context) (*outputsResponse, error) {
 func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, error) {
 	filters := []options.Option[indexer.FoundryFilterOptions]{indexer.FoundryPageSize(s.pageSizeFromContext(c))}
 
-	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
+	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeToken)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.FoundryHasNativeTokens(value))
+		filters = append(filters, indexer.FoundryHasNativeToken(value))
 	}
 
 	if len(c.QueryParam(QueryParameterAccount)) > 0 {

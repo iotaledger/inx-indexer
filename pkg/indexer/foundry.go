@@ -24,18 +24,18 @@ func (o *foundry) String() string {
 }
 
 type FoundryFilterOptions struct {
-	hasNativeTokens *bool
-	nativeToken     *iotago.NativeTokenID
-	account         *iotago.AccountAddress
-	pageSize        uint32
-	cursor          *string
-	createdBefore   *iotago.SlotIndex
-	createdAfter    *iotago.SlotIndex
+	hasNativeToken *bool
+	nativeToken    *iotago.NativeTokenID
+	account        *iotago.AccountAddress
+	pageSize       uint32
+	cursor         *string
+	createdBefore  *iotago.SlotIndex
+	createdAfter   *iotago.SlotIndex
 }
 
-func FoundryHasNativeTokens(value bool) options.Option[FoundryFilterOptions] {
+func FoundryHasNativeToken(value bool) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
-		args.hasNativeTokens = &value
+		args.hasNativeToken = &value
 	}
 }
 
@@ -80,8 +80,8 @@ func (i *Indexer) FoundryOutput(foundryID iotago.FoundryID) *IndexerResult {
 func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gorm.DB {
 	query := i.db.Model(&foundry{})
 
-	if opts.hasNativeTokens != nil {
-		if *opts.hasNativeTokens {
+	if opts.hasNativeToken != nil {
+		if *opts.hasNativeToken {
 			query = query.Where("native_token_amount != null")
 		} else {
 			query = query.Where("native_token_amount == null")

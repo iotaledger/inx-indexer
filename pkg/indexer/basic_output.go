@@ -31,7 +31,7 @@ func (o *basicOutput) String() string {
 }
 
 type BasicOutputFilterOptions struct {
-	hasNativeTokens                  *bool
+	hasNativeToken                   *bool
 	nativeToken                      *iotago.NativeTokenID
 	unlockableByAddress              iotago.Address
 	address                          iotago.Address
@@ -52,9 +52,9 @@ type BasicOutputFilterOptions struct {
 	createdAfter                     *iotago.SlotIndex
 }
 
-func BasicOutputHasNativeTokens(value bool) options.Option[BasicOutputFilterOptions] {
+func BasicOutputHasNativeToken(value bool) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
-		args.hasNativeTokens = &value
+		args.hasNativeToken = &value
 	}
 }
 
@@ -169,8 +169,8 @@ func BasicOutputCreatedAfter(slot iotago.SlotIndex) options.Option[BasicOutputFi
 func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) *gorm.DB {
 	query := i.db.Model(&basicOutput{})
 
-	if opts.hasNativeTokens != nil {
-		if *opts.hasNativeTokens {
+	if opts.hasNativeToken != nil {
+		if *opts.hasNativeToken {
 			query = query.Where("native_token_amount != null")
 		} else {
 			query = query.Where("native_token_amount == null")

@@ -82,8 +82,8 @@ const (
 	// QueryParameterCreatedAfter is used to filter for outputs that were created after the given slot.
 	QueryParameterCreatedAfter = "createdAfter"
 
-	// QueryParameterHasNativeTokens is used to filter for outputs that have native tokens.
-	QueryParameterHasNativeTokens = "hasNativeTokens"
+	// QueryParameterHasNativeToken is used to filter for outputs that have native tokens.
+	QueryParameterHasNativeToken = "hasNativeToken"
 
 	// QueryParameterNativeToken is used to filter for outputs that have a certain native token.
 	QueryParameterNativeToken = "nativeToken"

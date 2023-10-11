@@ -8,7 +8,7 @@ import (
 )
 
 type CombinedFilterOptions struct {
-	hasNativeTokens     *bool
+	hasNativeToken      *bool
 	nativeToken         *iotago.NativeTokenID
 	unlockableByAddress iotago.Address
 	pageSize            uint32
@@ -17,9 +17,9 @@ type CombinedFilterOptions struct {
 	createdAfter        *iotago.SlotIndex
 }
 
-func CombinedHasNativeTokens(value bool) options.Option[CombinedFilterOptions] {
+func CombinedHasNativeToken(value bool) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
-		args.hasNativeTokens = &value
+		args.hasNativeToken = &value
 	}
 }
 
@@ -61,7 +61,7 @@ func CombinedCreatedAfter(slot iotago.SlotIndex) options.Option[CombinedFilterOp
 
 func (o *CombinedFilterOptions) BasicFilterOptions() *BasicOutputFilterOptions {
 	return &BasicOutputFilterOptions{
-		hasNativeTokens:     o.hasNativeTokens,
+		hasNativeToken:      o.hasNativeToken,
 		nativeToken:         o.nativeToken,
 		unlockableByAddress: o.unlockableByAddress,
 		pageSize:            o.pageSize,
@@ -82,18 +82,18 @@ func (o *CombinedFilterOptions) FoundryFilterOptions() *FoundryFilterOptions {
 	}
 
 	return &FoundryFilterOptions{
-		hasNativeTokens: o.hasNativeTokens,
-		nativeToken:     o.nativeToken,
-		account:         accountAddress,
-		pageSize:        o.pageSize,
-		cursor:          o.cursor,
-		createdBefore:   o.createdBefore,
-		createdAfter:    o.createdAfter,
+		hasNativeToken: o.hasNativeToken,
+		nativeToken:    o.nativeToken,
+		account:        accountAddress,
+		pageSize:       o.pageSize,
+		cursor:         o.cursor,
+		createdBefore:  o.createdBefore,
+		createdAfter:   o.createdAfter,
 	}
 }
 
 func (o *CombinedFilterOptions) AccountFilterOptions() *AccountFilterOptions {
-	if o.hasNativeTokens != nil && *o.hasNativeTokens {
+	if o.hasNativeToken != nil && *o.hasNativeToken {
 		// Do not support native tokens
 		return nil
 	}
@@ -108,7 +108,7 @@ func (o *CombinedFilterOptions) AccountFilterOptions() *AccountFilterOptions {
 }
 
 func (o *CombinedFilterOptions) NFTFilterOptions() *NFTFilterOptions {
-	if o.hasNativeTokens != nil && *o.hasNativeTokens {
+	if o.hasNativeToken != nil && *o.hasNativeToken {
 		// Do not support native tokens
 		return nil
 	}
@@ -123,7 +123,7 @@ func (o *CombinedFilterOptions) NFTFilterOptions() *NFTFilterOptions {
 }
 
 func (o *CombinedFilterOptions) DelegationFilterOptions() *DelegationFilterOptions {
-	if o.hasNativeTokens != nil && *o.hasNativeTokens {
+	if o.hasNativeToken != nil && *o.hasNativeToken {
 		// Do not support native tokens
 		return nil
 	}
