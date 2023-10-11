@@ -16,7 +16,6 @@ const (
 )
 
 type LedgerUpdate struct {
-	API      iotago.API
 	Slot     iotago.SlotIndex
 	Consumed []*LedgerOutput
 	Created  []*LedgerOutput

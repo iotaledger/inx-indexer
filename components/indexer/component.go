@@ -402,7 +402,6 @@ func LedgerUpdateFromNodeBridge(update *nodebridge.LedgerUpdate) (*indexer.Ledge
 	}
 
 	return &indexer.LedgerUpdate{
-		API:      update.API,
 		Slot:     update.Slot,
 		Consumed: consumed,
 		Created:  created,
