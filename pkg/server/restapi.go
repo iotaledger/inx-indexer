@@ -84,4 +84,7 @@ const (
 
 	// QueryParameterHasNativeTokens is used to filter for outputs that have native tokens.
 	QueryParameterHasNativeTokens = "hasNativeTokens"
+
+	// QueryParameterNativeToken is used to filter for outputs that have a certain native token.
+	QueryParameterNativeToken = "nativeToken"
 )

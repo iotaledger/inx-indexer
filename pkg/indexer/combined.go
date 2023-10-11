@@ -9,6 +9,7 @@ import (
 
 type CombinedFilterOptions struct {
 	hasNativeTokens     *bool
+	nativeToken         *iotago.NativeTokenID
 	unlockableByAddress iotago.Address
 	pageSize            uint32
 	cursor              *string
@@ -19,6 +20,12 @@ type CombinedFilterOptions struct {
 func CombinedHasNativeTokens(value bool) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
 		args.hasNativeTokens = &value
+	}
+}
+
+func CombinedNativeToken(tokenID iotago.NativeTokenID) options.Option[CombinedFilterOptions] {
+	return func(args *CombinedFilterOptions) {
+		args.nativeToken = &tokenID
 	}
 }
 
@@ -55,6 +62,7 @@ func CombinedCreatedAfter(slot iotago.SlotIndex) options.Option[CombinedFilterOp
 func (o *CombinedFilterOptions) BasicFilterOptions() *BasicOutputFilterOptions {
 	return &BasicOutputFilterOptions{
 		hasNativeTokens:     o.hasNativeTokens,
+		nativeToken:         o.nativeToken,
 		unlockableByAddress: o.unlockableByAddress,
 		pageSize:            o.pageSize,
 		cursor:              o.cursor,
@@ -75,6 +83,7 @@ func (o *CombinedFilterOptions) FoundryFilterOptions() *FoundryFilterOptions {
 
 	return &FoundryFilterOptions{
 		hasNativeTokens: o.hasNativeTokens,
+		nativeToken:     o.nativeToken,
 		account:         accountAddress,
 		pageSize:        o.pageSize,
 		cursor:          o.cursor,

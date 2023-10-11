@@ -20,13 +20,13 @@ import (
 const (
 	// RouteOutputs is the route for getting basic, foundry, account, delegation and nft outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeTokens", "unlockableByAddress", "createdBefore", "createdAfter"
+	// Query parameters: "hasNativeTokens", "nativeToken", "unlockableByAddress", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputs = "/outputs"
 
 	// RouteOutputsBasic is the route for getting basic outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeTokens", "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
+	// Query parameters: "hasNativeTokens", "nativeToken", "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
 	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
 	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "sender", "tag",
 	//					 "createdBefore", "createdAfter"
@@ -189,6 +189,14 @@ func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsRespo
 		filters = append(filters, indexer.CombinedHasNativeTokens(value))
 	}
 
+	if len(c.QueryParam(QueryParameterNativeToken)) > 0 {
+		value, err := httpserver.ParseHexQueryParam(c, QueryParameterNativeToken, iotago.NativeTokenIDLength)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.CombinedNativeToken(iotago.NativeTokenID(value)))
+	}
+
 	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
 		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterUnlockableByAddress)
 		if err != nil {
@@ -233,6 +241,14 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 			return nil, err
 		}
 		filters = append(filters, indexer.BasicOutputHasNativeTokens(value))
+	}
+
+	if len(c.QueryParam(QueryParameterNativeToken)) > 0 {
+		value, err := httpserver.ParseHexQueryParam(c, QueryParameterNativeToken, iotago.NativeTokenIDLength)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.BasicOutputNativeToken(iotago.NativeTokenID(value)))
 	}
 
 	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {

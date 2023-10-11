@@ -25,6 +25,7 @@ func (o *foundry) String() string {
 
 type FoundryFilterOptions struct {
 	hasNativeTokens *bool
+	nativeToken     *iotago.NativeTokenID
 	account         *iotago.AccountAddress
 	pageSize        uint32
 	cursor          *string
@@ -85,6 +86,11 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gor
 		} else {
 			query = query.Where("native_token_amount == null")
 		}
+	}
+
+	// Since the foundry can only hold its own native token, we can filter out by foundry_id here.
+	if opts.nativeToken != nil {
+		query = query.Where("foundry_id = ?", opts.nativeToken[:])
 	}
 
 	if opts.account != nil {
