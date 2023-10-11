@@ -11,14 +11,14 @@ import (
 )
 
 type account struct {
-	AccountID        []byte           `gorm:"primaryKey;notnull"`
-	OutputID         []byte           `gorm:"unique;notnull"`
-	NativeTokenCount uint32           `gorm:"notnull;type:integer"`
-	StateController  []byte           `gorm:"notnull;index:account_state_controller"`
-	Governor         []byte           `gorm:"notnull;index:account_governor"`
-	Issuer           []byte           `gorm:"index:account_issuer"`
-	Sender           []byte           `gorm:"index:account_sender"`
-	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:account_created_at"`
+	AccountID       []byte `gorm:"primaryKey;notnull"`
+	OutputID        []byte `gorm:"unique;notnull"`
+	Amount          iotago.BaseToken
+	StateController []byte           `gorm:"notnull;index:account_state_controller"`
+	Governor        []byte           `gorm:"notnull;index:account_governor"`
+	Issuer          []byte           `gorm:"index:account_issuer"`
+	Sender          []byte           `gorm:"index:account_sender"`
+	CreatedAt       iotago.SlotIndex `gorm:"notnull;index:account_created_at"`
 }
 
 func (a *account) String() string {
@@ -26,9 +26,6 @@ func (a *account) String() string {
 }
 
 type AccountFilterOptions struct {
-	hasNativeTokens     *bool
-	minNativeTokenCount *uint32
-	maxNativeTokenCount *uint32
 	unlockableByAddress iotago.Address
 	stateController     iotago.Address
 	governor            iotago.Address
@@ -38,24 +35,6 @@ type AccountFilterOptions struct {
 	cursor              *string
 	createdBefore       *iotago.SlotIndex
 	createdAfter        *iotago.SlotIndex
-}
-
-func AccountHasNativeTokens(value bool) options.Option[AccountFilterOptions] {
-	return func(args *AccountFilterOptions) {
-		args.hasNativeTokens = &value
-	}
-}
-
-func AccountMinNativeTokenCount(value uint32) options.Option[AccountFilterOptions] {
-	return func(args *AccountFilterOptions) {
-		args.minNativeTokenCount = &value
-	}
-}
-
-func AccountMaxNativeTokenCount(value uint32) options.Option[AccountFilterOptions] {
-	return func(args *AccountFilterOptions) {
-		args.maxNativeTokenCount = &value
-	}
 }
 
 func AccountUnlockableByAddress(address iotago.Address) options.Option[AccountFilterOptions] {
@@ -120,63 +99,28 @@ func (i *Indexer) AccountOutput(accountID iotago.AccountID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) (*gorm.DB, error) {
+func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) *gorm.DB {
 	query := i.db.Model(&account{})
 
-	if opts.hasNativeTokens != nil {
-		if *opts.hasNativeTokens {
-			query = query.Where("native_token_count > 0")
-		} else {
-			query = query.Where("native_token_count = 0")
-		}
-	}
-
-	if opts.minNativeTokenCount != nil {
-		query = query.Where("native_token_count >= ?", *opts.minNativeTokenCount)
-	}
-
-	if opts.maxNativeTokenCount != nil {
-		query = query.Where("native_token_count <= ?", *opts.maxNativeTokenCount)
-	}
-
 	if opts.unlockableByAddress != nil {
-		addr, err := addressBytesForAddress(opts.unlockableByAddress)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("(state_controller = ? OR governor = ?)", addr, addr)
+		addrID := opts.unlockableByAddress.ID()
+		query = query.Where("(state_controller = ? OR governor = ?)", addrID, addrID)
 	}
 
 	if opts.stateController != nil {
-		addr, err := addressBytesForAddress(opts.stateController)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("state_controller = ?", addr)
+		query = query.Where("state_controller = ?", opts.stateController.ID())
 	}
 
 	if opts.governor != nil {
-		addr, err := addressBytesForAddress(opts.governor)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("governor = ?", addr)
+		query = query.Where("governor = ?", opts.governor.ID())
 	}
 
 	if opts.sender != nil {
-		addr, err := addressBytesForAddress(opts.sender)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("sender = ?", addr)
+		query = query.Where("sender = ?", opts.sender.ID())
 	}
 
 	if opts.issuer != nil {
-		addr, err := addressBytesForAddress(opts.issuer)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("issuer = ?", addr)
+		query = query.Where("issuer = ?", opts.issuer.ID())
 	}
 
 	if opts.createdBefore != nil {
@@ -187,15 +131,12 @@ func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) (*gorm.DB, 
 		query = query.Where("created_at > ?", *opts.createdAfter)
 	}
 
-	return query, nil
+	return query
 }
 
 func (i *Indexer) AccountOutputsWithFilters(filters ...options.Option[AccountFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(AccountFilterOptions), filters)
-	query, err := i.accountQueryWithFilter(opts)
-	if err != nil {
-		return errorResult(err)
-	}
+	query := i.accountQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)
 }

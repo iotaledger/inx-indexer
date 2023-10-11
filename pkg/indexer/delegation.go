@@ -11,8 +11,9 @@ import (
 )
 
 type delegation struct {
-	DelegationID []byte           `gorm:"primaryKey;notnull"`
-	OutputID     []byte           `gorm:"unique;notnull"`
+	DelegationID []byte `gorm:"primaryKey;notnull"`
+	OutputID     []byte `gorm:"unique;notnull"`
+	Amount       iotago.BaseToken
 	Address      []byte           `gorm:"notnull;index:delegation_outputs_address"`
 	Validator    []byte           `gorm:"index:delegation_outputs_validator"`
 	CreatedAt    iotago.SlotIndex `gorm:"notnull;index:delegation_outputs_created_at"`
@@ -75,23 +76,15 @@ func (i *Indexer) DelegationOutput(delegationID iotago.DelegationID) *IndexerRes
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) (*gorm.DB, error) {
+func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) *gorm.DB {
 	query := i.db.Model(&delegation{})
 
 	if opts.address != nil {
-		addr, err := addressBytesForAddress(opts.address)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("address = ?", addr)
+		query = query.Where("address = ?", opts.address.ID())
 	}
 
 	if opts.validator != nil {
-		addr, err := addressBytesForAddress(opts.validator)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("validator = ?", addr)
+		query = query.Where("validator = ?", opts.validator.ID())
 	}
 
 	if opts.createdBefore != nil {
@@ -102,15 +95,12 @@ func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) (*gor
 		query = query.Where("created_at > ?", *opts.createdAfter)
 	}
 
-	return query, nil
+	return query
 }
 
 func (i *Indexer) DelegationsWithFilters(filters ...options.Option[DelegationFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(DelegationFilterOptions), filters)
-	query, err := i.delegationQueryWithFilter(opts)
-	if err != nil {
-		return errorResult(err)
-	}
+	query := i.delegationQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)
 }

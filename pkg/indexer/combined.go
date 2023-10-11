@@ -8,9 +8,8 @@ import (
 )
 
 type CombinedFilterOptions struct {
-	hasNativeTokens     *bool
-	minNativeTokenCount *uint32
-	maxNativeTokenCount *uint32
+	hasNativeToken      *bool
+	nativeToken         *iotago.NativeTokenID
 	unlockableByAddress iotago.Address
 	pageSize            uint32
 	cursor              *string
@@ -18,21 +17,15 @@ type CombinedFilterOptions struct {
 	createdAfter        *iotago.SlotIndex
 }
 
-func CombinedHasNativeTokens(value bool) options.Option[CombinedFilterOptions] {
+func CombinedHasNativeToken(value bool) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
-		args.hasNativeTokens = &value
+		args.hasNativeToken = &value
 	}
 }
 
-func CombinedMinNativeTokenCount(value uint32) options.Option[CombinedFilterOptions] {
+func CombinedNativeToken(tokenID iotago.NativeTokenID) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
-		args.minNativeTokenCount = &value
-	}
-}
-
-func CombinedMaxNativeTokenCount(value uint32) options.Option[CombinedFilterOptions] {
-	return func(args *CombinedFilterOptions) {
-		args.maxNativeTokenCount = &value
+		args.nativeToken = &tokenID
 	}
 }
 
@@ -68,9 +61,8 @@ func CombinedCreatedAfter(slot iotago.SlotIndex) options.Option[CombinedFilterOp
 
 func (o *CombinedFilterOptions) BasicFilterOptions() *BasicOutputFilterOptions {
 	return &BasicOutputFilterOptions{
-		hasNativeTokens:     o.hasNativeTokens,
-		minNativeTokenCount: o.minNativeTokenCount,
-		maxNativeTokenCount: o.maxNativeTokenCount,
+		hasNativeToken:      o.hasNativeToken,
+		nativeToken:         o.nativeToken,
 		unlockableByAddress: o.unlockableByAddress,
 		pageSize:            o.pageSize,
 		cursor:              o.cursor,
@@ -90,22 +82,23 @@ func (o *CombinedFilterOptions) FoundryFilterOptions() *FoundryFilterOptions {
 	}
 
 	return &FoundryFilterOptions{
-		hasNativeTokens:     o.hasNativeTokens,
-		minNativeTokenCount: o.minNativeTokenCount,
-		maxNativeTokenCount: o.maxNativeTokenCount,
-		account:             accountAddress,
-		pageSize:            o.pageSize,
-		cursor:              o.cursor,
-		createdBefore:       o.createdBefore,
-		createdAfter:        o.createdAfter,
+		hasNativeToken: o.hasNativeToken,
+		nativeToken:    o.nativeToken,
+		account:        accountAddress,
+		pageSize:       o.pageSize,
+		cursor:         o.cursor,
+		createdBefore:  o.createdBefore,
+		createdAfter:   o.createdAfter,
 	}
 }
 
 func (o *CombinedFilterOptions) AccountFilterOptions() *AccountFilterOptions {
+	if o.hasNativeToken != nil && *o.hasNativeToken {
+		// Do not support native tokens
+		return nil
+	}
+
 	return &AccountFilterOptions{
-		hasNativeTokens:     o.hasNativeTokens,
-		minNativeTokenCount: o.minNativeTokenCount,
-		maxNativeTokenCount: o.maxNativeTokenCount,
 		unlockableByAddress: o.unlockableByAddress,
 		pageSize:            o.pageSize,
 		cursor:              o.cursor,
@@ -115,10 +108,12 @@ func (o *CombinedFilterOptions) AccountFilterOptions() *AccountFilterOptions {
 }
 
 func (o *CombinedFilterOptions) NFTFilterOptions() *NFTFilterOptions {
+	if o.hasNativeToken != nil && *o.hasNativeToken {
+		// Do not support native tokens
+		return nil
+	}
+
 	return &NFTFilterOptions{
-		hasNativeTokens:     o.hasNativeTokens,
-		minNativeTokenCount: o.minNativeTokenCount,
-		maxNativeTokenCount: o.maxNativeTokenCount,
 		unlockableByAddress: o.unlockableByAddress,
 		pageSize:            o.pageSize,
 		cursor:              o.cursor,
@@ -128,6 +123,11 @@ func (o *CombinedFilterOptions) NFTFilterOptions() *NFTFilterOptions {
 }
 
 func (o *CombinedFilterOptions) DelegationFilterOptions() *DelegationFilterOptions {
+	if o.hasNativeToken != nil && *o.hasNativeToken {
+		// Do not support native tokens
+		return nil
+	}
+
 	return &DelegationFilterOptions{
 		address:       o.unlockableByAddress,
 		pageSize:      o.pageSize,
@@ -143,43 +143,23 @@ func (i *Indexer) CombinedOutputsWithFilters(filters ...options.Option[CombinedF
 	var queries []*gorm.DB
 
 	if filter := opts.BasicFilterOptions(); filter != nil {
-		query, err := i.basicQueryWithFilter(filter)
-		if err != nil {
-			return errorResult(err)
-		}
-		queries = append(queries, query)
+		queries = append(queries, i.basicQueryWithFilter(filter))
 	}
 
 	if filter := opts.AccountFilterOptions(); filter != nil {
-		query, err := i.accountQueryWithFilter(filter)
-		if err != nil {
-			return errorResult(err)
-		}
-		queries = append(queries, query)
+		queries = append(queries, i.accountQueryWithFilter(filter))
 	}
 
 	if filter := opts.NFTFilterOptions(); filter != nil {
-		query, err := i.nftQueryWithFilter(filter)
-		if err != nil {
-			return errorResult(err)
-		}
-		queries = append(queries, query)
+		queries = append(queries, i.nftQueryWithFilter(filter))
 	}
 
 	if filter := opts.FoundryFilterOptions(); filter != nil {
-		query, err := i.foundryOutputsQueryWithFilter(filter)
-		if err != nil {
-			return errorResult(err)
-		}
-		queries = append(queries, query)
+		queries = append(queries, i.foundryOutputsQueryWithFilter(filter))
 	}
 
 	if filter := opts.DelegationFilterOptions(); filter != nil {
-		query, err := i.delegationQueryWithFilter(filter)
-		if err != nil {
-			return errorResult(err)
-		}
-		queries = append(queries, query)
+		queries = append(queries, i.delegationQueryWithFilter(filter))
 	}
 
 	return i.combineOutputIDFilteredQueries(queries, opts.pageSize, opts.cursor)

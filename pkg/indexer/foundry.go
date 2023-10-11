@@ -11,11 +11,12 @@ import (
 )
 
 type foundry struct {
-	FoundryID        []byte           `gorm:"primaryKey;notnull"`
-	OutputID         []byte           `gorm:"unique;notnull"`
-	NativeTokenCount uint32           `gorm:"notnull;type:integer"`
-	AccountAddress   []byte           `gorm:"notnull;index:foundries_account_address"`
-	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:foundries_created_at"`
+	FoundryID         []byte `gorm:"primaryKey;notnull"`
+	OutputID          []byte `gorm:"unique;notnull"`
+	Amount            iotago.BaseToken
+	NativeTokenAmount string
+	AccountAddress    []byte           `gorm:"notnull;index:foundries_account_address"`
+	CreatedAt         iotago.SlotIndex `gorm:"notnull;index:foundries_created_at"`
 }
 
 func (o *foundry) String() string {
@@ -23,31 +24,18 @@ func (o *foundry) String() string {
 }
 
 type FoundryFilterOptions struct {
-	hasNativeTokens     *bool
-	minNativeTokenCount *uint32
-	maxNativeTokenCount *uint32
-	account             *iotago.AccountAddress
-	pageSize            uint32
-	cursor              *string
-	createdBefore       *iotago.SlotIndex
-	createdAfter        *iotago.SlotIndex
+	hasNativeToken *bool
+	nativeToken    *iotago.NativeTokenID
+	account        *iotago.AccountAddress
+	pageSize       uint32
+	cursor         *string
+	createdBefore  *iotago.SlotIndex
+	createdAfter   *iotago.SlotIndex
 }
 
-func FoundryHasNativeTokens(value bool) options.Option[FoundryFilterOptions] {
+func FoundryHasNativeToken(value bool) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
-		args.hasNativeTokens = &value
-	}
-}
-
-func FoundryMinNativeTokenCount(value uint32) options.Option[FoundryFilterOptions] {
-	return func(args *FoundryFilterOptions) {
-		args.minNativeTokenCount = &value
-	}
-}
-
-func FoundryMaxNativeTokenCount(value uint32) options.Option[FoundryFilterOptions] {
-	return func(args *FoundryFilterOptions) {
-		args.maxNativeTokenCount = &value
+		args.hasNativeToken = &value
 	}
 }
 
@@ -89,31 +77,24 @@ func (i *Indexer) FoundryOutput(foundryID iotago.FoundryID) *IndexerResult {
 	return i.combineOutputIDFilteredQuery(query, 0, nil)
 }
 
-func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) (*gorm.DB, error) {
+func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gorm.DB {
 	query := i.db.Model(&foundry{})
 
-	if opts.hasNativeTokens != nil {
-		if *opts.hasNativeTokens {
-			query = query.Where("native_token_count > 0")
+	if opts.hasNativeToken != nil {
+		if *opts.hasNativeToken {
+			query = query.Where("native_token_amount != null")
 		} else {
-			query = query.Where("native_token_count = 0")
+			query = query.Where("native_token_amount == null")
 		}
 	}
 
-	if opts.minNativeTokenCount != nil {
-		query = query.Where("native_token_count >= ?", *opts.minNativeTokenCount)
-	}
-
-	if opts.maxNativeTokenCount != nil {
-		query = query.Where("native_token_count <= ?", *opts.maxNativeTokenCount)
+	// Since the foundry can only hold its own native token, we can filter out by foundry_id here.
+	if opts.nativeToken != nil {
+		query = query.Where("foundry_id = ?", opts.nativeToken[:])
 	}
 
 	if opts.account != nil {
-		addr, err := addressBytesForAddress(opts.account)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("account_address = ?", addr)
+		query = query.Where("account_address = ?", opts.account.ID())
 	}
 
 	if opts.createdBefore != nil {
@@ -124,15 +105,12 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) (*go
 		query = query.Where("created_at > ?", *opts.createdAfter)
 	}
 
-	return query, nil
+	return query
 }
 
 func (i *Indexer) FoundryOutputsWithFilters(filters ...options.Option[FoundryFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(FoundryFilterOptions), filters)
-	query, err := i.foundryOutputsQueryWithFilter(opts)
-	if err != nil {
-		return errorResult(err)
-	}
+	query := i.foundryOutputsQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)
 }

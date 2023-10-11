@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 
+	"github.com/iotaledger/hive.go/ierrors"
 	"github.com/iotaledger/hive.go/runtime/options"
 	"github.com/iotaledger/inx-app/pkg/httpserver"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
@@ -18,15 +20,13 @@ import (
 const (
 	// RouteOutputs is the route for getting basic, foundry, account, delegation and nft outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "unlockableByAddress", "createdBefore", "createdAfter"
+	// Query parameters: "hasNativeToken", "nativeToken", "unlockableByAddress", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputs = "/outputs"
 
 	// RouteOutputsBasic is the route for getting basic outputs filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
+	// Query parameters: "hasNativeToken", "nativeToken", "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
 	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
 	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "sender", "tag",
 	//					 "createdBefore", "createdAfter"
@@ -35,8 +35,7 @@ const (
 
 	// RouteOutputsAccounts is the route for getting accounts filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "unlockableByAddress", "stateController", "governor", "issuer", "sender",
+	// Query parameters: "unlockableByAddress", "stateController", "governor", "issuer", "sender",
 	//					 "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsAccounts = "/outputs/account"
@@ -46,8 +45,7 @@ const (
 	RouteOutputsAccountByID = "/outputs/account/:" + ParameterAccountID
 
 	// RouteOutputsNFTs is the route for getting NFT filtered by the given parameters.
-	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
+	// Query parameters: "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
 	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
 	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "issuer", "sender", "tag",
 	//					 "createdBefore", "createdAfter"
@@ -60,8 +58,7 @@ const (
 
 	// RouteOutputsFoundries is the route for getting foundries filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeTokens", "minNativeTokenCount", "maxNativeTokenCount",
-	//					 "account", "createdBefore", "createdAfter"
+	// Query parameters: "account", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsFoundries = "/outputs/foundry"
 
@@ -78,6 +75,8 @@ const (
 	// RouteOutputsDelegationByID is the route for getting delegations by their delegationID.
 	// GET returns the outputIDs or 404 if no record is found.
 	RouteOutputsDelegationByID = "/outputs/delegation/:" + ParameterDelegationID
+
+	RouteMultiAddressByAddress = "/multiaddress/:" + ParameterAddress
 )
 
 const (
@@ -175,33 +174,27 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 
 		return c.JSON(http.StatusOK, resp)
 	})
+
+	routeGroup.GET(RouteMultiAddressByAddress, s.multiAddressByAddress)
 }
 
 func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
 	filters := []options.Option[indexer.CombinedFilterOptions]{indexer.CombinedPageSize(s.pageSizeFromContext(c))}
 
-	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
+	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeToken)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.CombinedHasNativeTokens(value))
+		filters = append(filters, indexer.CombinedHasNativeToken(value))
 	}
 
-	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
+	if len(c.QueryParam(QueryParameterNativeToken)) > 0 {
+		value, err := httpserver.ParseHexQueryParam(c, QueryParameterNativeToken, iotago.NativeTokenIDLength)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.CombinedMinNativeTokenCount(value))
-	}
-
-	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.CombinedMaxNativeTokenCount(value))
+		filters = append(filters, indexer.CombinedNativeToken(iotago.NativeTokenID(value)))
 	}
 
 	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
@@ -242,28 +235,20 @@ func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsRespo
 func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
 	filters := []options.Option[indexer.BasicOutputFilterOptions]{indexer.BasicOutputPageSize(s.pageSizeFromContext(c))}
 
-	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
+	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeToken)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputHasNativeTokens(value))
+		filters = append(filters, indexer.BasicOutputHasNativeToken(value))
 	}
 
-	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
+	if len(c.QueryParam(QueryParameterNativeToken)) > 0 {
+		value, err := httpserver.ParseHexQueryParam(c, QueryParameterNativeToken, iotago.NativeTokenIDLength)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputMinNativeTokenCount(value))
-	}
-
-	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.BasicOutputMaxNativeTokenCount(value))
+		filters = append(filters, indexer.BasicOutputNativeToken(iotago.NativeTokenID(value)))
 	}
 
 	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
@@ -409,30 +394,6 @@ func (s *IndexerServer) accountByID(c echo.Context) (*outputsResponse, error) {
 func (s *IndexerServer) accountsWithFilter(c echo.Context) (*outputsResponse, error) {
 	filters := []options.Option[indexer.AccountFilterOptions]{indexer.AccountPageSize(s.pageSizeFromContext(c))}
 
-	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.AccountHasNativeTokens(value))
-	}
-
-	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.AccountMinNativeTokenCount(value))
-	}
-
-	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.AccountMaxNativeTokenCount(value))
-	}
-
 	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
 		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterUnlockableByAddress)
 		if err != nil {
@@ -511,30 +472,6 @@ func (s *IndexerServer) nftByID(c echo.Context) (*outputsResponse, error) {
 
 func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error) {
 	filters := []options.Option[indexer.NFTFilterOptions]{indexer.NFTPageSize(s.pageSizeFromContext(c))}
-
-	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.NFTHasNativeTokens(value))
-	}
-
-	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.NFTMinNativeTokenCount(value))
-	}
-
-	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.NFTMaxNativeTokenCount(value))
-	}
 
 	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
 		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterUnlockableByAddress)
@@ -687,28 +624,12 @@ func (s *IndexerServer) foundryByID(c echo.Context) (*outputsResponse, error) {
 func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, error) {
 	filters := []options.Option[indexer.FoundryFilterOptions]{indexer.FoundryPageSize(s.pageSizeFromContext(c))}
 
-	if len(c.QueryParam(QueryParameterHasNativeTokens)) > 0 {
-		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeTokens)
+	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
+		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeToken)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.FoundryHasNativeTokens(value))
-	}
-
-	if len(c.QueryParam(QueryParameterMinNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMinNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.FoundryMinNativeTokenCount(value))
-	}
-
-	if len(c.QueryParam(QueryParameterMaxNativeTokenCount)) > 0 {
-		value, err := httpserver.ParseUint32QueryParam(c, QueryParameterMaxNativeTokenCount, iotago.MaxNativeTokenCountPerOutput) // Use the iotago.MaxNativeTokenCountPerOutput as an upper bound check
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.FoundryMaxNativeTokenCount(value))
+		filters = append(filters, indexer.FoundryHasNativeToken(value))
 	}
 
 	if len(c.QueryParam(QueryParameterAccount)) > 0 {
@@ -840,6 +761,63 @@ func outputsResponseFromResult(result *indexer.IndexerResult) (*outputsResponse,
 		Cursor:      cursor,
 		Items:       result.OutputIDs.ToHex(),
 	}, nil
+}
+
+func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
+	address, err := httpserver.ParseBech32AddressParam(c, s.Bech32HRP, ParameterAddress)
+	if err != nil {
+		return err
+	}
+
+	respondWithAddress := func(address iotago.Address) error {
+		mimeType, err := httpserver.GetAcceptHeaderContentType(c, httpserver.MIMEApplicationVendorIOTASerializerV2, echo.MIMEApplicationJSON)
+		if err != nil && ierrors.Is(err, httpserver.ErrNotAcceptable) {
+			return err
+		}
+
+		switch mimeType {
+		case httpserver.MIMEApplicationVendorIOTASerializerV2:
+			b, err := iotago.CommonSerixAPI().Encode(context.TODO(), address)
+			if err != nil {
+				return err
+			}
+
+			return c.Blob(http.StatusOK, httpserver.MIMEApplicationVendorIOTASerializerV2, b)
+
+		default:
+			j, err := iotago.CommonSerixAPI().JSONEncode(context.TODO(), address)
+			if err != nil {
+				return err
+			}
+
+			return c.Blob(http.StatusOK, echo.MIMEApplicationJSON, j)
+		}
+	}
+
+	if multiAddressRef, isMultiRef := address.(*iotago.MultiAddressReference); isMultiRef {
+		multiAddress, err := s.Indexer.MultiAddressForReference(multiAddressRef)
+		if err != nil {
+			return err
+		}
+
+		return respondWithAddress(multiAddress)
+	}
+
+	if restrictedAddress, isRestricted := address.(*iotago.RestrictedAddress); isRestricted {
+		if innerMultiAddressRef, isMultiRef := restrictedAddress.Address.(*iotago.MultiAddressReference); isMultiRef {
+			multiAddress, err := s.Indexer.MultiAddressForReference(innerMultiAddressRef)
+			if err != nil {
+				return err
+			}
+
+			return respondWithAddress(&iotago.RestrictedAddress{
+				Address:             multiAddress,
+				AllowedCapabilities: restrictedAddress.AllowedCapabilities,
+			})
+		}
+	}
+
+	return echo.ErrNotFound
 }
 
 func (s *IndexerServer) parseCursorQueryParameter(c echo.Context) (string, uint32, error) {

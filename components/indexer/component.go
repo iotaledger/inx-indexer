@@ -123,7 +123,7 @@ func run() error {
 				return err
 			}
 
-			Component.LogInfof("Applying slot %d with %d new and %d consumed outputs took %s", update.SlotIndex, len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
+			Component.LogInfof("Applying slot %d with %d new and %d consumed outputs took %s", update.Slot, len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
 
 			return nil
 		}); err != nil {
@@ -235,7 +235,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 				Component.LogInfof("> Indexer database version changed: %d vs %d", status.DatabaseVersion, DBVersion)
 				needsToClearIndexer = true
 
-			case iotago.SlotIndex(nodeStatus.GetPruningSlot()) > status.LedgerIndex:
+			case deps.NodeBridge.APIProvider().LatestAPI().TimeProvider().EpochStart(iotago.EpochIndex(nodeStatus.GetPruningEpoch())) > status.LedgerIndex:
 				Component.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
 				needsToClearIndexer = true
 			}

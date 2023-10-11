@@ -30,6 +30,16 @@ func typeOf[T any]() string {
 	return reflect.TypeOf(t).Elem().Name()
 }
 
+func typeIsRefCountable[T any]() bool {
+	//nolint:gocritic // We cannot use T(nil) here
+	_, ok := interface{}(new(T)).(refCountable)
+	return ok
+}
+
+type refCountable interface {
+	refCountDelta() int
+}
+
 type batcher[T any] struct {
 	*logger.WrappedLogger
 
@@ -109,6 +119,7 @@ func newImporter[T any](db *gorm.DB, log *logger.Logger) *inserter[T] {
 
 //nolint:golint,revive // false positive.
 func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T) {
+	useRefCounts := typeIsRefCountable[T]()
 	for n := 0; n < workerCount; n++ {
 		workerName := fmt.Sprintf("inserter-%s-%d", i.name, n)
 		i.wg.Add(1)
@@ -129,6 +140,23 @@ func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T
 
 				batch := b
 				if err := i.db.Transaction(func(tx *gorm.DB) error {
+					if useRefCounts {
+						for _, item := range batch {
+							if itemWithRefCount, ok := interface{}(item).(refCountable); ok {
+								if err := tx.Clauses(clause.OnConflict{
+									Columns:   []clause.Column{{Name: "id"}},
+									DoUpdates: clause.Assignments(map[string]interface{}{"ref_count": gorm.Expr("ref_count + ?", itemWithRefCount.refCountDelta())}),
+								}).Create(item).Error; err != nil {
+									return err
+								}
+							} else {
+								return fmt.Errorf("item %T does not implement RefCountable", item)
+							}
+						}
+
+						return nil
+					}
+
 					return tx.Create(batch).Error
 				}); err != nil {
 					i.LogErrorAndExit(err)
@@ -164,8 +192,10 @@ func newProcessor[T fmt.Stringer](ctx context.Context, db *gorm.DB, log *logger.
 }
 
 //nolint:golint,revive // false positive.
-func (p *processor[T]) enqueue(item T) {
-	p.batcher.input <- item
+func (p *processor[T]) enqueue(items ...T) {
+	for _, item := range items {
+		p.batcher.input <- item
+	}
 }
 
 //nolint:golint,revive // false positive.
@@ -183,11 +213,12 @@ type ImportTransaction struct {
 
 	db *gorm.DB
 
-	basic      *processor[*basicOutput]
-	nft        *processor[*nft]
-	account    *processor[*account]
-	foundry    *processor[*foundry]
-	delegation *processor[*delegation]
+	basic        *processor[*basicOutput]
+	nft          *processor[*nft]
+	account      *processor[*account]
+	foundry      *processor[*foundry]
+	delegation   *processor[*delegation]
+	multiAddress *processor[*multiaddress]
 }
 
 func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) *ImportTransaction {
@@ -206,13 +237,13 @@ func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) 
 		account:       newProcessor[*account](ctx, dbSession, log),
 		foundry:       newProcessor[*foundry](ctx, dbSession, log),
 		delegation:    newProcessor[*delegation](ctx, dbSession, log),
+		multiAddress:  newProcessor[*multiaddress](ctx, dbSession, log),
 	}
 
 	return t
 }
 
 func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) error {
-
 	entry, err := entryForOutput(outputID, output, slotBooked)
 	if err != nil {
 		return err
@@ -231,17 +262,24 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 		i.delegation.enqueue(e)
 	}
 
+	multiAddresses, err := multiAddressesForAddresses(addressesInOutput(output)...)
+	if err != nil {
+		return err
+	}
+
+	i.multiAddress.enqueue(multiAddresses...)
+
 	return nil
 }
 
 func (i *ImportTransaction) Finalize(ledgerIndex iotago.SlotIndex, protoParams iotago.ProtocolParameters, databaseVersion uint32) error {
-
 	// drain all processors
 	i.basic.closeAndWait()
 	i.nft.closeAndWait()
 	i.account.closeAndWait()
 	i.foundry.closeAndWait()
 	i.delegation.closeAndWait()
+	i.multiAddress.closeAndWait()
 
 	i.LogInfo("Finished insertion, update ledger index")
 

@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
@@ -20,6 +21,8 @@ var (
 		&nft{},
 		&foundry{},
 		&account{},
+		&delegation{},
+		&multiaddress{},
 	}
 )
 
@@ -30,7 +33,6 @@ type Indexer struct {
 }
 
 func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) {
-
 	db, engine, err := database.NewWithDefaultSettings(dbParams, true, log)
 	if err != nil {
 		return nil, err
@@ -41,6 +43,54 @@ func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) 
 		db:            db,
 		engine:        engine,
 	}, nil
+}
+
+func addressesInOutput(output iotago.Output) []iotago.Address {
+	var foundAddresses []iotago.Address
+
+	// Check for addresses in features
+	features := output.FeatureSet()
+	if senderBlock := features.SenderFeature(); senderBlock != nil {
+		foundAddresses = append(foundAddresses, senderBlock.Address)
+	}
+
+	// Check for addresses in unlock conditions
+	conditions := output.UnlockConditionSet()
+	if addressUnlock := conditions.Address(); addressUnlock != nil {
+		foundAddresses = append(foundAddresses, addressUnlock.Address)
+	}
+	if storageDepositReturn := conditions.StorageDepositReturn(); storageDepositReturn != nil {
+		foundAddresses = append(foundAddresses, storageDepositReturn.ReturnAddress)
+	}
+	if expiration := conditions.Expiration(); expiration != nil {
+		foundAddresses = append(foundAddresses, expiration.ReturnAddress)
+	}
+	if accountUnlock := conditions.ImmutableAccount(); accountUnlock != nil {
+		foundAddresses = append(foundAddresses, accountUnlock.Address)
+	}
+	if stateController := conditions.StateControllerAddress(); stateController != nil {
+		foundAddresses = append(foundAddresses, stateController.Address)
+	}
+	if governor := conditions.GovernorAddress(); governor != nil {
+		foundAddresses = append(foundAddresses, governor.Address)
+	}
+
+	// Check for addresses in immutable features
+	if chainOutput, ok := output.(iotago.ChainOutputImmutable); ok {
+		immutableFeatures := chainOutput.ImmutableFeatureSet()
+
+		if issuerBlock := immutableFeatures.Issuer(); issuerBlock != nil {
+			foundAddresses = append(foundAddresses, issuerBlock.Address)
+		}
+
+	}
+
+	// Check for addresses in delegation output
+	if delegationOutput, ok := output.(*iotago.DelegationOutput); ok {
+		foundAddresses = append(foundAddresses, delegationOutput.ValidatorAddress)
+	}
+
+	return foundAddresses
 }
 
 func processSpent(spent *inx.LedgerSpent, api iotago.API, tx *gorm.DB) error {
@@ -63,7 +113,7 @@ func processSpent(spent *inx.LedgerSpent, api iotago.API, tx *gorm.DB) error {
 		return tx.Where("output_id = ?", outputID[:]).Delete(&delegation{}).Error
 	}
 
-	return nil
+	return deleteMultiAddressesFromAddresses(tx, addressesInOutput(iotaOutput))
 }
 
 func processOutput(output *inx.LedgerOutput, api iotago.API, tx *gorm.DB) error {
@@ -79,28 +129,29 @@ func processOutput(output *inx.LedgerOutput, api iotago.API, tx *gorm.DB) error 
 		return err
 	}
 
-	return tx.Create(entry).Error
+	if err := tx.Create(entry).Error; err != nil {
+		return err
+	}
+
+	return insertMultiAddressesFromAddresses(tx, addressesInOutput(unwrapped))
 }
 
 func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) (interface{}, error) {
-	var err error
+	var entry interface{}
 	switch iotaOutput := output.(type) {
 	case *iotago.BasicOutput:
 		features := iotaOutput.FeatureSet()
 		conditions := iotaOutput.UnlockConditionSet()
 
 		basic := &basicOutput{
-			OutputID:         make([]byte, iotago.OutputIDLength),
-			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
-			CreatedAt:        slotBooked,
+			Amount:    iotaOutput.Amount,
+			OutputID:  make([]byte, iotago.OutputIDLength),
+			CreatedAt: slotBooked,
 		}
 		copy(basic.OutputID, outputID[:])
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
-			basic.Sender, err = addressBytesForAddress(senderBlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			basic.Sender = senderBlock.Address.ID()
 		}
 
 		if tagBlock := features.Tag(); tagBlock != nil {
@@ -108,19 +159,18 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 			copy(basic.Tag, tagBlock.Tag)
 		}
 
+		if nativeToken := features.NativeToken(); nativeToken != nil {
+			basic.NativeToken = nativeToken.ID[:]
+			basic.NativeTokenAmount = hexutil.EncodeBig(nativeToken.Amount)
+		}
+
 		if addressUnlock := conditions.Address(); addressUnlock != nil {
-			basic.Address, err = addressBytesForAddress(addressUnlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			basic.Address = addressUnlock.Address.ID()
 		}
 
 		if storageDepositReturn := conditions.StorageDepositReturn(); storageDepositReturn != nil {
 			basic.StorageDepositReturn = &storageDepositReturn.Amount
-			basic.StorageDepositReturnAddress, err = addressBytesForAddress(storageDepositReturn.ReturnAddress)
-			if err != nil {
-				return nil, err
-			}
+			basic.StorageDepositReturnAddress = storageDepositReturn.ReturnAddress.ID()
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
@@ -129,13 +179,10 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		if expiration := conditions.Expiration(); expiration != nil {
 			basic.ExpirationSlot = &expiration.SlotIndex
-			basic.ExpirationReturnAddress, err = addressBytesForAddress(expiration.ReturnAddress)
-			if err != nil {
-				return nil, err
-			}
+			basic.ExpirationReturnAddress = expiration.ReturnAddress.ID()
 		}
 
-		return basic, nil
+		entry = basic
 
 	case *iotago.AccountOutput:
 		accountID := iotaOutput.AccountID
@@ -149,43 +196,31 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		conditions := iotaOutput.UnlockConditionSet()
 
 		acc := &account{
-			AccountID:        make([]byte, iotago.AccountIDLength),
-			OutputID:         make([]byte, iotago.OutputIDLength),
-			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
-			CreatedAt:        slotBooked,
+			Amount:    iotaOutput.Amount,
+			AccountID: make([]byte, iotago.AccountIDLength),
+			OutputID:  make([]byte, iotago.OutputIDLength),
+			CreatedAt: slotBooked,
 		}
 		copy(acc.AccountID, accountID[:])
 		copy(acc.OutputID, outputID[:])
 
 		if issuerBlock := immutableFeatures.Issuer(); issuerBlock != nil {
-			acc.Issuer, err = addressBytesForAddress(issuerBlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			acc.Issuer = issuerBlock.Address.ID()
 		}
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
-			acc.Sender, err = addressBytesForAddress(senderBlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			acc.Sender = senderBlock.Address.ID()
 		}
 
 		if stateController := conditions.StateControllerAddress(); stateController != nil {
-			acc.StateController, err = addressBytesForAddress(stateController.Address)
-			if err != nil {
-				return nil, err
-			}
+			acc.StateController = stateController.Address.ID()
 		}
 
 		if governor := conditions.GovernorAddress(); governor != nil {
-			acc.Governor, err = addressBytesForAddress(governor.Address)
-			if err != nil {
-				return nil, err
-			}
+			acc.Governor = governor.Address.ID()
 		}
 
-		return acc, nil
+		entry = acc
 
 	case *iotago.NFTOutput:
 		features := iotaOutput.FeatureSet()
@@ -200,26 +235,20 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		nft := &nft{
-			NFTID:            make([]byte, iotago.NFTIDLength),
-			OutputID:         make([]byte, iotago.OutputIDLength),
-			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
-			CreatedAt:        slotBooked,
+			Amount:    iotaOutput.Amount,
+			NFTID:     make([]byte, iotago.NFTIDLength),
+			OutputID:  make([]byte, iotago.OutputIDLength),
+			CreatedAt: slotBooked,
 		}
 		copy(nft.NFTID, nftID[:])
 		copy(nft.OutputID, outputID[:])
 
 		if issuerBlock := immutableFeatures.Issuer(); issuerBlock != nil {
-			nft.Issuer, err = addressBytesForAddress(issuerBlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			nft.Issuer = issuerBlock.Address.ID()
 		}
 
 		if senderBlock := features.SenderFeature(); senderBlock != nil {
-			nft.Sender, err = addressBytesForAddress(senderBlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			nft.Sender = senderBlock.Address.ID()
 		}
 
 		if tagBlock := features.Tag(); tagBlock != nil {
@@ -228,19 +257,13 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		if addressUnlock := conditions.Address(); addressUnlock != nil {
-			nft.Address, err = addressBytesForAddress(addressUnlock.Address)
-			if err != nil {
-				return nil, err
-			}
+			nft.Address = addressUnlock.Address.ID()
 		}
 
 		if storageDepositReturn := conditions.StorageDepositReturn(); storageDepositReturn != nil {
 			amount := uint64(storageDepositReturn.Amount)
 			nft.StorageDepositReturn = &amount
-			nft.StorageDepositReturnAddress, err = addressBytesForAddress(storageDepositReturn.ReturnAddress)
-			if err != nil {
-				return nil, err
-			}
+			nft.StorageDepositReturnAddress = storageDepositReturn.ReturnAddress.ID()
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
@@ -249,40 +272,41 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		if expiration := conditions.Expiration(); expiration != nil {
 			nft.ExpirationTime = &expiration.SlotIndex
-			nft.ExpirationReturnAddress, err = addressBytesForAddress(expiration.ReturnAddress)
-			if err != nil {
-				return nil, err
-			}
+			nft.ExpirationReturnAddress = expiration.ReturnAddress.ID()
 		}
 
-		return nft, err
+		entry = nft
 
 	case *iotago.FoundryOutput:
+		features := iotaOutput.FeatureSet()
 		conditions := iotaOutput.UnlockConditionSet()
 
-		foundryID, err := iotaOutput.ID()
+		foundryID, err := iotaOutput.FoundryID()
 		if err != nil {
 			return nil, err
 		}
 
 		foundry := &foundry{
-			FoundryID:        foundryID[:],
-			OutputID:         make([]byte, iotago.OutputIDLength),
-			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
-			CreatedAt:        slotBooked,
+			Amount:    iotaOutput.Amount,
+			FoundryID: foundryID[:],
+			OutputID:  make([]byte, iotago.OutputIDLength),
+			CreatedAt: slotBooked,
 		}
 		copy(foundry.OutputID, outputID[:])
 
-		if accountUnlock := conditions.ImmutableAccount(); accountUnlock != nil {
-			foundry.AccountAddress, err = addressBytesForAddress(accountUnlock.Address)
-			if err != nil {
-				return nil, err
-			}
+		if nativeToken := features.NativeToken(); nativeToken != nil {
+			foundry.NativeTokenAmount = hexutil.EncodeBig(nativeToken.Amount)
 		}
 
-		return foundry, nil
+		if accountUnlock := conditions.ImmutableAccount(); accountUnlock != nil {
+			foundry.AccountAddress = accountUnlock.Address.ID()
+		}
+
+		entry = foundry
 
 	case *iotago.DelegationOutput:
+		conditions := iotaOutput.UnlockConditionSet()
+
 		delegationID := iotaOutput.DelegationID
 		if delegationID.Empty() {
 			// Use implicit DelegationID
@@ -290,6 +314,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		delegation := &delegation{
+			Amount:       iotaOutput.Amount,
 			DelegationID: make([]byte, iotago.DelegationIDLength),
 			OutputID:     make([]byte, iotago.OutputIDLength),
 			CreatedAt:    slotBooked,
@@ -297,18 +322,19 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		copy(delegation.DelegationID, delegationID[:])
 		copy(delegation.OutputID, outputID[:])
 
-		validatorAddress := new(iotago.AccountAddress)
-		copy(validatorAddress[:], iotaOutput.ValidatorID[:])
+		delegation.Validator = iotaOutput.ValidatorAddress.ID()
 
-		delegation.Validator, err = addressBytesForAddress(validatorAddress)
-		if err != nil {
-			return nil, err
+		if addressUnlock := conditions.Address(); addressUnlock != nil {
+			delegation.Address = addressUnlock.Address.ID()
 		}
 
-		return delegation, nil
+		entry = delegationID
+
+	default:
+		return nil, errors.New("unknown output type")
 	}
 
-	return nil, errors.New("unknown output type")
+	return entry, nil
 }
 
 func (i *Indexer) IsInitialized() bool {
@@ -365,7 +391,7 @@ func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
 			}
 		}
 
-		tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.SlotIndex)
+		tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.Slot)
 
 		return nil
 	})

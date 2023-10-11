@@ -13,6 +13,9 @@ const (
 	// ParameterNFTID is used to identify a nft by its ID.
 	ParameterNFTID = "nftID"
 
+	// ParameterAddress is used to identify an address.
+	ParameterAddress = "address"
+
 	// QueryParameterUnlockableByAddress is used to filter for all unlock conditions regarding a certain address.
 	QueryParameterUnlockableByAddress = "unlockableByAddress"
 
@@ -79,12 +82,9 @@ const (
 	// QueryParameterCreatedAfter is used to filter for outputs that were created after the given slot.
 	QueryParameterCreatedAfter = "createdAfter"
 
-	// QueryParameterHasNativeTokens is used to filter for outputs that have native tokens.
-	QueryParameterHasNativeTokens = "hasNativeTokens"
+	// QueryParameterHasNativeToken is used to filter for outputs that have native tokens.
+	QueryParameterHasNativeToken = "hasNativeToken"
 
-	// QueryParameterMinNativeTokenCount is used to filter for outputs that have at least an amount of native tokens.
-	QueryParameterMinNativeTokenCount = "minNativeTokenCount"
-
-	// QueryParameterMaxNativeTokenCount is used to filter for outputs that have at the most an amount of native tokens.
-	QueryParameterMaxNativeTokenCount = "maxNativeTokenCount"
+	// QueryParameterNativeToken is used to filter for outputs that have a certain native token.
+	QueryParameterNativeToken = "nativeToken"
 )
