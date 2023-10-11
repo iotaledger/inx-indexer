@@ -21,6 +21,7 @@ var (
 		&nft{},
 		&foundry{},
 		&account{},
+		&delegation{},
 		&multiaddress{},
 	}
 )
