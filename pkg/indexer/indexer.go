@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("output not found for given filter")
+	ErrStatusNotFound = errors.New("status not found")
 
 	dbTables = []interface{}{
 		&Status{},
@@ -395,7 +395,7 @@ func (i *Indexer) Status() (*Status, error) {
 	status := &Status{}
 	if err := i.db.Take(&status).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, ErrStatusNotFound
 		}
 
 		return nil, err

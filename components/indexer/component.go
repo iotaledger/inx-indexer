@@ -224,7 +224,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		// Checking current indexer state to see if it needs a reset or not
 		status, err = deps.Indexer.Status()
 		if err != nil {
-			if !errors.Is(err, indexer.ErrNotFound) {
+			if !errors.Is(err, indexer.ErrStatusNotFound) {
 				return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
 			}
 			Component.LogInfo("Indexer is empty, so import initial ledger...")
@@ -363,7 +363,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 
 	Component.LogInfo(p.Sprintf("received total=%d in %s @ %.2f per second", countReceive, time.Since(tsStart).Truncate(time.Millisecond), float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
 
-	if err := importer.Finalize(ledgerIndex, deps.NodeBridge.APIProvider().CurrentAPI().ProtocolParameters(), DBVersion); err != nil {
+	if err := importer.Finalize(ledgerIndex, deps.NodeBridge.APIProvider().CurrentAPI().ProtocolParameters().NetworkName(), DBVersion); err != nil {
 		return 0, err
 	}
 

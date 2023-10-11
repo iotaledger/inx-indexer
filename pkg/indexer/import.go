@@ -74,8 +74,8 @@ func (b *batcher[T]) Run(ctx context.Context, workerCount int) {
 		go func() {
 			defer b.wg.Done()
 
-			b.LogInfof("[%s] started", workerName)
-			defer b.LogInfof("[%s] ended", workerName)
+			b.LogDebugf("[%s] started", workerName)
+			defer b.LogDebugf("[%s] ended", workerName)
 
 			batch := make([]T, 0, batchSize)
 			var count int
@@ -126,8 +126,8 @@ func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T
 		go func() {
 			defer i.wg.Done()
 
-			i.LogInfof("[%s] started", workerName)
-			defer i.LogInfof("[%s] ended", workerName)
+			i.LogDebugf("[%s] started", workerName)
+			defer i.LogDebugf("[%s] ended", workerName)
 
 			ts := time.Now()
 			p := message.NewPrinter(language.English)
@@ -272,7 +272,7 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 	return nil
 }
 
-func (i *ImportTransaction) Finalize(ledgerIndex iotago.SlotIndex, protoParams iotago.ProtocolParameters, databaseVersion uint32) error {
+func (i *ImportTransaction) Finalize(ledgerIndex iotago.SlotIndex, networkName string, databaseVersion uint32) error {
 	// drain all processors
 	i.basic.closeAndWait()
 	i.nft.closeAndWait()
@@ -281,13 +281,13 @@ func (i *ImportTransaction) Finalize(ledgerIndex iotago.SlotIndex, protoParams i
 	i.delegation.closeAndWait()
 	i.multiAddress.closeAndWait()
 
-	i.LogInfo("Finished insertion, update ledger index")
+	i.LogDebugf("Finished insertion, update ledger index")
 
 	// Update the indexer status
 	status := &Status{
 		ID:              1,
 		LedgerIndex:     ledgerIndex,
-		NetworkName:     protoParams.NetworkName(),
+		NetworkName:     networkName,
 		DatabaseVersion: databaseVersion,
 	}
 	i.db.Clauses(clause.OnConflict{
