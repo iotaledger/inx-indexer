@@ -13,7 +13,7 @@ import (
 type nft struct {
 	NFTID                       []byte `gorm:"primaryKey;notnull"`
 	OutputID                    []byte `gorm:"unique;notnull"`
-	NativeTokenCount            uint32 `gorm:"notnull;type:integer"`
+	Amount                      iotago.BaseToken
 	Issuer                      []byte `gorm:"index:nfts_issuer"`
 	Sender                      []byte `gorm:"index:nfts_sender_tag"`
 	Tag                         []byte `gorm:"index:nfts_sender_tag"`
@@ -31,9 +31,6 @@ func (o *nft) String() string {
 }
 
 type NFTFilterOptions struct {
-	hasNativeTokens                  *bool
-	minNativeTokenCount              *uint32
-	maxNativeTokenCount              *uint32
 	unlockableByAddress              iotago.Address
 	address                          iotago.Address
 	hasStorageDepositReturnCondition *bool
@@ -52,24 +49,6 @@ type NFTFilterOptions struct {
 	cursor                           *string
 	createdBefore                    *iotago.SlotIndex
 	createdAfter                     *iotago.SlotIndex
-}
-
-func NFTHasNativeTokens(value bool) options.Option[NFTFilterOptions] {
-	return func(args *NFTFilterOptions) {
-		args.hasNativeTokens = &value
-	}
-}
-
-func NFTMinNativeTokenCount(value uint32) options.Option[NFTFilterOptions] {
-	return func(args *NFTFilterOptions) {
-		args.minNativeTokenCount = &value
-	}
-}
-
-func NFTMaxNativeTokenCount(value uint32) options.Option[NFTFilterOptions] {
-	return func(args *NFTFilterOptions) {
-		args.maxNativeTokenCount = &value
-	}
 }
 
 func NFTUnlockableByAddress(address iotago.Address) options.Option[NFTFilterOptions] {
@@ -190,22 +169,6 @@ func (i *Indexer) NFTOutput(nftID iotago.NFTID) *IndexerResult {
 
 func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) *gorm.DB {
 	query := i.db.Model(&nft{})
-
-	if opts.hasNativeTokens != nil {
-		if *opts.hasNativeTokens {
-			query = query.Where("native_token_count > 0")
-		} else {
-			query = query.Where("native_token_count = 0")
-		}
-	}
-
-	if opts.minNativeTokenCount != nil {
-		query = query.Where("native_token_count >= ?", *opts.minNativeTokenCount)
-	}
-
-	if opts.maxNativeTokenCount != nil {
-		query = query.Where("native_token_count <= ?", *opts.maxNativeTokenCount)
-	}
 
 	if opts.unlockableByAddress != nil {
 		addrID := opts.unlockableByAddress.ID()

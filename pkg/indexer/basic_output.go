@@ -12,7 +12,9 @@ import (
 
 type basicOutput struct {
 	OutputID                    []byte `gorm:"primaryKey;notnull"`
-	NativeTokenCount            uint32 `gorm:"notnull;type:integer"`
+	Amount                      iotago.BaseToken
+	NativeToken                 []byte
+	NativeTokenAmount           string
 	Sender                      []byte `gorm:"index:basic_outputs_sender_tag"`
 	Tag                         []byte `gorm:"index:basic_outputs_sender_tag"`
 	Address                     []byte `gorm:"notnull;index:basic_outputs_address"`
@@ -30,8 +32,6 @@ func (o *basicOutput) String() string {
 
 type BasicOutputFilterOptions struct {
 	hasNativeTokens                  *bool
-	minNativeTokenCount              *uint32
-	maxNativeTokenCount              *uint32
 	unlockableByAddress              iotago.Address
 	address                          iotago.Address
 	hasStorageDepositReturnCondition *bool
@@ -54,18 +54,6 @@ type BasicOutputFilterOptions struct {
 func BasicOutputHasNativeTokens(value bool) options.Option[BasicOutputFilterOptions] {
 	return func(args *BasicOutputFilterOptions) {
 		args.hasNativeTokens = &value
-	}
-}
-
-func BasicOutputMinNativeTokenCount(value uint32) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
-		args.minNativeTokenCount = &value
-	}
-}
-
-func BasicOutputMaxNativeTokenCount(value uint32) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
-		args.maxNativeTokenCount = &value
 	}
 }
 
@@ -176,18 +164,10 @@ func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) *gorm.DB 
 
 	if opts.hasNativeTokens != nil {
 		if *opts.hasNativeTokens {
-			query = query.Where("native_token_count > 0")
+			query = query.Where("NativeToken != null")
 		} else {
-			query = query.Where("native_token_count = 0")
+			query = query.Where("NativeToken == null")
 		}
-	}
-
-	if opts.minNativeTokenCount != nil {
-		query = query.Where("native_token_count >= ?", *opts.minNativeTokenCount)
-	}
-
-	if opts.maxNativeTokenCount != nil {
-		query = query.Where("native_token_count <= ?", *opts.maxNativeTokenCount)
 	}
 
 	if opts.unlockableByAddress != nil {

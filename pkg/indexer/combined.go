@@ -9,8 +9,6 @@ import (
 
 type CombinedFilterOptions struct {
 	hasNativeTokens     *bool
-	minNativeTokenCount *uint32
-	maxNativeTokenCount *uint32
 	unlockableByAddress iotago.Address
 	pageSize            uint32
 	cursor              *string
@@ -21,18 +19,6 @@ type CombinedFilterOptions struct {
 func CombinedHasNativeTokens(value bool) options.Option[CombinedFilterOptions] {
 	return func(args *CombinedFilterOptions) {
 		args.hasNativeTokens = &value
-	}
-}
-
-func CombinedMinNativeTokenCount(value uint32) options.Option[CombinedFilterOptions] {
-	return func(args *CombinedFilterOptions) {
-		args.minNativeTokenCount = &value
-	}
-}
-
-func CombinedMaxNativeTokenCount(value uint32) options.Option[CombinedFilterOptions] {
-	return func(args *CombinedFilterOptions) {
-		args.maxNativeTokenCount = &value
 	}
 }
 
@@ -69,8 +55,6 @@ func CombinedCreatedAfter(slot iotago.SlotIndex) options.Option[CombinedFilterOp
 func (o *CombinedFilterOptions) BasicFilterOptions() *BasicOutputFilterOptions {
 	return &BasicOutputFilterOptions{
 		hasNativeTokens:     o.hasNativeTokens,
-		minNativeTokenCount: o.minNativeTokenCount,
-		maxNativeTokenCount: o.maxNativeTokenCount,
 		unlockableByAddress: o.unlockableByAddress,
 		pageSize:            o.pageSize,
 		cursor:              o.cursor,
@@ -90,22 +74,22 @@ func (o *CombinedFilterOptions) FoundryFilterOptions() *FoundryFilterOptions {
 	}
 
 	return &FoundryFilterOptions{
-		hasNativeTokens:     o.hasNativeTokens,
-		minNativeTokenCount: o.minNativeTokenCount,
-		maxNativeTokenCount: o.maxNativeTokenCount,
-		account:             accountAddress,
-		pageSize:            o.pageSize,
-		cursor:              o.cursor,
-		createdBefore:       o.createdBefore,
-		createdAfter:        o.createdAfter,
+		hasNativeTokens: o.hasNativeTokens,
+		account:         accountAddress,
+		pageSize:        o.pageSize,
+		cursor:          o.cursor,
+		createdBefore:   o.createdBefore,
+		createdAfter:    o.createdAfter,
 	}
 }
 
 func (o *CombinedFilterOptions) AccountFilterOptions() *AccountFilterOptions {
+	if o.hasNativeTokens != nil && *o.hasNativeTokens {
+		// Do not support native tokens
+		return nil
+	}
+
 	return &AccountFilterOptions{
-		hasNativeTokens:     o.hasNativeTokens,
-		minNativeTokenCount: o.minNativeTokenCount,
-		maxNativeTokenCount: o.maxNativeTokenCount,
 		unlockableByAddress: o.unlockableByAddress,
 		pageSize:            o.pageSize,
 		cursor:              o.cursor,
@@ -115,10 +99,12 @@ func (o *CombinedFilterOptions) AccountFilterOptions() *AccountFilterOptions {
 }
 
 func (o *CombinedFilterOptions) NFTFilterOptions() *NFTFilterOptions {
+	if o.hasNativeTokens != nil && *o.hasNativeTokens {
+		// Do not support native tokens
+		return nil
+	}
+
 	return &NFTFilterOptions{
-		hasNativeTokens:     o.hasNativeTokens,
-		minNativeTokenCount: o.minNativeTokenCount,
-		maxNativeTokenCount: o.maxNativeTokenCount,
 		unlockableByAddress: o.unlockableByAddress,
 		pageSize:            o.pageSize,
 		cursor:              o.cursor,
@@ -128,6 +114,11 @@ func (o *CombinedFilterOptions) NFTFilterOptions() *NFTFilterOptions {
 }
 
 func (o *CombinedFilterOptions) DelegationFilterOptions() *DelegationFilterOptions {
+	if o.hasNativeTokens != nil && *o.hasNativeTokens {
+		// Do not support native tokens
+		return nil
+	}
+
 	return &DelegationFilterOptions{
 		address:       o.unlockableByAddress,
 		pageSize:      o.pageSize,

@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
@@ -143,9 +144,9 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		conditions := iotaOutput.UnlockConditionSet()
 
 		basic := &basicOutput{
-			OutputID:         make([]byte, iotago.OutputIDLength),
-			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
-			CreatedAt:        slotBooked,
+			Amount:    iotaOutput.Amount,
+			OutputID:  make([]byte, iotago.OutputIDLength),
+			CreatedAt: slotBooked,
 		}
 		copy(basic.OutputID, outputID[:])
 
@@ -156,6 +157,11 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		if tagBlock := features.Tag(); tagBlock != nil {
 			basic.Tag = make([]byte, len(tagBlock.Tag))
 			copy(basic.Tag, tagBlock.Tag)
+		}
+
+		if nativeToken := features.NativeToken(); nativeToken != nil {
+			basic.NativeToken = nativeToken.ID[:]
+			basic.NativeTokenAmount = hexutil.EncodeBig(nativeToken.Amount)
 		}
 
 		if addressUnlock := conditions.Address(); addressUnlock != nil {
@@ -190,10 +196,10 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		conditions := iotaOutput.UnlockConditionSet()
 
 		acc := &account{
-			AccountID:        make([]byte, iotago.AccountIDLength),
-			OutputID:         make([]byte, iotago.OutputIDLength),
-			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
-			CreatedAt:        slotBooked,
+			Amount:    iotaOutput.Amount,
+			AccountID: make([]byte, iotago.AccountIDLength),
+			OutputID:  make([]byte, iotago.OutputIDLength),
+			CreatedAt: slotBooked,
 		}
 		copy(acc.AccountID, accountID[:])
 		copy(acc.OutputID, outputID[:])
@@ -229,10 +235,10 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		nft := &nft{
-			NFTID:            make([]byte, iotago.NFTIDLength),
-			OutputID:         make([]byte, iotago.OutputIDLength),
-			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
-			CreatedAt:        slotBooked,
+			Amount:    iotaOutput.Amount,
+			NFTID:     make([]byte, iotago.NFTIDLength),
+			OutputID:  make([]byte, iotago.OutputIDLength),
+			CreatedAt: slotBooked,
 		}
 		copy(nft.NFTID, nftID[:])
 		copy(nft.OutputID, outputID[:])
@@ -272,6 +278,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		entry = nft
 
 	case *iotago.FoundryOutput:
+		features := iotaOutput.FeatureSet()
 		conditions := iotaOutput.UnlockConditionSet()
 
 		foundryID, err := iotaOutput.FoundryID()
@@ -280,12 +287,16 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		foundry := &foundry{
-			FoundryID:        foundryID[:],
-			OutputID:         make([]byte, iotago.OutputIDLength),
-			NativeTokenCount: uint32(len(iotaOutput.NativeTokens)),
-			CreatedAt:        slotBooked,
+			Amount:    iotaOutput.Amount,
+			FoundryID: foundryID[:],
+			OutputID:  make([]byte, iotago.OutputIDLength),
+			CreatedAt: slotBooked,
 		}
 		copy(foundry.OutputID, outputID[:])
+
+		if nativeToken := features.NativeToken(); nativeToken != nil {
+			foundry.NativeTokenAmount = hexutil.EncodeBig(nativeToken.Amount)
+		}
 
 		if accountUnlock := conditions.ImmutableAccount(); accountUnlock != nil {
 			foundry.AccountAddress = accountUnlock.Address.ID()
@@ -303,6 +314,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		delegation := &delegation{
+			Amount:       iotaOutput.Amount,
 			DelegationID: make([]byte, iotago.DelegationIDLength),
 			OutputID:     make([]byte, iotago.OutputIDLength),
 			CreatedAt:    slotBooked,

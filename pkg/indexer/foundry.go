@@ -11,11 +11,12 @@ import (
 )
 
 type foundry struct {
-	FoundryID        []byte           `gorm:"primaryKey;notnull"`
-	OutputID         []byte           `gorm:"unique;notnull"`
-	NativeTokenCount uint32           `gorm:"notnull;type:integer"`
-	AccountAddress   []byte           `gorm:"notnull;index:foundries_account_address"`
-	CreatedAt        iotago.SlotIndex `gorm:"notnull;index:foundries_created_at"`
+	FoundryID         []byte `gorm:"primaryKey;notnull"`
+	OutputID          []byte `gorm:"unique;notnull"`
+	Amount            iotago.BaseToken
+	NativeTokenAmount string
+	AccountAddress    []byte           `gorm:"notnull;index:foundries_account_address"`
+	CreatedAt         iotago.SlotIndex `gorm:"notnull;index:foundries_created_at"`
 }
 
 func (o *foundry) String() string {
@@ -23,31 +24,17 @@ func (o *foundry) String() string {
 }
 
 type FoundryFilterOptions struct {
-	hasNativeTokens     *bool
-	minNativeTokenCount *uint32
-	maxNativeTokenCount *uint32
-	account             *iotago.AccountAddress
-	pageSize            uint32
-	cursor              *string
-	createdBefore       *iotago.SlotIndex
-	createdAfter        *iotago.SlotIndex
+	hasNativeTokens *bool
+	account         *iotago.AccountAddress
+	pageSize        uint32
+	cursor          *string
+	createdBefore   *iotago.SlotIndex
+	createdAfter    *iotago.SlotIndex
 }
 
 func FoundryHasNativeTokens(value bool) options.Option[FoundryFilterOptions] {
 	return func(args *FoundryFilterOptions) {
 		args.hasNativeTokens = &value
-	}
-}
-
-func FoundryMinNativeTokenCount(value uint32) options.Option[FoundryFilterOptions] {
-	return func(args *FoundryFilterOptions) {
-		args.minNativeTokenCount = &value
-	}
-}
-
-func FoundryMaxNativeTokenCount(value uint32) options.Option[FoundryFilterOptions] {
-	return func(args *FoundryFilterOptions) {
-		args.maxNativeTokenCount = &value
 	}
 }
 
@@ -94,18 +81,10 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gor
 
 	if opts.hasNativeTokens != nil {
 		if *opts.hasNativeTokens {
-			query = query.Where("native_token_count > 0")
+			query = query.Where("native_token_amount != null")
 		} else {
-			query = query.Where("native_token_count = 0")
+			query = query.Where("native_token_amount == null")
 		}
-	}
-
-	if opts.minNativeTokenCount != nil {
-		query = query.Where("native_token_count >= ?", *opts.minNativeTokenCount)
-	}
-
-	if opts.maxNativeTokenCount != nil {
-		query = query.Where("native_token_count <= ?", *opts.maxNativeTokenCount)
 	}
 
 	if opts.account != nil {

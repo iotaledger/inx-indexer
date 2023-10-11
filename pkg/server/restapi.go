@@ -84,10 +84,4 @@ const (
 
 	// QueryParameterHasNativeTokens is used to filter for outputs that have native tokens.
 	QueryParameterHasNativeTokens = "hasNativeTokens"
-
-	// QueryParameterMinNativeTokenCount is used to filter for outputs that have at least an amount of native tokens.
-	QueryParameterMinNativeTokenCount = "minNativeTokenCount"
-
-	// QueryParameterMaxNativeTokenCount is used to filter for outputs that have at the most an amount of native tokens.
-	QueryParameterMaxNativeTokenCount = "maxNativeTokenCount"
 )
