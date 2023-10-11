@@ -783,7 +783,7 @@ func (s *IndexerServer) pageSizeFromContext(c echo.Context) uint32 {
 			return maxPageSize
 		}
 
-		if pageSizeQueryParam < maxPageSize {
+		if pageSizeQueryParam > 0 && pageSizeQueryParam < maxPageSize {
 			// use the smaller page size given by the request
 			maxPageSize = pageSizeQueryParam
 		}
