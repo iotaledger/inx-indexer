@@ -3,19 +3,21 @@ module github.com/iotaledger/inx-indexer
 go 1.21
 
 require (
+	github.com/ethereum/go-ethereum v1.13.2
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/iotaledger/hive.go/app v0.0.0-20231010133617-cdbd5387e2af
 	github.com/iotaledger/hive.go/ierrors v0.0.0-20231010133617-cdbd5387e2af
 	github.com/iotaledger/hive.go/lo v0.0.0-20231010133617-cdbd5387e2af
 	github.com/iotaledger/hive.go/logger v0.0.0-20231010133617-cdbd5387e2af
 	github.com/iotaledger/hive.go/runtime v0.0.0-20231010133617-cdbd5387e2af
-	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231011100725-88b57a507aea
-	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231011100123-28cd2b2657a3
-	github.com/iotaledger/iota.go/v4 v4.0.0-20231011095639-a11b6691ddab
+	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231011161248-cf0bd6e08811
+	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231011154428-257141868dad
+	github.com/iotaledger/iota.go/v4 v4.0.0-20231011161154-7004432004e1
 	github.com/labstack/echo-contrib v0.15.0
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.16.0
+	github.com/stretchr/testify v1.8.4
 	go.uber.org/dig v1.17.0
 	golang.org/x/text v0.13.0
 	gorm.io/driver/postgres v1.5.2
@@ -28,10 +30,10 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.4.3 // indirect
-	github.com/ethereum/go-ethereum v1.13.2 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -70,6 +72,7 @@ require (
 	github.com/pasztorpisti/qs v0.0.0-20171216220353-8d6c33ee906c // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/petermattis/goid v0.0.0-20230904192822-1876fd5063bc // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.11.1 // indirect
@@ -90,4 +93,5 @@ require (
 	google.golang.org/grpc v1.58.3 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

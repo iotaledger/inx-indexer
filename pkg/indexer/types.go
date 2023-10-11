@@ -15,6 +15,19 @@ const (
 	CursorLength = 84
 )
 
+type LedgerUpdate struct {
+	Slot     iotago.SlotIndex
+	Consumed []*LedgerOutput
+	Created  []*LedgerOutput
+}
+
+type LedgerOutput struct {
+	OutputID  iotago.OutputID
+	Output    iotago.Output
+	CreatedAt iotago.SlotIndex
+	SpentAt   iotago.SlotIndex
+}
+
 type Status struct {
 	ID              uint `gorm:"primaryKey;notnull"`
 	LedgerIndex     iotago.SlotIndex

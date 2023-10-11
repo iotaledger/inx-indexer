@@ -58,7 +58,7 @@ const (
 
 	// RouteOutputsFoundries is the route for getting foundries filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "account", "createdBefore", "createdAfter"
+	// Query parameters: "hasNativeToken", "nativeToken", "account", "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsFoundries = "/outputs/foundry"
 
@@ -632,6 +632,14 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 		filters = append(filters, indexer.FoundryHasNativeToken(value))
 	}
 
+	if len(c.QueryParam(QueryParameterNativeToken)) > 0 {
+		value, err := httpserver.ParseHexQueryParam(c, QueryParameterNativeToken, iotago.NativeTokenIDLength)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.FoundryNativeToken(iotago.NativeTokenID(value)))
+	}
+
 	if len(c.QueryParam(QueryParameterAccount)) > 0 {
 		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAccount)
 		if err != nil {
@@ -853,7 +861,7 @@ func (s *IndexerServer) pageSizeFromContext(c echo.Context) uint32 {
 			return maxPageSize
 		}
 
-		if pageSizeQueryParam < maxPageSize {
+		if pageSizeQueryParam > 0 && pageSizeQueryParam < maxPageSize {
 			// use the smaller page size given by the request
 			maxPageSize = pageSizeQueryParam
 		}

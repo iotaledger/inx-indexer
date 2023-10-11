@@ -3,3 +3,4 @@
 indexer.db
 inx-indexer
 /database
+/shutdown.log

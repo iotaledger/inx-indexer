@@ -119,7 +119,11 @@ func run() error {
 
 		if err := deps.NodeBridge.ListenToLedgerUpdates(ctx, indexerStatus.LedgerIndex+1, 0, func(update *nodebridge.LedgerUpdate) error {
 			ts := time.Now()
-			if err := deps.Indexer.UpdatedLedger(update); err != nil {
+			ledgerUpdate, err := LedgerUpdateFromNodeBridge(update)
+			if err != nil {
+				return err
+			}
+			if err := deps.Indexer.UpdatedLedger(ledgerUpdate); err != nil {
 				return err
 			}
 
@@ -364,4 +368,42 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 	}
 
 	return countReceive, nil
+}
+
+func LedgerUpdateFromNodeBridge(update *nodebridge.LedgerUpdate) (*indexer.LedgerUpdate, error) {
+	consumed := make([]*indexer.LedgerOutput, len(update.Consumed))
+	for i, spent := range update.Consumed {
+		output := spent.GetOutput()
+		iotaOutput, err := output.UnwrapOutput(update.API)
+		if err != nil {
+			return nil, err
+		}
+
+		consumed[i] = &indexer.LedgerOutput{
+			OutputID:  output.UnwrapOutputID(),
+			Output:    iotaOutput,
+			CreatedAt: iotago.SlotIndex(output.GetSlotBooked()),
+			SpentAt:   iotago.SlotIndex(spent.GetSlotSpent()),
+		}
+	}
+
+	created := make([]*indexer.LedgerOutput, len(update.Created))
+	for i, output := range update.Created {
+		iotaOutput, err := output.UnwrapOutput(update.API)
+		if err != nil {
+			return nil, err
+		}
+
+		created[i] = &indexer.LedgerOutput{
+			OutputID:  output.UnwrapOutputID(),
+			Output:    iotaOutput,
+			CreatedAt: iotago.SlotIndex(output.GetSlotBooked()),
+		}
+	}
+
+	return &indexer.LedgerUpdate{
+		Slot:     update.Slot,
+		Consumed: consumed,
+		Created:  created,
+	}, nil
 }
