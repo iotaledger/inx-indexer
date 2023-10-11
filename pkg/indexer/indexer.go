@@ -6,9 +6,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/iotaledger/hive.go/logger"
-	"github.com/iotaledger/inx-app/pkg/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/database"
-	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
 
@@ -93,48 +91,35 @@ func addressesInOutput(output iotago.Output) []iotago.Address {
 	return foundAddresses
 }
 
-func processSpent(spent *inx.LedgerSpent, api iotago.API, tx *gorm.DB) error {
-	iotaOutput, err := spent.GetOutput().UnwrapOutput(api)
-	if err != nil {
-		return err
-	}
-
-	outputID := spent.GetOutput().GetOutputId().Unwrap()
-	switch iotaOutput.(type) {
+func processSpent(output *LedgerOutput, tx *gorm.DB) error {
+	switch output.Output.(type) {
 	case *iotago.BasicOutput:
-		if err := tx.Where("output_id = ?", outputID[:]).Delete(&basicOutput{}).Error; err != nil {
+		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&basicOutput{}).Error; err != nil {
 			return err
 		}
 	case *iotago.AccountOutput:
-		if err := tx.Where("output_id = ?", outputID[:]).Delete(&account{}).Error; err != nil {
+		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&account{}).Error; err != nil {
 			return err
 		}
 	case *iotago.NFTOutput:
-		if err := tx.Where("output_id = ?", outputID[:]).Delete(&nft{}).Error; err != nil {
+		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&nft{}).Error; err != nil {
 			return err
 		}
 	case *iotago.FoundryOutput:
-		if err := tx.Where("output_id = ?", outputID[:]).Delete(&foundry{}).Error; err != nil {
+		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&foundry{}).Error; err != nil {
 			return err
 		}
 	case *iotago.DelegationOutput:
-		if err := tx.Where("output_id = ?", outputID[:]).Delete(&delegation{}).Error; err != nil {
+		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&delegation{}).Error; err != nil {
 			return err
 		}
 	}
 
-	return deleteMultiAddressesFromAddresses(tx, addressesInOutput(iotaOutput))
+	return deleteMultiAddressesFromAddresses(tx, addressesInOutput(output.Output))
 }
 
-func processOutput(output *inx.LedgerOutput, api iotago.API, tx *gorm.DB) error {
-	unwrapped, err := output.UnwrapOutput(api)
-	if err != nil {
-		return err
-	}
-
-	outputID := output.GetOutputId().Unwrap()
-
-	entry, err := entryForOutput(outputID, unwrapped, iotago.SlotIndex(output.GetSlotBooked()))
+func processOutput(output *LedgerOutput, tx *gorm.DB) error {
+	entry, err := entryForOutput(output.OutputID, output.Output, output.CreatedAt)
 	if err != nil {
 		return err
 	}
@@ -143,7 +128,7 @@ func processOutput(output *inx.LedgerOutput, api iotago.API, tx *gorm.DB) error 
 		return err
 	}
 
-	return insertMultiAddressesFromAddresses(tx, addressesInOutput(unwrapped))
+	return insertMultiAddressesFromAddresses(tx, addressesInOutput(output.Output))
 }
 
 func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) (interface{}, error) {
@@ -184,11 +169,11 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
-			basic.TimelockSlot = &timelock.SlotIndex
+			basic.TimelockSlot = &timelock.Slot
 		}
 
 		if expiration := conditions.Expiration(); expiration != nil {
-			basic.ExpirationSlot = &expiration.SlotIndex
+			basic.ExpirationSlot = &expiration.Slot
 			basic.ExpirationReturnAddress = expiration.ReturnAddress.ID()
 		}
 
@@ -277,11 +262,11 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
-			nft.TimelockTime = &timelock.SlotIndex
+			nft.TimelockTime = &timelock.Slot
 		}
 
 		if expiration := conditions.Expiration(); expiration != nil {
-			nft.ExpirationTime = &expiration.SlotIndex
+			nft.ExpirationTime = &expiration.Slot
 			nft.ExpirationReturnAddress = expiration.ReturnAddress.ID()
 		}
 
@@ -380,23 +365,22 @@ func (i *Indexer) AutoMigrate() error {
 	return i.db.AutoMigrate(dbTables...)
 }
 
-func (i *Indexer) UpdatedLedger(update *nodebridge.LedgerUpdate) error {
+func (i *Indexer) UpdatedLedger(update *LedgerUpdate) error {
 	return i.db.Transaction(func(tx *gorm.DB) error {
-		spentOutputs := make(map[string]struct{})
-		for _, spent := range update.Consumed {
-			outputID := spent.GetOutput().GetOutputId().GetId()
-			spentOutputs[string(outputID)] = struct{}{}
-			if err := processSpent(spent, update.API, tx); err != nil {
+		spentOutputs := make(map[iotago.OutputID]struct{})
+		for _, output := range update.Consumed {
+			spentOutputs[output.OutputID] = struct{}{}
+			if err := processSpent(output, tx); err != nil {
 				return err
 			}
 		}
 
 		for _, output := range update.Created {
-			if _, wasSpentInSameSlot := spentOutputs[string(output.GetOutputId().GetId())]; wasSpentInSameSlot {
+			if _, wasSpentInSameSlot := spentOutputs[output.OutputID]; wasSpentInSameSlot {
 				// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
 				continue
 			}
-			if err := processOutput(output, update.API, tx); err != nil {
+			if err := processOutput(output, tx); err != nil {
 				return err
 			}
 		}
