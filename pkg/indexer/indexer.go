@@ -102,15 +102,25 @@ func processSpent(spent *inx.LedgerSpent, api iotago.API, tx *gorm.DB) error {
 	outputID := spent.GetOutput().GetOutputId().Unwrap()
 	switch iotaOutput.(type) {
 	case *iotago.BasicOutput:
-		return tx.Where("output_id = ?", outputID[:]).Delete(&basicOutput{}).Error
+		if err := tx.Where("output_id = ?", outputID[:]).Delete(&basicOutput{}).Error; err != nil {
+			return err
+		}
 	case *iotago.AccountOutput:
-		return tx.Where("output_id = ?", outputID[:]).Delete(&account{}).Error
+		if err := tx.Where("output_id = ?", outputID[:]).Delete(&account{}).Error; err != nil {
+			return err
+		}
 	case *iotago.NFTOutput:
-		return tx.Where("output_id = ?", outputID[:]).Delete(&nft{}).Error
+		if err := tx.Where("output_id = ?", outputID[:]).Delete(&nft{}).Error; err != nil {
+			return err
+		}
 	case *iotago.FoundryOutput:
-		return tx.Where("output_id = ?", outputID[:]).Delete(&foundry{}).Error
+		if err := tx.Where("output_id = ?", outputID[:]).Delete(&foundry{}).Error; err != nil {
+			return err
+		}
 	case *iotago.DelegationOutput:
-		return tx.Where("output_id = ?", outputID[:]).Delete(&delegation{}).Error
+		if err := tx.Where("output_id = ?", outputID[:]).Delete(&delegation{}).Error; err != nil {
+			return err
+		}
 	}
 
 	return deleteMultiAddressesFromAddresses(tx, addressesInOutput(iotaOutput))
