@@ -68,6 +68,12 @@ func addressesInOutput(output iotago.Output) []iotago.Address {
 	if accountUnlock := conditions.ImmutableAccount(); accountUnlock != nil {
 		foundAddresses = append(foundAddresses, accountUnlock.Address)
 	}
+	if stateController := conditions.StateControllerAddress(); stateController != nil {
+		foundAddresses = append(foundAddresses, stateController.Address)
+	}
+	if governor := conditions.GovernorAddress(); governor != nil {
+		foundAddresses = append(foundAddresses, governor.Address)
+	}
 
 	// Check for addresses in immutable features
 	if chainOutput, ok := output.(iotago.ChainOutputImmutable); ok {
@@ -77,13 +83,6 @@ func addressesInOutput(output iotago.Output) []iotago.Address {
 			foundAddresses = append(foundAddresses, issuerBlock.Address)
 		}
 
-		if stateController := conditions.StateControllerAddress(); stateController != nil {
-			foundAddresses = append(foundAddresses, stateController.Address)
-		}
-
-		if governor := conditions.GovernorAddress(); governor != nil {
-			foundAddresses = append(foundAddresses, governor.Address)
-		}
 	}
 
 	// Check for addresses in delegation output
