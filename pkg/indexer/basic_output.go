@@ -14,7 +14,7 @@ type basicOutput struct {
 	OutputID                    []byte `gorm:"primaryKey;notnull"`
 	Amount                      iotago.BaseToken
 	NativeToken                 []byte
-	NativeTokenAmount           string
+	NativeTokenAmount           *string
 	Sender                      []byte `gorm:"index:basic_outputs_sender_tag"`
 	Tag                         []byte `gorm:"index:basic_outputs_sender_tag"`
 	Address                     []byte `gorm:"notnull;index:basic_outputs_address"`
@@ -171,9 +171,9 @@ func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) *gorm.DB 
 
 	if opts.hasNativeToken != nil {
 		if *opts.hasNativeToken {
-			query = query.Where("native_token_amount != null")
+			query = query.Where("native_token_amount IS NOT NULL")
 		} else {
-			query = query.Where("native_token_amount == null")
+			query = query.Where("native_token_amount IS NULL")
 		}
 	}
 

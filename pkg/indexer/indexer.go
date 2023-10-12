@@ -156,7 +156,8 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		if nativeToken := features.NativeToken(); nativeToken != nil {
 			basic.NativeToken = nativeToken.ID[:]
-			basic.NativeTokenAmount = hexutil.EncodeBig(nativeToken.Amount)
+			amount := hexutil.EncodeBig(nativeToken.Amount)
+			basic.NativeTokenAmount = &amount
 		}
 
 		if addressUnlock := conditions.Address(); addressUnlock != nil {
@@ -290,7 +291,8 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		copy(foundry.OutputID, outputID[:])
 
 		if nativeToken := features.NativeToken(); nativeToken != nil {
-			foundry.NativeTokenAmount = hexutil.EncodeBig(nativeToken.Amount)
+			amount := hexutil.EncodeBig(nativeToken.Amount)
+			foundry.NativeTokenAmount = &amount
 		}
 
 		if accountUnlock := conditions.ImmutableAccount(); accountUnlock != nil {

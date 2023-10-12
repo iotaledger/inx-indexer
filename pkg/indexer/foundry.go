@@ -14,7 +14,7 @@ type foundry struct {
 	FoundryID         []byte `gorm:"primaryKey;notnull"`
 	OutputID          []byte `gorm:"unique;notnull"`
 	Amount            iotago.BaseToken
-	NativeTokenAmount string
+	NativeTokenAmount *string
 	AccountAddress    []byte           `gorm:"notnull;index:foundries_account_address"`
 	CreatedAt         iotago.SlotIndex `gorm:"notnull;index:foundries_created_at"`
 }
@@ -88,9 +88,9 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gor
 
 	if opts.hasNativeToken != nil {
 		if *opts.hasNativeToken {
-			query = query.Where("native_token_amount != null")
+			query = query.Where("native_token_amount IS NOT NULL")
 		} else {
-			query = query.Where("native_token_amount == null")
+			query = query.Where("native_token_amount IS NULL")
 		}
 	}
 
