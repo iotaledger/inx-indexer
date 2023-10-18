@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/iotaledger/hive.go/logger"
+	"github.com/iotaledger/hive.go/runtime/options"
 	"github.com/iotaledger/inx-indexer/pkg/database"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v4"
@@ -17,6 +18,11 @@ import (
 type indexerTestsuite struct {
 	T       *testing.T
 	Indexer *indexer.Indexer
+}
+
+type indexerOutputSet struct {
+	ts      *indexerTestsuite
+	Outputs iotago.OutputIDs
 }
 
 func newTestSuite(t *testing.T) *indexerTestsuite {
@@ -44,15 +50,15 @@ func newTestSuite(t *testing.T) *indexerTestsuite {
 	}
 }
 
-func (t *indexerTestsuite) CurrentSlot() iotago.SlotIndex {
-	status, err := t.Indexer.Status()
-	require.NoError(t.T, err)
+func (ts *indexerTestsuite) CurrentSlot() iotago.SlotIndex {
+	status, err := ts.Indexer.Status()
+	require.NoError(ts.T, err)
 
 	return status.LedgerIndex
 }
 
-func (t *indexerTestsuite) AddOutput(output iotago.Output, outputID iotago.OutputID) {
-	currentSlot := t.CurrentSlot()
+func (ts *indexerTestsuite) AddOutput(output iotago.Output, outputID iotago.OutputID) *indexerOutputSet {
+	currentSlot := ts.CurrentSlot()
 
 	update := &indexer.LedgerUpdate{
 		Slot: currentSlot + 1,
@@ -65,11 +71,16 @@ func (t *indexerTestsuite) AddOutput(output iotago.Output, outputID iotago.Outpu
 		},
 	}
 
-	require.NoError(t.T, t.Indexer.UpdatedLedger(update))
+	require.NoError(ts.T, ts.Indexer.UpdatedLedger(update))
+
+	return &indexerOutputSet{
+		ts:      ts,
+		Outputs: iotago.OutputIDs{outputID},
+	}
 }
 
-func (t *indexerTestsuite) DeleteOutput(outputID iotago.OutputID) {
-	currentSlot := t.CurrentSlot()
+func (ts *indexerTestsuite) DeleteOutput(outputID iotago.OutputID) {
+	currentSlot := ts.CurrentSlot()
 
 	update := &indexer.LedgerUpdate{
 		Slot: currentSlot + 1,
@@ -81,7 +92,15 @@ func (t *indexerTestsuite) DeleteOutput(outputID iotago.OutputID) {
 		},
 	}
 
-	require.NoError(t.T, t.Indexer.UpdatedLedger(update))
+	require.NoError(ts.T, ts.Indexer.UpdatedLedger(update))
+}
+
+func (os *indexerOutputSet) requireFoundWithBasicFilters(filters ...options.Option[indexer.BasicOutputFilterOptions]) {
+	require.Equal(os.ts.T, os.Outputs, os.ts.Indexer.BasicOutputsWithFilters(filters...).OutputIDs)
+}
+
+func (os *indexerOutputSet) requireNotFoundWithBasicFilters(filters ...options.Option[indexer.BasicOutputFilterOptions]) {
+	require.NotEqual(os.ts.T, os.Outputs, os.ts.Indexer.BasicOutputsWithFilters(filters...).OutputIDs)
 }
 
 func TestIndexer_BasicOutput(t *testing.T) {
@@ -123,71 +142,70 @@ func TestIndexer_BasicOutput(t *testing.T) {
 			},
 		},
 	}
-	outputID := iotago_tpkg.RandOutputID(0)
 
-	ts.AddOutput(output, outputID)
-
+	outputSet := ts.AddOutput(output, iotago_tpkg.RandOutputID(0))
 	require.Equal(t, iotago.SlotIndex(1), ts.CurrentSlot())
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters().OutputIDs)
+	outputSet.requireFoundWithBasicFilters()
 
 	// Check if the output is indexed correctly
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputHasNativeToken(true)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputNativeToken(iotago_tpkg.RandNativeTokenID())).OutputIDs)
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputHasNativeToken(false))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputHasNativeToken(true))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputNativeToken(iotago_tpkg.RandNativeTokenID()))
 
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputUnlockAddress(address)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputUnlockAddress(randomAddress)).OutputIDs)
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputUnlockAddress(address))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputUnlockAddress(randomAddress))
 
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputSender(senderAddress)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputSender(randomAddress)).OutputIDs)
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputSender(senderAddress))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputSender(randomAddress))
 
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputExpirationReturnAddress(expirationReturnAddress)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputExpirationReturnAddress(randomAddress)).OutputIDs)
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputExpirationReturnAddress(expirationReturnAddress))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputExpirationReturnAddress(randomAddress))
 
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputStorageDepositReturnAddress(storageReturnAddress)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputStorageDepositReturnAddress(randomAddress)).OutputIDs)
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputStorageDepositReturnAddress(storageReturnAddress))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputStorageDepositReturnAddress(randomAddress))
 
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputTag(tag)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputTag([]byte("otherTag"))).OutputIDs)
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputTag(tag))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputTag([]byte("otherTag")))
 
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputCreatedAfter(0)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputCreatedAfter(1)).OutputIDs)
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputCreatedAfter(0))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputCreatedAfter(1))
 
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputCreatedBefore(0)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputCreatedBefore(1)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputCreatedBefore(2)).OutputIDs)
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputCreatedBefore(0))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputCreatedBefore(1))
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputCreatedBefore(2))
 
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputHasExpirationCondition(true)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputHasExpirationCondition(false)).OutputIDs)
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputHasExpirationCondition(true))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputHasExpirationCondition(false))
 
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputExpiresBefore(6987)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputExpiresBefore(6988)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputExpiresBefore(6989)).OutputIDs)
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputExpiresBefore(6987))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputExpiresBefore(6988))
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputExpiresBefore(6989))
 
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputExpiresAfter(6987)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputExpiresAfter(6988)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputExpiresAfter(6989)).OutputIDs)
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputExpiresAfter(6987))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputExpiresAfter(6988))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputExpiresAfter(6989))
 
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputHasTimelockCondition(true)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputHasTimelockCondition(false)).OutputIDs)
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputHasTimelockCondition(true))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputHasTimelockCondition(false))
 
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputTimelockedBefore(6899)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputTimelockedBefore(6900)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputTimelockedBefore(6901)).OutputIDs)
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputTimelockedBefore(6899))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputTimelockedBefore(6900))
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputTimelockedBefore(6901))
 
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputTimelockedAfter(6899)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputTimelockedAfter(6900)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputTimelockedAfter(6901)).OutputIDs)
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputTimelockedAfter(6899))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputTimelockedAfter(6900))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputTimelockedAfter(6901))
 
 	//TODO: storageReturnAddress should not unlock it. Maybe fix this or clear up the naming
 
 	// Unlockable by the following addresses
 	for _, addr := range []iotago.Address{address, expirationReturnAddress, storageReturnAddress} {
-		require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputUnlockableByAddress(addr)).OutputIDs)
+		outputSet.requireFoundWithBasicFilters(indexer.BasicOutputUnlockableByAddress(addr))
 	}
 
 	// Not unlockable by the following addresses
 	for _, addr := range []iotago.Address{senderAddress, randomAddress} {
-		require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputUnlockableByAddress(addr)).OutputIDs)
+		outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputUnlockableByAddress(addr))
 	}
 }
 
@@ -212,18 +230,15 @@ func TestIndexer_BasicOutput_NativeToken(t *testing.T) {
 			},
 		},
 	}
-	outputID := iotago_tpkg.RandOutputID(0)
 
-	ts.AddOutput(output, outputID)
-
+	outputSet := ts.AddOutput(output, iotago_tpkg.RandOutputID(0))
 	require.Equal(t, iotago.SlotIndex(1), ts.CurrentSlot())
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters().OutputIDs)
+	outputSet.requireFoundWithBasicFilters()
 
 	// Check if the output is indexed correctly
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputHasNativeToken(true)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputHasNativeToken(false)).OutputIDs)
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputHasNativeToken(true))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputHasNativeToken(false))
 
-	require.Equal(t, iotago.OutputIDs{outputID}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputNativeToken(nativeTokenID)).OutputIDs)
-	require.Equal(t, iotago.OutputIDs{}, ts.Indexer.BasicOutputsWithFilters(indexer.BasicOutputNativeToken(iotago_tpkg.RandNativeTokenID())).OutputIDs)
-
+	outputSet.requireFoundWithBasicFilters(indexer.BasicOutputNativeToken(nativeTokenID))
+	outputSet.requireNotFoundWithBasicFilters(indexer.BasicOutputNativeToken(iotago_tpkg.RandNativeTokenID()))
 }
