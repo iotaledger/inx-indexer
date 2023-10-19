@@ -44,7 +44,7 @@ const (
 	// GET returns the outputIDs or 404 if no record is found.
 	RouteOutputsAccountByID = "/outputs/account/:" + ParameterAccountID
 
-	// RouteOutputsNFTs is the route for getting NFTByID filtered by the given parameters.
+	// RouteOutputsNFTs is the route for getting NFT filtered by the given parameters.
 	// Query parameters: "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
 	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
 	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "issuer", "sender", "tag",
@@ -52,7 +52,7 @@ const (
 	// Returns an empty list if no results are found.
 	RouteOutputsNFTs = "/outputs/nft"
 
-	// RouteOutputsNFTByID is the route for getting NFTByID by their nftID.
+	// RouteOutputsNFTByID is the route for getting NFT by their nftID.
 	// GET returns the outputIDs or 404 if no record is found.
 	RouteOutputsNFTByID = "/outputs/nft/:" + ParameterNFTID
 
