@@ -14,9 +14,9 @@ type delegation struct {
 	DelegationID []byte `gorm:"primaryKey;notnull"`
 	OutputID     []byte `gorm:"unique;notnull"`
 	Amount       iotago.BaseToken
-	Address      []byte           `gorm:"notnull;index:delegation_outputs_address"`
-	Validator    []byte           `gorm:"index:delegation_outputs_validator"`
-	CreatedAt    iotago.SlotIndex `gorm:"notnull;index:delegation_outputs_created_at"`
+	Address      []byte           `gorm:"notnull;index:delegation_address"`
+	Validator    []byte           `gorm:"index:delegation_validator"`
+	CreatedAt    iotago.SlotIndex `gorm:"notnull;index:delegation_created_at"`
 }
 
 func (d *delegation) String() string {
@@ -68,7 +68,7 @@ func DelegationCreatedAfter(slot iotago.SlotIndex) options.Option[DelegationFilt
 	}
 }
 
-func (i *Indexer) DelegationOutput(delegationID iotago.DelegationID) *IndexerResult {
+func (i *Indexer) DelegationByID(delegationID iotago.DelegationID) *IndexerResult {
 	query := i.db.Model(&delegation{}).
 		Where("delegation_id = ?", delegationID[:]).
 		Limit(1)
@@ -98,7 +98,7 @@ func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) *gorm
 	return query
 }
 
-func (i *Indexer) DelegationsWithFilters(filters ...options.Option[DelegationFilterOptions]) *IndexerResult {
+func (i *Indexer) Delegation(filters ...options.Option[DelegationFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(DelegationFilterOptions), filters)
 	query := i.delegationQueryWithFilter(opts)
 

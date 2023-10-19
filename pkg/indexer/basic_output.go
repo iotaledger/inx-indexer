@@ -10,27 +10,27 @@ import (
 	iotago "github.com/iotaledger/iota.go/v4"
 )
 
-type basicOutput struct {
+type basic struct {
 	OutputID                    []byte `gorm:"primaryKey;notnull"`
 	Amount                      iotago.BaseToken
 	NativeToken                 []byte
 	NativeTokenAmount           *string
-	Sender                      []byte `gorm:"index:basic_outputs_sender_tag"`
-	Tag                         []byte `gorm:"index:basic_outputs_sender_tag"`
-	Address                     []byte `gorm:"notnull;index:basic_outputs_address"`
+	Sender                      []byte `gorm:"index:basic_sender_tag"`
+	Tag                         []byte `gorm:"index:basic_sender_tag"`
+	Address                     []byte `gorm:"notnull;index:basic_address"`
 	StorageDepositReturn        *iotago.BaseToken
-	StorageDepositReturnAddress []byte `gorm:"index:basic_outputs_storage_deposit_return_address"`
+	StorageDepositReturnAddress []byte `gorm:"index:basic_storage_deposit_return_address"`
 	TimelockSlot                *iotago.SlotIndex
 	ExpirationSlot              *iotago.SlotIndex
-	ExpirationReturnAddress     []byte           `gorm:"index:basic_outputs_expiration_return_address"`
-	CreatedAt                   iotago.SlotIndex `gorm:"notnull;index:basic_outputs_created_at"`
+	ExpirationReturnAddress     []byte           `gorm:"index:basic_expiration_return_address"`
+	CreatedAt                   iotago.SlotIndex `gorm:"notnull;index:basic_created_at"`
 }
 
-func (o *basicOutput) String() string {
+func (o *basic) String() string {
 	return fmt.Sprintf("basic output => OutputID: %s", hex.EncodeToString(o.OutputID))
 }
 
-type BasicOutputFilterOptions struct {
+type BasicFilterOptions struct {
 	hasNativeToken                   *bool
 	nativeToken                      *iotago.NativeTokenID
 	unlockableByAddress              iotago.Address
@@ -52,122 +52,122 @@ type BasicOutputFilterOptions struct {
 	createdAfter                     *iotago.SlotIndex
 }
 
-func BasicOutputHasNativeToken(value bool) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicHasNativeToken(value bool) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.hasNativeToken = &value
 	}
 }
 
-func BasicOutputNativeToken(tokenID iotago.NativeTokenID) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicNativeToken(tokenID iotago.NativeTokenID) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.nativeToken = &tokenID
 	}
 }
 
-func BasicOutputUnlockableByAddress(address iotago.Address) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicUnlockableByAddress(address iotago.Address) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.unlockableByAddress = address
 	}
 }
 
-func BasicOutputUnlockAddress(address iotago.Address) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicUnlockAddress(address iotago.Address) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.address = address
 	}
 }
 
-func BasicOutputHasStorageDepositReturnCondition(value bool) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicHasStorageDepositReturnCondition(value bool) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.hasStorageDepositReturnCondition = &value
 	}
 }
 
-func BasicOutputStorageDepositReturnAddress(address iotago.Address) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicStorageDepositReturnAddress(address iotago.Address) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.storageDepositReturnAddress = address
 	}
 }
 
-func BasicOutputHasExpirationCondition(value bool) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicHasExpirationCondition(value bool) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.hasExpirationCondition = &value
 	}
 }
 
-func BasicOutputExpiresBefore(slot iotago.SlotIndex) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicExpiresBefore(slot iotago.SlotIndex) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.expiresBefore = &slot
 	}
 }
 
-func BasicOutputExpiresAfter(slot iotago.SlotIndex) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicExpiresAfter(slot iotago.SlotIndex) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.expiresAfter = &slot
 	}
 }
 
-func BasicOutputHasTimelockCondition(value bool) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicHasTimelockCondition(value bool) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.hasTimelockCondition = &value
 	}
 }
 
-func BasicOutputTimelockedBefore(slot iotago.SlotIndex) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicTimelockedBefore(slot iotago.SlotIndex) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.timelockedBefore = &slot
 	}
 }
 
-func BasicOutputTimelockedAfter(slot iotago.SlotIndex) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicTimelockedAfter(slot iotago.SlotIndex) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.timelockedAfter = &slot
 	}
 }
 
-func BasicOutputExpirationReturnAddress(address iotago.Address) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicExpirationReturnAddress(address iotago.Address) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.expirationReturnAddress = address
 	}
 }
 
-func BasicOutputSender(address iotago.Address) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicSender(address iotago.Address) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.sender = address
 	}
 }
 
-func BasicOutputTag(tag []byte) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicTag(tag []byte) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.tag = tag
 	}
 }
 
-func BasicOutputPageSize(pageSize uint32) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicPageSize(pageSize uint32) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.pageSize = pageSize
 	}
 }
 
-func BasicOutputCursor(cursor string) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicCursor(cursor string) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.cursor = &cursor
 	}
 }
 
-func BasicOutputCreatedBefore(slot iotago.SlotIndex) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicCreatedBefore(slot iotago.SlotIndex) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.createdBefore = &slot
 	}
 }
 
-func BasicOutputCreatedAfter(slot iotago.SlotIndex) options.Option[BasicOutputFilterOptions] {
-	return func(args *BasicOutputFilterOptions) {
+func BasicCreatedAfter(slot iotago.SlotIndex) options.Option[BasicFilterOptions] {
+	return func(args *BasicFilterOptions) {
 		args.createdAfter = &slot
 	}
 }
 
-func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) *gorm.DB {
-	query := i.db.Model(&basicOutput{})
+func (i *Indexer) basicQueryWithFilter(opts *BasicFilterOptions) *gorm.DB {
+	query := i.db.Model(&basic{})
 
 	if opts.hasNativeToken != nil {
 		if *opts.hasNativeToken {
@@ -257,8 +257,8 @@ func (i *Indexer) basicQueryWithFilter(opts *BasicOutputFilterOptions) *gorm.DB 
 	return query
 }
 
-func (i *Indexer) BasicOutputsWithFilters(filters ...options.Option[BasicOutputFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(BasicOutputFilterOptions), filters)
+func (i *Indexer) Basic(filters ...options.Option[BasicFilterOptions]) *IndexerResult {
+	opts := options.Apply(new(BasicFilterOptions), filters)
 	query := i.basicQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

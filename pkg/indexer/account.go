@@ -91,7 +91,7 @@ func AccountCreatedAfter(slot iotago.SlotIndex) options.Option[AccountFilterOpti
 	}
 }
 
-func (i *Indexer) AccountOutput(accountID iotago.AccountID) *IndexerResult {
+func (i *Indexer) AccountByID(accountID iotago.AccountID) *IndexerResult {
 	query := i.db.Model(&account{}).
 		Where("account_id = ?", accountID[:]).
 		Limit(1)
@@ -134,7 +134,7 @@ func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) *gorm.DB {
 	return query
 }
 
-func (i *Indexer) AccountOutputsWithFilters(filters ...options.Option[AccountFilterOptions]) *IndexerResult {
+func (i *Indexer) Account(filters ...options.Option[AccountFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(AccountFilterOptions), filters)
 	query := i.accountQueryWithFilter(opts)
 

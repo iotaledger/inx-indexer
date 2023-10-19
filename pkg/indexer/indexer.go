@@ -15,7 +15,7 @@ var (
 
 	dbTables = []interface{}{
 		&Status{},
-		&basicOutput{},
+		&basic{},
 		&nft{},
 		&foundry{},
 		&account{},
@@ -94,7 +94,7 @@ func addressesInOutput(output iotago.Output) []iotago.Address {
 func processSpent(output *LedgerOutput, tx *gorm.DB) error {
 	switch output.Output.(type) {
 	case *iotago.BasicOutput:
-		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&basicOutput{}).Error; err != nil {
+		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&basic{}).Error; err != nil {
 			return err
 		}
 	case *iotago.AccountOutput:
@@ -138,7 +138,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		features := iotaOutput.FeatureSet()
 		conditions := iotaOutput.UnlockConditionSet()
 
-		basic := &basicOutput{
+		basic := &basic{
 			Amount:    iotaOutput.Amount,
 			OutputID:  make([]byte, iotago.OutputIDLength),
 			CreatedAt: slotBooked,
@@ -263,11 +263,11 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		if timelock := conditions.Timelock(); timelock != nil {
-			nft.TimelockTime = &timelock.Slot
+			nft.TimelockSlot = &timelock.Slot
 		}
 
 		if expiration := conditions.Expiration(); expiration != nil {
-			nft.ExpirationTime = &expiration.Slot
+			nft.ExpirationSlot = &expiration.Slot
 			nft.ExpirationReturnAddress = expiration.ReturnAddress.ID()
 		}
 
@@ -325,7 +325,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 			delegation.Address = addressUnlock.Address.ID()
 		}
 
-		entry = delegationID
+		entry = delegation
 
 	default:
 		return nil, errors.New("unknown output type")

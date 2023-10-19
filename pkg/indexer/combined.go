@@ -59,8 +59,8 @@ func CombinedCreatedAfter(slot iotago.SlotIndex) options.Option[CombinedFilterOp
 	}
 }
 
-func (o *CombinedFilterOptions) BasicFilterOptions() *BasicOutputFilterOptions {
-	return &BasicOutputFilterOptions{
+func (o *CombinedFilterOptions) BasicFilterOptions() *BasicFilterOptions {
+	return &BasicFilterOptions{
 		hasNativeToken:      o.hasNativeToken,
 		nativeToken:         o.nativeToken,
 		unlockableByAddress: o.unlockableByAddress,

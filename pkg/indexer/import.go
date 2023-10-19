@@ -213,7 +213,7 @@ type ImportTransaction struct {
 
 	db *gorm.DB
 
-	basic        *processor[*basicOutput]
+	basic        *processor[*basic]
 	nft          *processor[*nft]
 	account      *processor[*account]
 	foundry      *processor[*foundry]
@@ -232,7 +232,7 @@ func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) 
 	t := &ImportTransaction{
 		WrappedLogger: logger.NewWrappedLogger(log),
 		db:            dbSession,
-		basic:         newProcessor[*basicOutput](ctx, dbSession, log),
+		basic:         newProcessor[*basic](ctx, dbSession, log),
 		nft:           newProcessor[*nft](ctx, dbSession, log),
 		account:       newProcessor[*account](ctx, dbSession, log),
 		foundry:       newProcessor[*foundry](ctx, dbSession, log),
@@ -250,7 +250,7 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 	}
 
 	switch e := entry.(type) {
-	case *basicOutput:
+	case *basic:
 		i.basic.enqueue(e)
 	case *nft:
 		i.nft.enqueue(e)
