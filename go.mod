@@ -3,16 +3,18 @@ module github.com/iotaledger/inx-indexer
 go 1.21
 
 require (
-	github.com/ethereum/go-ethereum v1.13.2
+	github.com/ethereum/go-ethereum v1.13.4
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/iotaledger/hive.go/app v0.0.0-20231010133617-cdbd5387e2af
-	github.com/iotaledger/hive.go/ierrors v0.0.0-20231010133617-cdbd5387e2af
-	github.com/iotaledger/hive.go/lo v0.0.0-20231010133617-cdbd5387e2af
-	github.com/iotaledger/hive.go/logger v0.0.0-20231010133617-cdbd5387e2af
-	github.com/iotaledger/hive.go/runtime v0.0.0-20231010133617-cdbd5387e2af
-	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231011161248-cf0bd6e08811
+	github.com/iotaledger/hive.go/app v0.0.0-20231019112237-c749a64b9b29
+	github.com/iotaledger/hive.go/crypto v0.0.0-20231019112237-c749a64b9b29
+	github.com/iotaledger/hive.go/ds v0.0.0-20231019112237-c749a64b9b29
+	github.com/iotaledger/hive.go/ierrors v0.0.0-20231019112237-c749a64b9b29
+	github.com/iotaledger/hive.go/lo v0.0.0-20231019112237-c749a64b9b29
+	github.com/iotaledger/hive.go/logger v0.0.0-20231019112237-c749a64b9b29
+	github.com/iotaledger/hive.go/runtime v0.0.0-20231019112237-c749a64b9b29
+	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231019090035-140d9f256a26
 	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231011154428-257141868dad
-	github.com/iotaledger/iota.go/v4 v4.0.0-20231011161154-7004432004e1
+	github.com/iotaledger/iota.go/v4 v4.0.0-20231019112751-e9872df31648
 	github.com/labstack/echo-contrib v0.15.0
 	github.com/labstack/echo/v4 v4.11.2
 	github.com/pkg/errors v0.9.1
@@ -41,18 +43,16 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-github v17.0.0+incompatible // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/pprof v0.0.0-20230821062121-407c9e7a662f // indirect
+	github.com/google/pprof v0.0.0-20230926050212-f7f687d19a98 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/holiman/uint256 v1.2.3 // indirect
 	github.com/iancoleman/orderedmap v0.3.0 // indirect
-	github.com/iotaledger/hive.go/constraints v0.0.0-20231010133617-cdbd5387e2af // indirect
+	github.com/iotaledger/hive.go/constraints v0.0.0-20231019112237-c749a64b9b29 // indirect
 	github.com/iotaledger/hive.go/core v1.0.0-rc.3.0.20231005142627-86973b2edb3b // indirect
-	github.com/iotaledger/hive.go/crypto v0.0.0-20231010133617-cdbd5387e2af // indirect
-	github.com/iotaledger/hive.go/ds v0.0.0-20231010133617-cdbd5387e2af // indirect
-	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20231010113711-a208cf7170ab // indirect
-	github.com/iotaledger/hive.go/stringify v0.0.0-20231010133617-cdbd5387e2af // indirect
+	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20231019081410-32f61b05bebe // indirect
+	github.com/iotaledger/hive.go/stringify v0.0.0-20231019112237-c749a64b9b29 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgx/v5 v5.4.3 // indirect
@@ -62,9 +62,9 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/gommon v0.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.17 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
+	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
@@ -73,9 +73,9 @@ require (
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/petermattis/goid v0.0.0-20230904192822-1876fd5063bc // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16 // indirect
-	github.com/prometheus/common v0.44.0 // indirect
-	github.com/prometheus/procfs v0.11.1 // indirect
+	github.com/prometheus/client_model v0.5.0 // indirect
+	github.com/prometheus/common v0.45.0 // indirect
+	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -89,8 +89,8 @@ require (
 	golang.org/x/sync v0.4.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231009173412-8bfb1ae86b6c // indirect
-	google.golang.org/grpc v1.58.3 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b // indirect
+	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

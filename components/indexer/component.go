@@ -154,7 +154,7 @@ func run() error {
 
 		Component.LogInfo("Starting API server ...")
 
-		_ = server.NewIndexerServer(deps.Indexer, deps.Echo, deps.NodeBridge.APIProvider().CurrentAPI().ProtocolParameters().Bech32HRP(), ParamsRestAPI.MaxPageSize)
+		_ = server.NewIndexerServer(deps.Indexer, deps.Echo, deps.NodeBridge.APIProvider().CommittedAPI().ProtocolParameters().Bech32HRP(), ParamsRestAPI.MaxPageSize)
 
 		go func() {
 			Component.LogInfof("You can now access the API using: http://%s", ParamsRestAPI.BindAddress)
@@ -231,8 +231,8 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 			needsToFillIndexer = true
 		} else {
 			switch {
-			case status.NetworkName != deps.NodeBridge.APIProvider().CurrentAPI().ProtocolParameters().NetworkName():
-				Component.LogInfof("> Network name changed: %s vs %s", status.NetworkName, deps.NodeBridge.APIProvider().CurrentAPI().ProtocolParameters().NetworkName())
+			case status.NetworkName != deps.NodeBridge.APIProvider().CommittedAPI().ProtocolParameters().NetworkName():
+				Component.LogInfof("> Network name changed: %s vs %s", status.NetworkName, deps.NodeBridge.APIProvider().CommittedAPI().ProtocolParameters().NetworkName())
 				needsToClearIndexer = true
 
 			case status.DatabaseVersion != DBVersion:
@@ -363,7 +363,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 
 	Component.LogInfo(p.Sprintf("received total=%d in %s @ %.2f per second", countReceive, time.Since(tsStart).Truncate(time.Millisecond), float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
 
-	if err := importer.Finalize(ledgerIndex, deps.NodeBridge.APIProvider().CurrentAPI().ProtocolParameters().NetworkName(), DBVersion); err != nil {
+	if err := importer.Finalize(ledgerIndex, deps.NodeBridge.APIProvider().CommittedAPI().ProtocolParameters().NetworkName(), DBVersion); err != nil {
 		return 0, err
 	}
 
