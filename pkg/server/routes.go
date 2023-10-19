@@ -808,6 +808,7 @@ func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
 			if ierrors.Is(err, indexer.ErrMultiAddressNotFound) {
 				return echo.ErrNotFound
 			}
+
 			return err
 		}
 
@@ -821,6 +822,7 @@ func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
 				if ierrors.Is(err, indexer.ErrMultiAddressNotFound) {
 					return echo.ErrNotFound
 				}
+
 				return err
 			}
 
