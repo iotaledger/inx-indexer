@@ -181,7 +181,6 @@ func TestIndexer_AccountOutput(t *testing.T) {
 	randomAddress := iotago_tpkg.RandEd25519Address()
 	randomAccountID := iotago_tpkg.RandAccountAddress().AccountID()
 
-	accountAddress := iotago_tpkg.RandAccountAddress()
 	senderAddress := iotago_tpkg.RandEd25519Address()
 	issuerAddress := iotago_tpkg.RandEd25519Address()
 	stateControllerAddress := iotago_tpkg.RandEd25519Address()
@@ -190,7 +189,6 @@ func TestIndexer_AccountOutput(t *testing.T) {
 	output := &iotago.AccountOutput{
 		Amount:         iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.TestAPI.ProtocolParameters().TokenSupply()))),
 		Mana:           iotago.Mana(iotago_tpkg.RandUint64(math.MaxUint64)),
-		AccountID:      accountAddress.AccountID(),
 		StateIndex:     0,
 		StateMetadata:  nil,
 		FoundryCounter: 0,
@@ -228,7 +226,10 @@ func TestIndexer_AccountOutput(t *testing.T) {
 		},
 	}
 
-	outputSet := ts.AddOutput(output, iotago_tpkg.RandOutputID(0))
+	outputID := iotago_tpkg.RandOutputID(0)
+	accountAddress := iotago.AccountAddressFromOutputID(outputID)
+
+	outputSet := ts.AddOutput(output, outputID)
 	require.Equal(t, iotago.SlotIndex(1), ts.CurrentSlot())
 
 	// By ID
@@ -286,13 +287,11 @@ func TestIndexer_DelegationOutput(t *testing.T) {
 
 	address := iotago_tpkg.RandEd25519Address()
 	validatorAddress := iotago_tpkg.RandAccountAddress()
-	delegationID := iotago_tpkg.RandDelegationID()
 	amount := iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.TestAPI.ProtocolParameters().TokenSupply())))
 
 	output := &iotago.DelegationOutput{
 		Amount:           amount,
 		DelegatedAmount:  amount,
-		DelegationID:     delegationID,
 		ValidatorAddress: validatorAddress,
 		StartEpoch:       0,
 		EndEpoch:         0,
@@ -303,7 +302,10 @@ func TestIndexer_DelegationOutput(t *testing.T) {
 		},
 	}
 
-	outputSet := ts.AddOutput(output, iotago_tpkg.RandOutputID(0))
+	outputID := iotago_tpkg.RandOutputID(0)
+	delegationID := iotago.DelegationIDFromOutputID(outputID)
+
+	outputSet := ts.AddOutput(output, outputID)
 	require.Equal(t, iotago.SlotIndex(1), ts.CurrentSlot())
 
 	// By ID
@@ -340,7 +342,6 @@ func TestIndexer_NFTOutput(t *testing.T) {
 	randomAddress := iotago_tpkg.RandEd25519Address()
 	randomNFTID := iotago_tpkg.RandNFTAddress().NFTID()
 
-	nftID := iotago_tpkg.RandNFTAddress().NFTID()
 	address := iotago_tpkg.RandEd25519Address()
 	storageReturnAddress := iotago_tpkg.RandEd25519Address()
 	expirationReturnAddress := iotago_tpkg.RandEd25519Address()
@@ -351,7 +352,6 @@ func TestIndexer_NFTOutput(t *testing.T) {
 	output := &iotago.NFTOutput{
 		Amount: iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.TestAPI.ProtocolParameters().TokenSupply()))),
 		Mana:   iotago.Mana(iotago_tpkg.RandUint64(math.MaxUint64)),
-		NFTID:  nftID,
 		Conditions: iotago.NFTOutputUnlockConditions{
 			&iotago.AddressUnlockCondition{
 				Address: address,
@@ -383,7 +383,10 @@ func TestIndexer_NFTOutput(t *testing.T) {
 		},
 	}
 
-	outputSet := ts.AddOutput(output, iotago_tpkg.RandOutputID(0))
+	outputID := iotago_tpkg.RandOutputID(0)
+	nftID := iotago.NFTIDFromOutputID(outputID)
+
+	outputSet := ts.AddOutput(output, outputID)
 	require.Equal(t, iotago.SlotIndex(1), ts.CurrentSlot())
 
 	// By ID
