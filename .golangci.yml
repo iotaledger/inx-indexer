@@ -1,5 +1,7 @@
 run:
     tests: true
+    skip-files:
+        - ".*_test.go$"
 
 linters-settings:
     gofmt:

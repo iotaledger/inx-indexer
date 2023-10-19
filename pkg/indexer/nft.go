@@ -20,8 +20,8 @@ type nft struct {
 	Address                     []byte `gorm:"notnull;index:nfts_address"`
 	StorageDepositReturn        *uint64
 	StorageDepositReturnAddress []byte `gorm:"index:nfts_storage_deposit_return_address"`
-	TimelockTime                *iotago.SlotIndex
-	ExpirationTime              *iotago.SlotIndex
+	TimelockSlot                *iotago.SlotIndex
+	ExpirationSlot              *iotago.SlotIndex
 	ExpirationReturnAddress     []byte           `gorm:"index:nfts_expiration_return_address"`
 	CreatedAt                   iotago.SlotIndex `gorm:"notnull;index:nfts_created_at"`
 }
@@ -159,7 +159,7 @@ func NFTCreatedAfter(slot iotago.SlotIndex) options.Option[NFTFilterOptions] {
 	}
 }
 
-func (i *Indexer) NFTOutput(nftID iotago.NFTID) *IndexerResult {
+func (i *Indexer) NFTByID(nftID iotago.NFTID) *IndexerResult {
 	query := i.db.Model(&nft{}).
 		Where("nft_id = ?", nftID[:]).
 		Limit(1)
@@ -250,7 +250,7 @@ func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) *gorm.DB {
 	return query
 }
 
-func (i *Indexer) NFTOutputsWithFilters(filters ...options.Option[NFTFilterOptions]) *IndexerResult {
+func (i *Indexer) NFT(filters ...options.Option[NFTFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(NFTFilterOptions), filters)
 	query := i.nftQueryWithFilter(opts)
 

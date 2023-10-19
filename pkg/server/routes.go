@@ -233,14 +233,14 @@ func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsRespo
 }
 
 func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
-	filters := []options.Option[indexer.BasicOutputFilterOptions]{indexer.BasicOutputPageSize(s.pageSizeFromContext(c))}
+	filters := []options.Option[indexer.BasicFilterOptions]{indexer.BasicPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
 		value, err := httpserver.ParseBoolQueryParam(c, QueryParameterHasNativeToken)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputHasNativeToken(value))
+		filters = append(filters, indexer.BasicHasNativeToken(value))
 	}
 
 	if len(c.QueryParam(QueryParameterNativeToken)) > 0 {
@@ -248,7 +248,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputNativeToken(iotago.NativeTokenID(value)))
+		filters = append(filters, indexer.BasicNativeToken(iotago.NativeTokenID(value)))
 	}
 
 	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
@@ -256,7 +256,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputUnlockableByAddress(addr))
+		filters = append(filters, indexer.BasicUnlockableByAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterAddress)) > 0 {
@@ -264,7 +264,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputUnlockAddress(addr))
+		filters = append(filters, indexer.BasicUnlockAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterHasStorageDepositReturn)) > 0 {
@@ -272,7 +272,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputHasStorageDepositReturnCondition(value))
+		filters = append(filters, indexer.BasicHasStorageDepositReturnCondition(value))
 	}
 
 	if len(c.QueryParam(QueryParameterStorageDepositReturnAddress)) > 0 {
@@ -280,7 +280,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputStorageDepositReturnAddress(addr))
+		filters = append(filters, indexer.BasicStorageDepositReturnAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterHasExpiration)) > 0 {
@@ -288,7 +288,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputHasExpirationCondition(value))
+		filters = append(filters, indexer.BasicHasExpirationCondition(value))
 	}
 
 	if len(c.QueryParam(QueryParameterExpirationReturnAddress)) > 0 {
@@ -296,7 +296,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputExpirationReturnAddress(addr))
+		filters = append(filters, indexer.BasicExpirationReturnAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresBefore)) > 0 {
@@ -304,7 +304,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputExpiresBefore(slot))
+		filters = append(filters, indexer.BasicExpiresBefore(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterExpiresAfter)) > 0 {
@@ -312,7 +312,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputExpiresAfter(slot))
+		filters = append(filters, indexer.BasicExpiresAfter(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterHasTimelock)) > 0 {
@@ -320,7 +320,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputHasTimelockCondition(value))
+		filters = append(filters, indexer.BasicHasTimelockCondition(value))
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedBefore)) > 0 {
@@ -328,7 +328,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputTimelockedBefore(slot))
+		filters = append(filters, indexer.BasicTimelockedBefore(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterTimelockedAfter)) > 0 {
@@ -336,7 +336,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputTimelockedAfter(slot))
+		filters = append(filters, indexer.BasicTimelockedAfter(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterSender)) > 0 {
@@ -344,7 +344,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputSender(addr))
+		filters = append(filters, indexer.BasicSender(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterTag)) > 0 {
@@ -352,7 +352,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputTag(tagBytes))
+		filters = append(filters, indexer.BasicTag(tagBytes))
 	}
 
 	if len(c.QueryParam(QueryParameterCursor)) > 0 {
@@ -360,7 +360,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputCursor(cursor), indexer.BasicOutputPageSize(pageSize))
+		filters = append(filters, indexer.BasicCursor(cursor), indexer.BasicPageSize(pageSize))
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
@@ -368,7 +368,7 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputCreatedBefore(slot))
+		filters = append(filters, indexer.BasicCreatedBefore(slot))
 	}
 
 	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
@@ -376,10 +376,10 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.BasicOutputCreatedAfter(slot))
+		filters = append(filters, indexer.BasicCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.BasicOutputsWithFilters(filters...))
+	return outputsResponseFromResult(s.Indexer.Basic(filters...))
 }
 
 func (s *IndexerServer) accountByID(c echo.Context) (*outputsResponse, error) {
@@ -388,7 +388,7 @@ func (s *IndexerServer) accountByID(c echo.Context) (*outputsResponse, error) {
 		return nil, err
 	}
 
-	return singleOutputResponseFromResult(s.Indexer.AccountOutput(accountID))
+	return singleOutputResponseFromResult(s.Indexer.AccountByID(accountID))
 }
 
 func (s *IndexerServer) accountsWithFilter(c echo.Context) (*outputsResponse, error) {
@@ -458,7 +458,7 @@ func (s *IndexerServer) accountsWithFilter(c echo.Context) (*outputsResponse, er
 		filters = append(filters, indexer.AccountCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.AccountOutputsWithFilters(filters...))
+	return outputsResponseFromResult(s.Indexer.Account(filters...))
 }
 
 func (s *IndexerServer) nftByID(c echo.Context) (*outputsResponse, error) {
@@ -467,7 +467,7 @@ func (s *IndexerServer) nftByID(c echo.Context) (*outputsResponse, error) {
 		return nil, err
 	}
 
-	return singleOutputResponseFromResult(s.Indexer.NFTOutput(nftID))
+	return singleOutputResponseFromResult(s.Indexer.NFTByID(nftID))
 }
 
 func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error) {
@@ -609,7 +609,7 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 		filters = append(filters, indexer.NFTCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.NFTOutputsWithFilters(filters...))
+	return outputsResponseFromResult(s.Indexer.NFT(filters...))
 }
 
 func (s *IndexerServer) foundryByID(c echo.Context) (*outputsResponse, error) {
@@ -618,7 +618,7 @@ func (s *IndexerServer) foundryByID(c echo.Context) (*outputsResponse, error) {
 		return nil, err
 	}
 
-	return singleOutputResponseFromResult(s.Indexer.FoundryOutput(foundryID))
+	return singleOutputResponseFromResult(s.Indexer.FoundryByID(foundryID))
 }
 
 func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, error) {
@@ -677,7 +677,7 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 		filters = append(filters, indexer.FoundryCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.FoundryOutputsWithFilters(filters...))
+	return outputsResponseFromResult(s.Indexer.Foundry(filters...))
 }
 
 func (s *IndexerServer) delegationByID(c echo.Context) (*outputsResponse, error) {
@@ -686,7 +686,7 @@ func (s *IndexerServer) delegationByID(c echo.Context) (*outputsResponse, error)
 		return nil, err
 	}
 
-	return singleOutputResponseFromResult(s.Indexer.DelegationOutput(delegationID))
+	return singleOutputResponseFromResult(s.Indexer.DelegationByID(delegationID))
 }
 
 func (s *IndexerServer) delegationsWithFilter(c echo.Context) (*outputsResponse, error) {
@@ -737,7 +737,7 @@ func (s *IndexerServer) delegationsWithFilter(c echo.Context) (*outputsResponse,
 		filters = append(filters, indexer.DelegationCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.DelegationsWithFilters(filters...))
+	return outputsResponseFromResult(s.Indexer.Delegation(filters...))
 }
 
 func singleOutputResponseFromResult(result *indexer.IndexerResult) (*outputsResponse, error) {
@@ -805,6 +805,10 @@ func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
 	if multiAddressRef, isMultiRef := address.(*iotago.MultiAddressReference); isMultiRef {
 		multiAddress, err := s.Indexer.MultiAddressForReference(multiAddressRef)
 		if err != nil {
+			if ierrors.Is(err, indexer.ErrMultiAddressNotFound) {
+				return echo.ErrNotFound
+			}
+
 			return err
 		}
 
@@ -815,6 +819,10 @@ func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
 		if innerMultiAddressRef, isMultiRef := restrictedAddress.Address.(*iotago.MultiAddressReference); isMultiRef {
 			multiAddress, err := s.Indexer.MultiAddressForReference(innerMultiAddressRef)
 			if err != nil {
+				if ierrors.Is(err, indexer.ErrMultiAddressNotFound) {
+					return echo.ErrNotFound
+				}
+
 				return err
 			}
 
