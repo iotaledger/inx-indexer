@@ -6,16 +6,21 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/iotaledger/hive.go/ds/shrinkingmap"
+	"github.com/iotaledger/hive.go/ierrors"
 	"github.com/iotaledger/hive.go/logger"
 	"github.com/iotaledger/hive.go/runtime/options"
 	"github.com/iotaledger/inx-indexer/pkg/database"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v4"
+	iotago_tpkg "github.com/iotaledger/iota.go/v4/tpkg"
 )
 
 type indexerTestsuite struct {
 	T       *testing.T
 	Indexer *indexer.Indexer
+
+	insertedOutputs *shrinkingmap.ShrinkingMap[iotago.OutputID, iotago.Output]
 }
 
 type indexerOutputSet struct {
@@ -43,8 +48,9 @@ func newTestSuite(t *testing.T) *indexerTestsuite {
 	require.NoError(t, idx.AutoMigrate())
 
 	return &indexerTestsuite{
-		T:       t,
-		Indexer: idx,
+		T:               t,
+		Indexer:         idx,
+		insertedOutputs: shrinkingmap.New[iotago.OutputID, iotago.Output](),
 	}
 }
 
@@ -71,6 +77,8 @@ func (ts *indexerTestsuite) AddOutput(output iotago.Output, outputID iotago.Outp
 
 	require.NoError(ts.T, ts.Indexer.UpdatedLedger(update))
 
+	ts.insertedOutputs.Set(outputID, output)
+
 	return &indexerOutputSet{
 		ts:      ts,
 		Outputs: iotago.OutputIDs{outputID},
@@ -80,17 +88,42 @@ func (ts *indexerTestsuite) AddOutput(output iotago.Output, outputID iotago.Outp
 func (ts *indexerTestsuite) DeleteOutput(outputID iotago.OutputID) {
 	currentSlot := ts.CurrentSlot()
 
+	output, found := ts.insertedOutputs.DeleteAndReturn(outputID)
+	if !found {
+		ts.T.Fatalf("output not found: %s", outputID)
+	}
+
 	update := &indexer.LedgerUpdate{
 		Slot: currentSlot + 1,
 		Consumed: []*indexer.LedgerOutput{
 			{
 				OutputID: outputID,
+				Output:   output,
 				SpentAt:  currentSlot + 1,
 			},
 		},
 	}
 
 	require.NoError(ts.T, ts.Indexer.UpdatedLedger(update))
+}
+
+func (ts *indexerTestsuite) MultiAddressExists(multiAddress *iotago.MultiAddress) bool {
+	multiAddressBech32 := multiAddress.Bech32(iotago_tpkg.TestAPI.ProtocolParameters().Bech32HRP())
+
+	_, parsedAddr, err := iotago.ParseBech32(multiAddressBech32)
+	require.NoError(ts.T, err)
+
+	multiAddressRef := parsedAddr.(*iotago.MultiAddressReference)
+
+	fetchedAddress, err := ts.Indexer.MultiAddressForReference(multiAddressRef)
+	if err != nil {
+		if ierrors.Is(err, indexer.ErrMultiAddressNotFound) {
+			return false
+		}
+		require.NoError(ts.T, err)
+	}
+
+	return multiAddress.Equal(fetchedAddress)
 }
 
 func (os *indexerOutputSet) requireBasicFound(filters ...options.Option[indexer.BasicFilterOptions]) {

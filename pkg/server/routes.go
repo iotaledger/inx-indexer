@@ -805,6 +805,9 @@ func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
 	if multiAddressRef, isMultiRef := address.(*iotago.MultiAddressReference); isMultiRef {
 		multiAddress, err := s.Indexer.MultiAddressForReference(multiAddressRef)
 		if err != nil {
+			if ierrors.Is(err, indexer.ErrMultiAddressNotFound) {
+				return echo.ErrNotFound
+			}
 			return err
 		}
 
@@ -815,6 +818,9 @@ func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
 		if innerMultiAddressRef, isMultiRef := restrictedAddress.Address.(*iotago.MultiAddressReference); isMultiRef {
 			multiAddress, err := s.Indexer.MultiAddressForReference(innerMultiAddressRef)
 			if err != nil {
+				if ierrors.Is(err, indexer.ErrMultiAddressNotFound) {
+					return echo.ErrNotFound
+				}
 				return err
 			}
 
