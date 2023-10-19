@@ -61,6 +61,7 @@ func TestIndexer_BasicOutput(t *testing.T) {
 	outputSet.requireAccountNotFound()
 	outputSet.requireDelegationNotFound()
 	outputSet.requireNFTNotFound()
+	outputSet.requireFoundryNotFound()
 
 	// Native Tokens
 	outputSet.requireBasicFound(indexer.BasicHasNativeToken(false))
@@ -164,6 +165,7 @@ func TestIndexer_BasicOutput_NativeToken(t *testing.T) {
 	outputSet.requireAccountNotFound()
 	outputSet.requireDelegationNotFound()
 	outputSet.requireNFTNotFound()
+	outputSet.requireFoundryNotFound()
 
 	// Native Tokens
 	outputSet.requireBasicFound(indexer.BasicHasNativeToken(true))
@@ -238,6 +240,7 @@ func TestIndexer_AccountOutput(t *testing.T) {
 	outputSet.requireBasicNotFound()
 	outputSet.requireDelegationNotFound()
 	outputSet.requireNFTNotFound()
+	outputSet.requireFoundryNotFound()
 
 	// Creation Slot
 	outputSet.requireAccountFound(indexer.AccountCreatedAfter(0))
@@ -312,6 +315,7 @@ func TestIndexer_DelegationOutput(t *testing.T) {
 	outputSet.requireAccountNotFound()
 	outputSet.requireBasicNotFound()
 	outputSet.requireNFTNotFound()
+	outputSet.requireFoundryNotFound()
 
 	// Creation Slot
 	outputSet.requireDelegationFound(indexer.DelegationCreatedAfter(0))
@@ -391,6 +395,7 @@ func TestIndexer_NFTOutput(t *testing.T) {
 	outputSet.requireBasicNotFound()
 	outputSet.requireAccountNotFound()
 	outputSet.requireDelegationNotFound()
+	outputSet.requireFoundryNotFound()
 
 	// Address
 	outputSet.requireNFTFound(indexer.NFTUnlockAddress(address))
@@ -461,4 +466,105 @@ func TestIndexer_NFTOutput(t *testing.T) {
 	for _, addr := range []iotago.Address{senderAddress, issuerAddress, randomAddress} {
 		outputSet.requireNFTNotFound(indexer.NFTUnlockableByAddress(addr))
 	}
+}
+
+func TestIndexer_FoundryOutput(t *testing.T) {
+	ts := newTestSuite(t)
+
+	randomAccountAddress := iotago_tpkg.RandAccountAddress()
+	randomFoundryID, err := iotago.FoundryIDFromAddressAndSerialNumberAndTokenScheme(randomAccountAddress, 0, iotago.TokenSchemeSimple)
+	require.NoError(t, err)
+
+	accountAddress := iotago_tpkg.RandAccountAddress()
+	foundryID, err := iotago.FoundryIDFromAddressAndSerialNumberAndTokenScheme(accountAddress, 0, iotago.TokenSchemeSimple)
+	require.NoError(t, err)
+
+	output := &iotago.FoundryOutput{
+		Amount:       0,
+		SerialNumber: 0,
+		TokenScheme: &iotago.SimpleTokenScheme{
+			MintedTokens:  iotago_tpkg.RandUint256(),
+			MeltedTokens:  iotago_tpkg.RandUint256(),
+			MaximumSupply: iotago_tpkg.RandUint256(),
+		},
+		Conditions: iotago.FoundryOutputUnlockConditions{
+			&iotago.ImmutableAccountUnlockCondition{
+				Address: accountAddress,
+			},
+		},
+		Features:          iotago.FoundryOutputFeatures{},
+		ImmutableFeatures: iotago.FoundryOutputImmFeatures{},
+	}
+
+	outputSet := ts.AddOutput(output, iotago_tpkg.RandOutputID(0))
+	require.Equal(t, iotago.SlotIndex(1), ts.CurrentSlot())
+
+	// By ID
+	outputSet.requireFoundryFoundByID(foundryID)
+	outputSet.requireFoundryNotFoundByID(randomFoundryID)
+
+	// Type
+	outputSet.requireFoundryFound()
+	outputSet.requireBasicNotFound()
+	outputSet.requireAccountNotFound()
+	outputSet.requireDelegationNotFound()
+	outputSet.requireNFTNotFound()
+
+	// Native Tokens
+	outputSet.requireFoundryFound(indexer.FoundryHasNativeToken(false))
+	outputSet.requireFoundryNotFound(indexer.FoundryHasNativeToken(true))
+
+	outputSet.requireFoundryFound(indexer.FoundryNativeToken(foundryID)) // The foundry is always returned when filtering for that specific native token, even if it has no native token feature
+	outputSet.requireFoundryNotFound(indexer.FoundryNativeToken(iotago_tpkg.RandNativeTokenID()))
+
+	// Address
+	outputSet.requireFoundryFound(indexer.FoundryWithAccountAddress(accountAddress))
+	outputSet.requireFoundryNotFound(indexer.FoundryWithAccountAddress(randomAccountAddress))
+}
+
+func TestIndexer_FoundryOutput_NativeToken(t *testing.T) {
+	ts := newTestSuite(t)
+
+	accountAddress := iotago_tpkg.RandAccountAddress()
+	foundryID, err := iotago.FoundryIDFromAddressAndSerialNumberAndTokenScheme(accountAddress, 0, iotago.TokenSchemeSimple)
+	require.NoError(t, err)
+
+	output := &iotago.FoundryOutput{
+		Amount:       0,
+		SerialNumber: 0,
+		TokenScheme: &iotago.SimpleTokenScheme{
+			MintedTokens:  iotago_tpkg.RandUint256(),
+			MeltedTokens:  iotago_tpkg.RandUint256(),
+			MaximumSupply: iotago_tpkg.RandUint256(),
+		},
+		Conditions: iotago.FoundryOutputUnlockConditions{
+			&iotago.ImmutableAccountUnlockCondition{
+				Address: accountAddress,
+			},
+		},
+		Features: iotago.FoundryOutputFeatures{
+			&iotago.NativeTokenFeature{
+				ID:     foundryID,
+				Amount: iotago_tpkg.RandUint256(),
+			},
+		},
+		ImmutableFeatures: iotago.FoundryOutputImmFeatures{},
+	}
+
+	outputSet := ts.AddOutput(output, iotago_tpkg.RandOutputID(0))
+	require.Equal(t, iotago.SlotIndex(1), ts.CurrentSlot())
+
+	// Type
+	outputSet.requireFoundryFound()
+	outputSet.requireBasicNotFound()
+	outputSet.requireAccountNotFound()
+	outputSet.requireDelegationNotFound()
+	outputSet.requireNFTNotFound()
+
+	// Native Tokens
+	outputSet.requireFoundryFound(indexer.FoundryHasNativeToken(true))
+	outputSet.requireFoundryNotFound(indexer.FoundryHasNativeToken(false))
+
+	outputSet.requireFoundryFound(indexer.FoundryNativeToken(foundryID))
+	outputSet.requireFoundryNotFound(indexer.FoundryNativeToken(iotago_tpkg.RandNativeTokenID()))
 }

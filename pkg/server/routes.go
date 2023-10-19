@@ -618,7 +618,7 @@ func (s *IndexerServer) foundryByID(c echo.Context) (*outputsResponse, error) {
 		return nil, err
 	}
 
-	return singleOutputResponseFromResult(s.Indexer.FoundryOutput(foundryID))
+	return singleOutputResponseFromResult(s.Indexer.FoundryByID(foundryID))
 }
 
 func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, error) {
@@ -677,7 +677,7 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 		filters = append(filters, indexer.FoundryCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.FoundryOutputsWithFilters(filters...))
+	return outputsResponseFromResult(s.Indexer.Foundry(filters...))
 }
 
 func (s *IndexerServer) delegationByID(c echo.Context) (*outputsResponse, error) {

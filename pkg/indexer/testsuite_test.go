@@ -148,3 +148,19 @@ func (os *indexerOutputSet) requireDelegationFoundByID(delegationID iotago.Deleg
 func (os *indexerOutputSet) requireDelegationNotFoundByID(delegationID iotago.DelegationID) {
 	require.NotEqual(os.ts.T, os.Outputs, os.ts.Indexer.DelegationByID(delegationID).OutputIDs)
 }
+
+func (os *indexerOutputSet) requireFoundryFound(filters ...options.Option[indexer.FoundryFilterOptions]) {
+	require.Equal(os.ts.T, os.Outputs, os.ts.Indexer.Foundry(filters...).OutputIDs)
+}
+
+func (os *indexerOutputSet) requireFoundryNotFound(filters ...options.Option[indexer.FoundryFilterOptions]) {
+	require.NotEqual(os.ts.T, os.Outputs, os.ts.Indexer.Foundry(filters...).OutputIDs)
+}
+
+func (os *indexerOutputSet) requireFoundryFoundByID(foundryID iotago.FoundryID) {
+	require.Equal(os.ts.T, os.Outputs, os.ts.Indexer.FoundryByID(foundryID).OutputIDs)
+}
+
+func (os *indexerOutputSet) requireFoundryNotFoundByID(foundryID iotago.FoundryID) {
+	require.NotEqual(os.ts.T, os.Outputs, os.ts.Indexer.FoundryByID(foundryID).OutputIDs)
+}

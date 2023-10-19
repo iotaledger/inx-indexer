@@ -75,7 +75,7 @@ func FoundryCreatedAfter(slot iotago.SlotIndex) options.Option[FoundryFilterOpti
 	}
 }
 
-func (i *Indexer) FoundryOutput(foundryID iotago.FoundryID) *IndexerResult {
+func (i *Indexer) FoundryByID(foundryID iotago.FoundryID) *IndexerResult {
 	query := i.db.Model(&foundry{}).
 		Where("foundry_id = ?", foundryID[:]).
 		Limit(1)
@@ -114,7 +114,7 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gor
 	return query
 }
 
-func (i *Indexer) FoundryOutputsWithFilters(filters ...options.Option[FoundryFilterOptions]) *IndexerResult {
+func (i *Indexer) Foundry(filters ...options.Option[FoundryFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(FoundryFilterOptions), filters)
 	query := i.foundryOutputsQueryWithFilter(opts)
 
