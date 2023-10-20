@@ -140,6 +140,40 @@ func run() error {
 		Component.LogPanicf("failed to start worker: %s", err)
 	}
 
+	// create a background worker that handles the indexer events
+	if err := Component.Daemon().BackgroundWorker("Indexer - AcceptedTransactions", func(ctx context.Context) {
+		Component.LogInfo("Starting AcceptedTransactions")
+
+		// we need to wait until the indexer is initialized before starting to listen to accepted transactions.
+		select {
+		case <-ctx.Done():
+			return
+		case <-indexerInitWait:
+		}
+
+		Component.LogInfo("Starting AcceptedTransactions ... done")
+		if err := deps.NodeBridge.ListenToAcceptedTransactions(ctx, func(tx *nodebridge.AcceptedTransaction) error {
+			ts := time.Now()
+			ledgerUpdate, err := LedgerUpdateFromNodeBridgeAcceptedTransaction(tx)
+			if err != nil {
+				return err
+			}
+			if err := deps.Indexer.AcceptLedgerUpdate(ledgerUpdate); err != nil {
+				return err
+			}
+
+			Component.LogInfof("Applying accepted transaction %s at slot %d with %d new and %d consumed outputs took %s", tx.TransactionID.ToHex(), tx.Slot, len(tx.Created), len(tx.Consumed), time.Since(ts).Truncate(time.Millisecond))
+
+			return nil
+		}); err != nil {
+			deps.ShutdownHandler.SelfShutdown(fmt.Sprintf("Listening to AcceptedTransactions failed, error: %s", err), false)
+		}
+
+		Component.LogInfo("Stopping AcceptedTransactions ... done")
+	}, daemon.PriorityStopIndexerAcceptedTransactions); err != nil {
+		Component.LogPanicf("failed to start worker: %s", err)
+	}
+
 	// create a background worker that handles the API
 	if err := Component.Daemon().BackgroundWorker("API", func(ctx context.Context) {
 		Component.LogInfo("Starting API")
@@ -212,7 +246,6 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 	needsToClearIndexer := false
 
 	nodeStatus := deps.NodeBridge.NodeStatus()
-	fmt.Println(nodeStatus)
 
 	if !deps.Indexer.IsInitialized() {
 		// Starting indexer without a database
@@ -410,6 +443,44 @@ func LedgerUpdateFromNodeBridge(update *nodebridge.LedgerUpdate) (*indexer.Ledge
 
 	return &indexer.LedgerUpdate{
 		Slot:     update.Slot,
+		Consumed: consumed,
+		Created:  created,
+	}, nil
+}
+
+func LedgerUpdateFromNodeBridgeAcceptedTransaction(tx *nodebridge.AcceptedTransaction) (*indexer.LedgerUpdate, error) {
+	consumed := make([]*indexer.LedgerOutput, len(tx.Consumed))
+	for i, spent := range tx.Consumed {
+		output := spent.GetOutput()
+		iotaOutput, err := output.UnwrapOutput(tx.API)
+		if err != nil {
+			return nil, err
+		}
+
+		consumed[i] = &indexer.LedgerOutput{
+			OutputID: output.UnwrapOutputID(),
+			Output:   iotaOutput,
+			BookedAt: iotago.SlotIndex(output.GetSlotBooked()),
+			SpentAt:  tx.Slot,
+		}
+	}
+
+	created := make([]*indexer.LedgerOutput, len(tx.Created))
+	for i, output := range tx.Created {
+		iotaOutput, err := output.UnwrapOutput(tx.API)
+		if err != nil {
+			return nil, err
+		}
+
+		created[i] = &indexer.LedgerOutput{
+			OutputID: output.UnwrapOutputID(),
+			Output:   iotaOutput,
+			BookedAt: tx.Slot,
+		}
+	}
+
+	return &indexer.LedgerUpdate{
+		Slot:     tx.Slot,
 		Consumed: consumed,
 		Created:  created,
 	}, nil
