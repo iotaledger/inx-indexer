@@ -15,16 +15,16 @@ type basic struct {
 	Amount                      iotago.BaseToken
 	NativeToken                 []byte
 	NativeTokenAmount           *string
-	Sender                      []byte `gorm:"index:basic_sender_tag"`
-	Tag                         []byte `gorm:"index:basic_sender_tag"`
-	Address                     []byte `gorm:"notnull;index:basic_address"`
+	Sender                      []byte `gorm:"index:basics_sender_tag"`
+	Tag                         []byte `gorm:"index:basics_sender_tag"`
+	Address                     []byte `gorm:"notnull;index:basics_address"`
 	StorageDepositReturn        *iotago.BaseToken
-	StorageDepositReturnAddress []byte `gorm:"index:basic_storage_deposit_return_address"`
+	StorageDepositReturnAddress []byte `gorm:"index:basics_storage_deposit_return_address"`
 	TimelockSlot                *iotago.SlotIndex
 	ExpirationSlot              *iotago.SlotIndex
-	ExpirationReturnAddress     []byte           `gorm:"index:basic_expiration_return_address"`
-	CreatedAtSlot               iotago.SlotIndex `gorm:"notnull;index:basic_created_at_slot"`
-	DeletedAtSlot               iotago.SlotIndex
+	ExpirationReturnAddress     []byte           `gorm:"index:basics_expiration_return_address"`
+	CreatedAtSlot               iotago.SlotIndex `gorm:"notnull;index:basics_created_at_slot"`
+	DeletedAtSlot               iotago.SlotIndex `gorm:"notnull;index:basics_deleted_at_slot"`
 	Committed                   bool
 }
 

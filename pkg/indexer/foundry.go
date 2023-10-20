@@ -16,8 +16,8 @@ type foundry struct {
 	Amount            iotago.BaseToken
 	NativeTokenAmount *string
 	AccountAddress    []byte           `gorm:"notnull;index:foundries_account_address"`
-	CreatedAtSlot     iotago.SlotIndex `gorm:"notnull;index:foundries__slot"`
-	DeletedAtSlot     iotago.SlotIndex
+	CreatedAtSlot     iotago.SlotIndex `gorm:"notnull;index:foundries_created_at_slot"`
+	DeletedAtSlot     iotago.SlotIndex `gorm:"notnull;index:foundries_deleted_at_slot"`
 	Committed         bool
 }
 

@@ -24,7 +24,7 @@ type nft struct {
 	ExpirationSlot              *iotago.SlotIndex
 	ExpirationReturnAddress     []byte           `gorm:"index:nfts_expiration_return_address"`
 	CreatedAtSlot               iotago.SlotIndex `gorm:"notnull;index:nfts_created_at_slot"`
-	DeletedAtSlot               iotago.SlotIndex
+	DeletedAtSlot               iotago.SlotIndex `gorm:"notnull;index:nfts_deleted_at_slot"`
 	Committed                   bool
 }
 

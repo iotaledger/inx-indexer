@@ -14,10 +14,10 @@ type delegation struct {
 	DelegationID  []byte `gorm:"primaryKey;notnull"`
 	OutputID      []byte `gorm:"unique;notnull"`
 	Amount        iotago.BaseToken
-	Address       []byte           `gorm:"notnull;index:delegation_address"`
-	Validator     []byte           `gorm:"index:delegation_validator"`
-	CreatedAtSlot iotago.SlotIndex `gorm:"notnull;index:delegation_created_at_slot"`
-	DeletedAtSlot iotago.SlotIndex
+	Address       []byte           `gorm:"notnull;index:delegations_address"`
+	Validator     []byte           `gorm:"index:delegations_validator"`
+	CreatedAtSlot iotago.SlotIndex `gorm:"notnull;index:delegations_created_at_slot"`
+	DeletedAtSlot iotago.SlotIndex `gorm:"notnull;index:delegations_deleted_at_slot"`
 	Committed     bool
 }
 
