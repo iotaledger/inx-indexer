@@ -100,11 +100,18 @@ func (ts *indexerTestsuite) AddOutputOnAcceptance(output iotago.Output, outputID
 
 	ts.committedOutputs.Set(outputID, output)
 
-	require.NoError(ts.T, ts.Indexer.AcceptOutput(&indexer.LedgerOutput{
-		OutputID: outputID,
-		Output:   output,
-		BookedAt: acceptedSlot,
-	}))
+	update := &indexer.LedgerUpdate{
+		Slot: acceptedSlot,
+		Created: []*indexer.LedgerOutput{
+			{
+				OutputID: outputID,
+				Output:   output,
+				BookedAt: acceptedSlot,
+			},
+		},
+	}
+
+	require.NoError(ts.T, ts.Indexer.AcceptLedgerUpdate(update))
 
 	return &indexerOutputSet{
 		ts:      ts,
@@ -142,11 +149,18 @@ func (ts *indexerTestsuite) DeleteOutputOnAcceptance(outputID iotago.OutputID) {
 		ts.T.Fatalf("output not found: %s", outputID)
 	}
 
-	require.NoError(ts.T, ts.Indexer.AcceptSpent(&indexer.LedgerOutput{
-		OutputID: outputID,
-		Output:   output,
-		SpentAt:  acceptedSlot,
-	}))
+	update := &indexer.LedgerUpdate{
+		Slot: acceptedSlot,
+		Consumed: []*indexer.LedgerOutput{
+			{
+				OutputID: outputID,
+				Output:   output,
+				SpentAt:  acceptedSlot,
+			},
+		},
+	}
+
+	require.NoError(ts.T, ts.Indexer.AcceptLedgerUpdate(update))
 }
 
 func (ts *indexerTestsuite) MultiAddressExists(multiAddress *iotago.MultiAddress) bool {

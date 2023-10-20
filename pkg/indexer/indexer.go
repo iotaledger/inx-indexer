@@ -127,23 +127,23 @@ func processSpent(output *LedgerOutput, committed bool, tx *gorm.DB) error {
 	// Mark them as deleted but leave them in for now
 	switch output.Output.(type) {
 	case *iotago.BasicOutput:
-		if err := tx.Model(&basic{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+		if err := tx.Model(&basic{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at_slot", output.SpentAt).Error; err != nil {
 			return err
 		}
 	case *iotago.AccountOutput:
-		if err := tx.Model(&account{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+		if err := tx.Model(&account{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at_slot", output.SpentAt).Error; err != nil {
 			return err
 		}
 	case *iotago.NFTOutput:
-		if err := tx.Model(&nft{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+		if err := tx.Model(&nft{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at_slot", output.SpentAt).Error; err != nil {
 			return err
 		}
 	case *iotago.FoundryOutput:
-		if err := tx.Model(&foundry{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+		if err := tx.Model(&foundry{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at_slot", output.SpentAt).Error; err != nil {
 			return err
 		}
 	case *iotago.DelegationOutput:
-		if err := tx.Model(&delegation{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+		if err := tx.Model(&delegation{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at_slot", output.SpentAt).Error; err != nil {
 			return err
 		}
 	}
@@ -154,12 +154,12 @@ func processSpent(output *LedgerOutput, committed bool, tx *gorm.DB) error {
 func removeUncommittedChangesUpUntilSlot(committedSlot iotago.SlotIndex, tx *gorm.DB) error {
 	for _, table := range outputTables {
 		// Remove the uncommitted insertions
-		if err := tx.Where("committed == false AND created_at <= ?", committedSlot).Delete(table).Error; err != nil {
+		if err := tx.Where("committed == false AND created_at_slot <= ?", committedSlot).Delete(table).Error; err != nil {
 			return err
 		}
 
 		// Revert all uncommitted deletions
-		if err := tx.Model(table).Where("deleted_at > 0 AND deleted_at <= ?", committedSlot).Update("deleted_at", 0).Error; err != nil {
+		if err := tx.Model(table).Where("deleted_at_slot > 0 AND deleted_at_slot <= ?", committedSlot).Update("deleted_at_slot", 0).Error; err != nil {
 			return err
 		}
 	}
@@ -200,10 +200,10 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		conditions := iotaOutput.UnlockConditionSet()
 
 		basic := &basic{
-			Amount:    iotaOutput.Amount,
-			OutputID:  make([]byte, iotago.OutputIDLength),
-			CreatedAt: slotBooked,
-			Committed: committed,
+			Amount:        iotaOutput.Amount,
+			OutputID:      make([]byte, iotago.OutputIDLength),
+			CreatedAtSlot: slotBooked,
+			Committed:     committed,
 		}
 		copy(basic.OutputID, outputID[:])
 
@@ -254,11 +254,11 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		conditions := iotaOutput.UnlockConditionSet()
 
 		acc := &account{
-			Amount:    iotaOutput.Amount,
-			AccountID: make([]byte, iotago.AccountIDLength),
-			OutputID:  make([]byte, iotago.OutputIDLength),
-			CreatedAt: slotBooked,
-			Committed: committed,
+			Amount:        iotaOutput.Amount,
+			AccountID:     make([]byte, iotago.AccountIDLength),
+			OutputID:      make([]byte, iotago.OutputIDLength),
+			CreatedAtSlot: slotBooked,
+			Committed:     committed,
 		}
 		copy(acc.AccountID, accountID[:])
 		copy(acc.OutputID, outputID[:])
@@ -294,11 +294,11 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		nft := &nft{
-			Amount:    iotaOutput.Amount,
-			NFTID:     make([]byte, iotago.NFTIDLength),
-			OutputID:  make([]byte, iotago.OutputIDLength),
-			CreatedAt: slotBooked,
-			Committed: committed,
+			Amount:        iotaOutput.Amount,
+			NFTID:         make([]byte, iotago.NFTIDLength),
+			OutputID:      make([]byte, iotago.OutputIDLength),
+			CreatedAtSlot: slotBooked,
+			Committed:     committed,
 		}
 		copy(nft.NFTID, nftID[:])
 		copy(nft.OutputID, outputID[:])
@@ -347,11 +347,11 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		foundry := &foundry{
-			Amount:    iotaOutput.Amount,
-			FoundryID: foundryID[:],
-			OutputID:  make([]byte, iotago.OutputIDLength),
-			CreatedAt: slotBooked,
-			Committed: committed,
+			Amount:        iotaOutput.Amount,
+			FoundryID:     foundryID[:],
+			OutputID:      make([]byte, iotago.OutputIDLength),
+			CreatedAtSlot: slotBooked,
+			Committed:     committed,
 		}
 		copy(foundry.OutputID, outputID[:])
 
@@ -376,11 +376,11 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		}
 
 		delegation := &delegation{
-			Amount:       iotaOutput.Amount,
-			DelegationID: make([]byte, iotago.DelegationIDLength),
-			OutputID:     make([]byte, iotago.OutputIDLength),
-			CreatedAt:    slotBooked,
-			Committed:    committed,
+			Amount:        iotaOutput.Amount,
+			DelegationID:  make([]byte, iotago.DelegationIDLength),
+			OutputID:      make([]byte, iotago.OutputIDLength),
+			CreatedAtSlot: slotBooked,
+			Committed:     committed,
 		}
 		copy(delegation.DelegationID, delegationID[:])
 		copy(delegation.OutputID, outputID[:])
@@ -433,15 +433,27 @@ func (i *Indexer) AutoMigrate() error {
 	return i.db.AutoMigrate(dbTables...)
 }
 
-func (i *Indexer) AcceptOutput(output *LedgerOutput) error {
+func (i *Indexer) AcceptLedgerUpdate(update *LedgerUpdate) error {
 	return i.db.Transaction(func(tx *gorm.DB) error {
-		return processOutput(output, false, tx)
-	})
-}
+		spentOutputs := make(map[iotago.OutputID]struct{})
+		for _, output := range update.Consumed {
+			spentOutputs[output.OutputID] = struct{}{}
+			if err := processSpent(output, false, tx); err != nil {
+				return err
+			}
+		}
 
-func (i *Indexer) AcceptSpent(output *LedgerOutput) error {
-	return i.db.Transaction(func(tx *gorm.DB) error {
-		return processSpent(output, false, tx)
+		for _, output := range update.Created {
+			if _, wasSpentInSameSlot := spentOutputs[output.OutputID]; wasSpentInSameSlot {
+				// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
+				continue
+			}
+			if err := processOutput(output, false, tx); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	})
 }
 

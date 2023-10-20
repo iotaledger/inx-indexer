@@ -11,14 +11,14 @@ import (
 )
 
 type delegation struct {
-	DelegationID []byte `gorm:"primaryKey;notnull"`
-	OutputID     []byte `gorm:"unique;notnull"`
-	Amount       iotago.BaseToken
-	Address      []byte           `gorm:"notnull;index:delegation_address"`
-	Validator    []byte           `gorm:"index:delegation_validator"`
-	CreatedAt    iotago.SlotIndex `gorm:"notnull;index:delegation_created_at"`
-	DeletedAt    iotago.SlotIndex
-	Committed    bool
+	DelegationID  []byte `gorm:"primaryKey;notnull"`
+	OutputID      []byte `gorm:"unique;notnull"`
+	Amount        iotago.BaseToken
+	Address       []byte           `gorm:"notnull;index:delegation_address"`
+	Validator     []byte           `gorm:"index:delegation_validator"`
+	CreatedAtSlot iotago.SlotIndex `gorm:"notnull;index:delegation_created_at_slot"`
+	DeletedAtSlot iotago.SlotIndex
+	Committed     bool
 }
 
 func (d *delegation) String() string {
@@ -79,7 +79,7 @@ func (i *Indexer) DelegationByID(delegationID iotago.DelegationID) *IndexerResul
 }
 
 func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) *gorm.DB {
-	query := i.db.Model(&delegation{}).Where("deleted_at == 0")
+	query := i.db.Model(&delegation{}).Where("deleted_at_slot == 0")
 
 	if opts.address != nil {
 		query = query.Where("address = ?", opts.address.ID())
@@ -90,11 +90,11 @@ func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) *gorm
 	}
 
 	if opts.createdBefore != nil {
-		query = query.Where("created_at < ?", *opts.createdBefore)
+		query = query.Where("created_at_slot < ?", *opts.createdBefore)
 	}
 
 	if opts.createdAfter != nil {
-		query = query.Where("created_at > ?", *opts.createdAfter)
+		query = query.Where("created_at_slot > ?", *opts.createdAfter)
 	}
 
 	return query

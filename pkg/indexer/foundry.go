@@ -16,8 +16,8 @@ type foundry struct {
 	Amount            iotago.BaseToken
 	NativeTokenAmount *string
 	AccountAddress    []byte           `gorm:"notnull;index:foundries_account_address"`
-	CreatedAt         iotago.SlotIndex `gorm:"notnull;index:foundries_created_at"`
-	DeletedAt         iotago.SlotIndex
+	CreatedAtSlot     iotago.SlotIndex `gorm:"notnull;index:foundries__slot"`
+	DeletedAtSlot     iotago.SlotIndex
 	Committed         bool
 }
 
@@ -86,7 +86,7 @@ func (i *Indexer) FoundryByID(foundryID iotago.FoundryID) *IndexerResult {
 }
 
 func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gorm.DB {
-	query := i.db.Model(&foundry{}).Where("deleted_at == 0")
+	query := i.db.Model(&foundry{}).Where("deleted_at_slot == 0")
 
 	if opts.hasNativeToken != nil {
 		if *opts.hasNativeToken {
@@ -106,11 +106,11 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gor
 	}
 
 	if opts.createdBefore != nil {
-		query = query.Where("created_at < ?", *opts.createdBefore)
+		query = query.Where("created_at_slot < ?", *opts.createdBefore)
 	}
 
 	if opts.createdAfter != nil {
-		query = query.Where("created_at > ?", *opts.createdAfter)
+		query = query.Where("created_at_slot > ?", *opts.createdAfter)
 	}
 
 	return query

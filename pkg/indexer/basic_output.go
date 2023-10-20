@@ -23,8 +23,8 @@ type basic struct {
 	TimelockSlot                *iotago.SlotIndex
 	ExpirationSlot              *iotago.SlotIndex
 	ExpirationReturnAddress     []byte           `gorm:"index:basic_expiration_return_address"`
-	CreatedAt                   iotago.SlotIndex `gorm:"notnull;index:basic_created_at"`
-	DeletedAt                   iotago.SlotIndex
+	CreatedAtSlot               iotago.SlotIndex `gorm:"notnull;index:basic_created_at_slot"`
+	DeletedAtSlot               iotago.SlotIndex
 	Committed                   bool
 }
 
@@ -169,7 +169,7 @@ func BasicCreatedAfter(slot iotago.SlotIndex) options.Option[BasicFilterOptions]
 }
 
 func (i *Indexer) basicQueryWithFilter(opts *BasicFilterOptions) *gorm.DB {
-	query := i.db.Model(&basic{}).Where("deleted_at == 0")
+	query := i.db.Model(&basic{}).Where("deleted_at_slot == 0")
 
 	if opts.hasNativeToken != nil {
 		if *opts.hasNativeToken {
@@ -249,11 +249,11 @@ func (i *Indexer) basicQueryWithFilter(opts *BasicFilterOptions) *gorm.DB {
 	}
 
 	if opts.createdBefore != nil {
-		query = query.Where("created_at < ?", *opts.createdBefore)
+		query = query.Where("created_at_slot < ?", *opts.createdBefore)
 	}
 
 	if opts.createdAfter != nil {
-		query = query.Where("created_at > ?", *opts.createdAfter)
+		query = query.Where("created_at_slot > ?", *opts.createdAfter)
 	}
 
 	return query
