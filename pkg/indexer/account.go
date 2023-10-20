@@ -19,6 +19,8 @@ type account struct {
 	Issuer          []byte           `gorm:"index:account_issuer"`
 	Sender          []byte           `gorm:"index:account_sender"`
 	CreatedAt       iotago.SlotIndex `gorm:"notnull;index:account_created_at"`
+	DeletedAt       iotago.SlotIndex
+	Committed       bool
 }
 
 func (a *account) String() string {

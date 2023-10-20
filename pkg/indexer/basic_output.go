@@ -24,6 +24,8 @@ type basic struct {
 	ExpirationSlot              *iotago.SlotIndex
 	ExpirationReturnAddress     []byte           `gorm:"index:basic_expiration_return_address"`
 	CreatedAt                   iotago.SlotIndex `gorm:"notnull;index:basic_created_at"`
+	DeletedAt                   iotago.SlotIndex
+	Committed                   bool
 }
 
 func (o *basic) String() string {

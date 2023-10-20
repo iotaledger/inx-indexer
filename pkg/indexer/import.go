@@ -244,7 +244,7 @@ func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) 
 }
 
 func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) error {
-	entry, err := entryForOutput(outputID, output, slotBooked)
+	entry, err := entryForOutput(outputID, output, slotBooked, true)
 	if err != nil {
 		return err
 	}
@@ -286,7 +286,7 @@ func (i *ImportTransaction) Finalize(ledgerIndex iotago.SlotIndex, networkName s
 	// Update the indexer status
 	status := &Status{
 		ID:              1,
-		LedgerIndex:     ledgerIndex,
+		CommittedIndex:  ledgerIndex,
 		NetworkName:     networkName,
 		DatabaseVersion: databaseVersion,
 	}

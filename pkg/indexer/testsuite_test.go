@@ -34,6 +34,8 @@ func newTestSuite(t *testing.T) *indexerTestsuite {
 		Path:   t.TempDir(),
 	}
 
+	t.Logf("using database path: %s", dbParams.Path)
+
 	rootLogger, err := logger.NewRootLogger(logger.DefaultCfg)
 	require.NoError(t, err)
 
@@ -58,19 +60,19 @@ func (ts *indexerTestsuite) CurrentSlot() iotago.SlotIndex {
 	status, err := ts.Indexer.Status()
 	require.NoError(ts.T, err)
 
-	return status.LedgerIndex
+	return status.CommittedIndex
 }
 
-func (ts *indexerTestsuite) AddOutput(output iotago.Output, outputID iotago.OutputID) *indexerOutputSet {
-	currentSlot := ts.CurrentSlot()
+func (ts *indexerTestsuite) AddOutputOnCommitment(output iotago.Output, outputID iotago.OutputID) *indexerOutputSet {
+	committedSlot := ts.CurrentSlot() + 1
 
 	update := &indexer.LedgerUpdate{
-		Slot: currentSlot + 1,
+		Slot: committedSlot,
 		Created: []*indexer.LedgerOutput{
 			{
-				OutputID:  outputID,
-				Output:    output,
-				CreatedAt: currentSlot + 1,
+				OutputID: outputID,
+				Output:   output,
+				BookedAt: committedSlot,
 			},
 		},
 	}
@@ -85,8 +87,25 @@ func (ts *indexerTestsuite) AddOutput(output iotago.Output, outputID iotago.Outp
 	}
 }
 
-func (ts *indexerTestsuite) DeleteOutput(outputID iotago.OutputID) {
-	currentSlot := ts.CurrentSlot()
+func (ts *indexerTestsuite) AddOutputOnAcceptance(output iotago.Output, outputID iotago.OutputID) *indexerOutputSet {
+	acceptedSlot := ts.CurrentSlot() + 1
+
+	ts.insertedOutputs.Set(outputID, output)
+
+	require.NoError(ts.T, ts.Indexer.AcceptOutput(&indexer.LedgerOutput{
+		OutputID: outputID,
+		Output:   output,
+		BookedAt: acceptedSlot,
+	}))
+
+	return &indexerOutputSet{
+		ts:      ts,
+		Outputs: iotago.OutputIDs{outputID},
+	}
+}
+
+func (ts *indexerTestsuite) DeleteOutputOnCommitment(outputID iotago.OutputID) {
+	committedSlot := ts.CurrentSlot() + 1
 
 	output, found := ts.insertedOutputs.DeleteAndReturn(outputID)
 	if !found {
@@ -94,17 +113,32 @@ func (ts *indexerTestsuite) DeleteOutput(outputID iotago.OutputID) {
 	}
 
 	update := &indexer.LedgerUpdate{
-		Slot: currentSlot + 1,
+		Slot: committedSlot,
 		Consumed: []*indexer.LedgerOutput{
 			{
 				OutputID: outputID,
 				Output:   output,
-				SpentAt:  currentSlot + 1,
+				SpentAt:  committedSlot,
 			},
 		},
 	}
 
 	require.NoError(ts.T, ts.Indexer.UpdatedLedger(update))
+}
+
+func (ts *indexerTestsuite) DeleteOutputOnAcceptance(outputID iotago.OutputID) {
+	acceptedSlot := ts.CurrentSlot() + 1
+
+	output, found := ts.insertedOutputs.DeleteAndReturn(outputID)
+	if !found {
+		ts.T.Fatalf("output not found: %s", outputID)
+	}
+
+	require.NoError(ts.T, ts.Indexer.AcceptSpent(&indexer.LedgerOutput{
+		OutputID: outputID,
+		Output:   output,
+		SpentAt:  acceptedSlot,
+	}))
 }
 
 func (ts *indexerTestsuite) MultiAddressExists(multiAddress *iotago.MultiAddress) bool {

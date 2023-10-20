@@ -17,6 +17,8 @@ type foundry struct {
 	NativeTokenAmount *string
 	AccountAddress    []byte           `gorm:"notnull;index:foundries_account_address"`
 	CreatedAt         iotago.SlotIndex `gorm:"notnull;index:foundries_created_at"`
+	DeletedAt         iotago.SlotIndex
+	Committed         bool
 }
 
 func (o *foundry) String() string {

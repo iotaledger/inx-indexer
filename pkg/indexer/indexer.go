@@ -13,14 +13,17 @@ import (
 var (
 	ErrStatusNotFound = errors.New("status not found")
 
-	dbTables = []interface{}{
+	dbTables = append([]interface{}{
 		&Status{},
+		&multiaddress{},
+	}, outputTables...)
+
+	outputTables = []interface{}{
 		&basic{},
 		&nft{},
 		&foundry{},
 		&account{},
 		&delegation{},
-		&multiaddress{},
 	}
 )
 
@@ -91,35 +94,79 @@ func addressesInOutput(output iotago.Output) []iotago.Address {
 	return foundAddresses
 }
 
-func processSpent(output *LedgerOutput, tx *gorm.DB) error {
-	switch output.Output.(type) {
-	case *iotago.BasicOutput:
-		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&basic{}).Error; err != nil {
+func processSpent(output *LedgerOutput, committed bool, tx *gorm.DB) error {
+	// Properly delete the outputs
+	if committed {
+		switch output.Output.(type) {
+		case *iotago.BasicOutput:
+			if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&basic{}).Error; err != nil {
+				return err
+			}
+		case *iotago.AccountOutput:
+			if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&account{}).Error; err != nil {
+				return err
+			}
+		case *iotago.NFTOutput:
+			if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&nft{}).Error; err != nil {
+				return err
+			}
+		case *iotago.FoundryOutput:
+			if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&foundry{}).Error; err != nil {
+				return err
+			}
+		case *iotago.DelegationOutput:
+			if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&delegation{}).Error; err != nil {
+				return err
+			}
+		}
+	} else {
+		// Mark them as deleted but leave them in for now
+		switch output.Output.(type) {
+		case *iotago.BasicOutput:
+			if err := tx.Model(&basic{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+				return err
+			}
+		case *iotago.AccountOutput:
+			if err := tx.Model(&account{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+				return err
+			}
+		case *iotago.NFTOutput:
+			if err := tx.Model(&nft{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+				return err
+			}
+		case *iotago.FoundryOutput:
+			if err := tx.Model(&foundry{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+				return err
+			}
+		case *iotago.DelegationOutput:
+			if err := tx.Model(&delegation{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	// TODO: handle pending deletions in the multiaddresses
+	return deleteMultiAddressesFromAddresses(tx, addressesInOutput(output.Output))
+}
+
+func removeUncommittedChangesUpUntilSlot(committedSlot iotago.SlotIndex, tx *gorm.DB) error {
+	for _, table := range outputTables {
+		// Remove the uncommitted insertions
+		if err := tx.Where("committed == false AND created_at <= ?", committedSlot).Delete(table).Error; err != nil {
 			return err
 		}
-	case *iotago.AccountOutput:
-		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&account{}).Error; err != nil {
-			return err
-		}
-	case *iotago.NFTOutput:
-		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&nft{}).Error; err != nil {
-			return err
-		}
-	case *iotago.FoundryOutput:
-		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&foundry{}).Error; err != nil {
-			return err
-		}
-	case *iotago.DelegationOutput:
-		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&delegation{}).Error; err != nil {
+		// Remove the uncommitted deletions
+		if err := tx.Where("deleted_at <= ?", committedSlot).Delete(table).Error; err != nil {
 			return err
 		}
 	}
 
-	return deleteMultiAddressesFromAddresses(tx, addressesInOutput(output.Output))
+	//TODO: remove pending multiaddresses
+	return nil
 }
 
-func processOutput(output *LedgerOutput, tx *gorm.DB) error {
-	entry, err := entryForOutput(output.OutputID, output.Output, output.CreatedAt)
+func processOutput(output *LedgerOutput, committed bool, tx *gorm.DB) error {
+	entry, err := entryForOutput(output.OutputID, output.Output, output.BookedAt, committed)
 	if err != nil {
 		return err
 	}
@@ -128,10 +175,11 @@ func processOutput(output *LedgerOutput, tx *gorm.DB) error {
 		return err
 	}
 
+	// TODO: handle pending insertions in the multiaddresses
 	return insertMultiAddressesFromAddresses(tx, addressesInOutput(output.Output))
 }
 
-func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex) (interface{}, error) {
+func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex, committed bool) (interface{}, error) {
 	var entry interface{}
 	switch iotaOutput := output.(type) {
 	case *iotago.BasicOutput:
@@ -142,6 +190,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 			Amount:    iotaOutput.Amount,
 			OutputID:  make([]byte, iotago.OutputIDLength),
 			CreatedAt: slotBooked,
+			Committed: committed,
 		}
 		copy(basic.OutputID, outputID[:])
 
@@ -196,6 +245,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 			AccountID: make([]byte, iotago.AccountIDLength),
 			OutputID:  make([]byte, iotago.OutputIDLength),
 			CreatedAt: slotBooked,
+			Committed: committed,
 		}
 		copy(acc.AccountID, accountID[:])
 		copy(acc.OutputID, outputID[:])
@@ -235,6 +285,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 			NFTID:     make([]byte, iotago.NFTIDLength),
 			OutputID:  make([]byte, iotago.OutputIDLength),
 			CreatedAt: slotBooked,
+			Committed: committed,
 		}
 		copy(nft.NFTID, nftID[:])
 		copy(nft.OutputID, outputID[:])
@@ -287,6 +338,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 			FoundryID: foundryID[:],
 			OutputID:  make([]byte, iotago.OutputIDLength),
 			CreatedAt: slotBooked,
+			Committed: committed,
 		}
 		copy(foundry.OutputID, outputID[:])
 
@@ -315,6 +367,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 			DelegationID: make([]byte, iotago.DelegationIDLength),
 			OutputID:     make([]byte, iotago.OutputIDLength),
 			CreatedAt:    slotBooked,
+			Committed:    committed,
 		}
 		copy(delegation.DelegationID, delegationID[:])
 		copy(delegation.OutputID, outputID[:])
@@ -367,12 +420,29 @@ func (i *Indexer) AutoMigrate() error {
 	return i.db.AutoMigrate(dbTables...)
 }
 
+func (i *Indexer) AcceptOutput(output *LedgerOutput) error {
+	return i.db.Transaction(func(tx *gorm.DB) error {
+		return processOutput(output, false, tx)
+	})
+}
+
+func (i *Indexer) AcceptSpent(output *LedgerOutput) error {
+	return i.db.Transaction(func(tx *gorm.DB) error {
+		return processSpent(output, false, tx)
+	})
+}
+
 func (i *Indexer) UpdatedLedger(update *LedgerUpdate) error {
 	return i.db.Transaction(func(tx *gorm.DB) error {
+		// Cleanup uncommitted changes for this update
+		if err := removeUncommittedChangesUpUntilSlot(update.Slot, tx); err != nil {
+			return err
+		}
+
 		spentOutputs := make(map[iotago.OutputID]struct{})
 		for _, output := range update.Consumed {
 			spentOutputs[output.OutputID] = struct{}{}
-			if err := processSpent(output, tx); err != nil {
+			if err := processSpent(output, true, tx); err != nil {
 				return err
 			}
 		}
@@ -382,12 +452,12 @@ func (i *Indexer) UpdatedLedger(update *LedgerUpdate) error {
 				// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
 				continue
 			}
-			if err := processOutput(output, tx); err != nil {
+			if err := processOutput(output, true, tx); err != nil {
 				return err
 			}
 		}
 
-		tx.Model(&Status{}).Where("id = ?", 1).Update("ledger_index", update.Slot)
+		tx.Model(&Status{}).Where("id = ?", 1).Update("committed_index", update.Slot)
 
 		return nil
 	})

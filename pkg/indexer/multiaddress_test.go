@@ -61,29 +61,29 @@ func TestIndexer_MultiAddress(t *testing.T) {
 	output2 := basicOutputWithAddress(multiaddress)
 	output2ID := iotago_tpkg.RandOutputID(1)
 
-	ts.AddOutput(output1, output1ID)
+	ts.AddOutputOnCommitment(output1, output1ID)
 
 	require.True(t, ts.MultiAddressExists(multiaddress))
 
-	ts.AddOutput(output2, output2ID)
+	ts.AddOutputOnCommitment(output2, output2ID)
 
 	require.True(t, ts.MultiAddressExists(multiaddress))
 
-	ts.DeleteOutput(output1ID)
+	ts.DeleteOutputOnCommitment(output1ID)
 
 	require.True(t, ts.MultiAddressExists(multiaddress))
 
-	ts.DeleteOutput(output2ID)
+	ts.DeleteOutputOnCommitment(output2ID)
 
 	require.False(t, ts.MultiAddressExists(multiaddress))
 
 	output3 := nftOutputWithAddressAndSender(multiaddress)
 	output3ID := iotago_tpkg.RandOutputID(2)
-	ts.AddOutput(output3, output3ID)
+	ts.AddOutputOnCommitment(output3, output3ID)
 
 	require.True(t, ts.MultiAddressExists(multiaddress))
 
-	ts.DeleteOutput(output3ID)
+	ts.DeleteOutputOnCommitment(output3ID)
 
 	require.False(t, ts.MultiAddressExists(multiaddress))
 }

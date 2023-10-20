@@ -117,7 +117,7 @@ func run() error {
 
 		Component.LogInfo("Starting LedgerUpdates ... done")
 
-		if err := deps.NodeBridge.ListenToLedgerUpdates(ctx, indexerStatus.LedgerIndex+1, 0, func(update *nodebridge.LedgerUpdate) error {
+		if err := deps.NodeBridge.ListenToLedgerUpdates(ctx, indexerStatus.CommittedIndex+1, 0, func(update *nodebridge.LedgerUpdate) error {
 			ts := time.Now()
 			ledgerUpdate, err := LedgerUpdateFromNodeBridge(update)
 			if err != nil {
@@ -239,7 +239,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 				Component.LogInfof("> Indexer database version changed: %d vs %d", status.DatabaseVersion, DBVersion)
 				needsToClearIndexer = true
 
-			case deps.NodeBridge.APIProvider().LatestAPI().TimeProvider().EpochStart(iotago.EpochIndex(nodeStatus.GetPruningEpoch())) > status.LedgerIndex:
+			case deps.NodeBridge.APIProvider().LatestAPI().TimeProvider().EpochStart(iotago.EpochIndex(nodeStatus.GetPruningEpoch())) > status.CommittedIndex:
 				Component.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
 				needsToClearIndexer = true
 			}
@@ -272,14 +272,14 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		if err := deps.Indexer.AutoMigrate(); err != nil {
 			return nil, err
 		}
-		Component.LogInfof("Importing initial ledger with %d outputs at index %d took %s", count, status.LedgerIndex, duration.Truncate(time.Millisecond))
+		Component.LogInfof("Importing initial ledger with %d outputs at index %d took %s", count, status.CommittedIndex, duration.Truncate(time.Millisecond))
 	} else {
 		Component.LogInfo("Checking database schema")
 		// Run auto migrate to make sure all required tables and indexes are there
 		if err := deps.Indexer.AutoMigrate(); err != nil {
 			return nil, err
 		}
-		Component.LogInfof("> Indexer started at ledgerIndex %d", status.LedgerIndex)
+		Component.LogInfof("> Indexer started at ledgerIndex %d", status.CommittedIndex)
 	}
 
 	return status, nil
@@ -380,10 +380,10 @@ func LedgerUpdateFromNodeBridge(update *nodebridge.LedgerUpdate) (*indexer.Ledge
 		}
 
 		consumed[i] = &indexer.LedgerOutput{
-			OutputID:  output.UnwrapOutputID(),
-			Output:    iotaOutput,
-			CreatedAt: iotago.SlotIndex(output.GetSlotBooked()),
-			SpentAt:   iotago.SlotIndex(spent.GetSlotSpent()),
+			OutputID: output.UnwrapOutputID(),
+			Output:   iotaOutput,
+			BookedAt: iotago.SlotIndex(output.GetSlotBooked()),
+			SpentAt:  iotago.SlotIndex(spent.GetSlotSpent()),
 		}
 	}
 
@@ -395,9 +395,9 @@ func LedgerUpdateFromNodeBridge(update *nodebridge.LedgerUpdate) (*indexer.Ledge
 		}
 
 		created[i] = &indexer.LedgerOutput{
-			OutputID:  output.UnwrapOutputID(),
-			Output:    iotaOutput,
-			CreatedAt: iotago.SlotIndex(output.GetSlotBooked()),
+			OutputID: output.UnwrapOutputID(),
+			Output:   iotaOutput,
+			BookedAt: iotago.SlotIndex(output.GetSlotBooked()),
 		}
 	}
 

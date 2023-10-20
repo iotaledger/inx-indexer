@@ -17,6 +17,8 @@ type delegation struct {
 	Address      []byte           `gorm:"notnull;index:delegation_address"`
 	Validator    []byte           `gorm:"index:delegation_validator"`
 	CreatedAt    iotago.SlotIndex `gorm:"notnull;index:delegation_created_at"`
+	DeletedAt    iotago.SlotIndex
+	Committed    bool
 }
 
 func (d *delegation) String() string {

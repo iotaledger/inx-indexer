@@ -24,6 +24,8 @@ type nft struct {
 	ExpirationSlot              *iotago.SlotIndex
 	ExpirationReturnAddress     []byte           `gorm:"index:nfts_expiration_return_address"`
 	CreatedAt                   iotago.SlotIndex `gorm:"notnull;index:nfts_created_at"`
+	DeletedAt                   iotago.SlotIndex
+	Committed                   bool
 }
 
 func (o *nft) String() string {
