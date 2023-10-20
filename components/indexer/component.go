@@ -225,7 +225,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		status, err = deps.Indexer.Status()
 		if err != nil {
 			if !errors.Is(err, indexer.ErrStatusNotFound) {
-				return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
+				return nil, fmt.Errorf("reading committedIndex from Indexer failed! Error: %w", err)
 			}
 			Component.LogInfo("Indexer is empty, so import initial ledger...")
 			needsToFillIndexer = true
@@ -240,7 +240,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 				needsToClearIndexer = true
 
 			case deps.NodeBridge.APIProvider().LatestAPI().TimeProvider().EpochStart(iotago.EpochIndex(nodeStatus.GetPruningEpoch())) > status.CommittedIndex:
-				Component.LogInfo("> Node has an newer pruning index than our current ledgerIndex")
+				Component.LogInfo("> Node has an newer pruning index than our current committedIndex")
 				needsToClearIndexer = true
 			}
 		}
@@ -262,10 +262,10 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 			return nil, fmt.Errorf("filling Indexer failed! Error: %w", err)
 		}
 		duration := time.Since(timeStart)
-		// Read new ledgerIndex after filling up the indexer
+		// Read new committedIndex after filling up the indexer
 		status, err = deps.Indexer.Status()
 		if err != nil {
-			return nil, fmt.Errorf("reading ledger index from Indexer failed! Error: %w", err)
+			return nil, fmt.Errorf("reading committedIndex from Indexer failed! Error: %w", err)
 		}
 		Component.LogInfo("Re-creating indexes")
 		// Run auto migrate to make sure all required tables and indexes are there
@@ -279,7 +279,14 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		if err := deps.Indexer.AutoMigrate(); err != nil {
 			return nil, err
 		}
-		Component.LogInfof("> Indexer started at ledgerIndex %d", status.CommittedIndex)
+
+		Component.LogInfo("Cleaning up all uncommitted changes")
+		// Clean up indexer from all uncommitted changes
+		if err := deps.Indexer.RemoveUncommittedChanges(); err != nil {
+			return nil, err
+		}
+
+		Component.LogInfof("> Indexer started at committedIndex %d", status.CommittedIndex)
 	}
 
 	return status, nil
@@ -308,7 +315,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 	tsStart := time.Now()
 	p := message.NewPrinter(language.English)
 	var innerErr error
-	var ledgerIndex iotago.SlotIndex
+	var committedIndex iotago.SlotIndex
 	var countReceive int
 	go func() {
 		for {
@@ -340,8 +347,8 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 				return
 			}
 			outputLedgerIndex := unspentOutput.GetLatestCommitmentId().Unwrap().Index()
-			if ledgerIndex < outputLedgerIndex {
-				ledgerIndex = outputLedgerIndex
+			if committedIndex < outputLedgerIndex {
+				committedIndex = outputLedgerIndex
 			}
 
 			countReceive++
@@ -363,7 +370,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 
 	Component.LogInfo(p.Sprintf("received total=%d in %s @ %.2f per second", countReceive, time.Since(tsStart).Truncate(time.Millisecond), float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
 
-	if err := importer.Finalize(ledgerIndex, deps.NodeBridge.APIProvider().CommittedAPI().ProtocolParameters().NetworkName(), DBVersion); err != nil {
+	if err := importer.Finalize(committedIndex, deps.NodeBridge.APIProvider().CommittedAPI().ProtocolParameters().NetworkName(), DBVersion); err != nil {
 		return 0, err
 	}
 

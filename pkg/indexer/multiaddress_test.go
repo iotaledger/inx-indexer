@@ -57,3 +57,52 @@ func TestIndexer_MultiAddress(t *testing.T) {
 
 	require.False(t, ts.MultiAddressExists(multiaddress))
 }
+
+func TestIndexer_MultiAddress_OnAcceptance(t *testing.T) {
+	ts := newTestSuite(t)
+
+	multiaddress := &iotago.MultiAddress{
+		Addresses: iotago.AddressesWithWeight{
+			&iotago.AddressWithWeight{
+				Address: iotago_tpkg.RandEd25519Address(),
+				Weight:  1,
+			},
+			&iotago.AddressWithWeight{
+				Address: iotago_tpkg.RandEd25519Address(),
+				Weight:  1,
+			},
+		},
+		Threshold: 2,
+	}
+
+	output1 := basicOutputWithAddress(multiaddress)
+	output1ID := iotago_tpkg.RandOutputID(0)
+	output2 := basicOutputWithAddress(multiaddress)
+	output2ID := iotago_tpkg.RandOutputID(1)
+
+	require.False(t, ts.MultiAddressExists(multiaddress))
+
+	ts.AddOutputOnAcceptance(output1, output1ID)
+
+	require.True(t, ts.MultiAddressExists(multiaddress))
+
+	ts.AddOutputOnCommitment(output1, output1ID)
+
+	require.True(t, ts.MultiAddressExists(multiaddress))
+
+	ts.AddOutputOnAcceptance(output2, output2ID)
+
+	require.True(t, ts.MultiAddressExists(multiaddress))
+
+	// Delete output1 on commitment, which should also delete the uncommitted output2
+	ts.DeleteOutputOnCommitment(output1ID)
+
+	// The multiaddress should still exist, because output2 held an uncommitted reference to it
+	require.True(t, ts.MultiAddressExists(multiaddress))
+
+	// Simulate indexer restart
+	require.NoError(t, ts.Indexer.RemoveUncommittedChanges())
+
+	// The multiaddress should not exist anymore
+	require.False(t, ts.MultiAddressExists(multiaddress))
+}

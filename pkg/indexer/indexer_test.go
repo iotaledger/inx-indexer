@@ -3,6 +3,8 @@ package indexer_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	iotago "github.com/iotaledger/iota.go/v4"
 	iotago_tpkg "github.com/iotaledger/iota.go/v4/tpkg"
 )
@@ -123,7 +125,7 @@ func (o *outputTest) commitAddThenAcceptDeleteThenCommitEmpty(t *testing.T) {
 	// Commit Add
 	ts.AddOutputOnCommitment(o.output, o.outputID)
 
-	// Committer outputs are found
+	// Committed outputs are found
 	ts.requireFound(o.outputID)
 
 	// Delete on acceptance
@@ -136,6 +138,57 @@ func (o *outputTest) commitAddThenAcceptDeleteThenCommitEmpty(t *testing.T) {
 	ts.CommitEmptyLedgerUpdate()
 
 	// Output should be found again because the deletion was never committed
+	ts.requireFound(o.outputID)
+}
+
+func TestIndexer_AcceptAdd_RestartIndexer(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, tt.acceptAddThenRestartIndexer)
+	}
+}
+
+func (o *outputTest) acceptAddThenRestartIndexer(t *testing.T) {
+	ts := newTestSuite(t)
+
+	// Commit something so that we are not at zero
+	ts.CommitEmptyLedgerUpdate()
+
+	// Accept Add
+	ts.AddOutputOnAcceptance(o.output, o.outputID)
+
+	// Outputs are found
+	ts.requireFound(o.outputID)
+
+	require.NoError(t, ts.Indexer.RemoveUncommittedChanges())
+
+	// Output should not be found again because we removed all uncommitted changes
+	ts.requireNotFound(o.outputID)
+}
+
+func TestIndexer_AcceptDelete_RestartIndexer(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, tt.acceptDeleteThenRestartIndexer)
+	}
+}
+
+func (o *outputTest) acceptDeleteThenRestartIndexer(t *testing.T) {
+	ts := newTestSuite(t)
+
+	// Commit Add
+	ts.AddOutputOnCommitment(o.output, o.outputID)
+
+	// Outputs are found
+	ts.requireFound(o.outputID)
+
+	// Accept Delete
+	ts.DeleteOutputOnAcceptance(o.outputID)
+
+	// Output should not be found anymore (but still in db)
+	ts.requireNotFound(o.outputID)
+
+	require.NoError(t, ts.Indexer.RemoveUncommittedChanges())
+
+	// Output should be found again because we reverted the uncommitted delete
 	ts.requireFound(o.outputID)
 }
 

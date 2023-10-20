@@ -153,13 +153,13 @@ func (i *Indexer) resultsForQuery(query *gorm.DB, pageSize uint32) *IndexerResul
 		return errorResult(err)
 	}
 
-	var ledgerIndex iotago.SlotIndex
+	var committedIndex iotago.SlotIndex
 	if len(results) > 0 {
-		ledgerIndex = results[0].CommittedIndex
+		committedIndex = results[0].CommittedIndex
 	} else {
-		// Since we got no results for the query, return the current ledger index
+		// Since we got no results for the query, return the current committedIndex
 		if status, err := i.Status(); err == nil {
-			ledgerIndex = status.CommittedIndex
+			committedIndex = status.CommittedIndex
 		}
 	}
 
@@ -173,7 +173,7 @@ func (i *Indexer) resultsForQuery(query *gorm.DB, pageSize uint32) *IndexerResul
 
 	return &IndexerResult{
 		OutputIDs:      results.IDs(),
-		CommittedIndex: ledgerIndex,
+		CommittedIndex: committedIndex,
 		PageSize:       pageSize,
 		Cursor:         nextCursor,
 		Error:          nil,

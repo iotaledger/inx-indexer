@@ -37,7 +37,7 @@ func typeIsRefCountable[T any]() bool {
 }
 
 type refCountable interface {
-	primaryKeyRow() string
+	primaryKeyColumn() string
 	refCountDelta() int
 }
 
@@ -145,7 +145,7 @@ func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T
 						for _, item := range batch {
 							if itemWithRefCount, ok := interface{}(item).(refCountable); ok {
 								if err := tx.Clauses(clause.OnConflict{
-									Columns:   []clause.Column{{Name: itemWithRefCount.primaryKeyRow()}},
+									Columns:   []clause.Column{{Name: itemWithRefCount.primaryKeyColumn()}},
 									DoUpdates: clause.Assignments(map[string]interface{}{"ref_count": gorm.Expr("ref_count + ?", itemWithRefCount.refCountDelta())}),
 								}).Create(item).Error; err != nil {
 									return err
@@ -263,7 +263,7 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 		i.delegation.enqueue(e)
 	}
 
-	multiAddresses, err := multiAddressesForAddresses(addressesInOutput(output)...)
+	multiAddresses, err := multiAddressesForAddresses(true, addressesInOutput(output)...)
 	if err != nil {
 		return err
 	}
@@ -273,7 +273,7 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 	return nil
 }
 
-func (i *ImportTransaction) Finalize(ledgerIndex iotago.SlotIndex, networkName string, databaseVersion uint32) error {
+func (i *ImportTransaction) Finalize(committedIndex iotago.SlotIndex, networkName string, databaseVersion uint32) error {
 	// drain all processors
 	i.basic.closeAndWait()
 	i.nft.closeAndWait()
@@ -282,12 +282,12 @@ func (i *ImportTransaction) Finalize(ledgerIndex iotago.SlotIndex, networkName s
 	i.delegation.closeAndWait()
 	i.multiAddress.closeAndWait()
 
-	i.LogDebugf("Finished insertion, update ledger index")
+	i.LogDebugf("Finished insertion, update committedIndex")
 
 	// Update the indexer status
 	status := &Status{
 		ID:              1,
-		CommittedIndex:  ledgerIndex,
+		CommittedIndex:  committedIndex,
 		NetworkName:     networkName,
 		DatabaseVersion: databaseVersion,
 	}

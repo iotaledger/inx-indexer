@@ -95,7 +95,7 @@ func addressesInOutput(output iotago.Output) []iotago.Address {
 }
 
 func processSpent(output *LedgerOutput, committed bool, tx *gorm.DB) error {
-	// Properly delete the outputs
+	// Properly delete the outputs if they were committed
 	if committed {
 		switch output.Output.(type) {
 		case *iotago.BasicOutput:
@@ -119,34 +119,36 @@ func processSpent(output *LedgerOutput, committed bool, tx *gorm.DB) error {
 				return err
 			}
 		}
-	} else {
-		// Mark them as deleted but leave them in for now
-		switch output.Output.(type) {
-		case *iotago.BasicOutput:
-			if err := tx.Model(&basic{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
-				return err
-			}
-		case *iotago.AccountOutput:
-			if err := tx.Model(&account{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
-				return err
-			}
-		case *iotago.NFTOutput:
-			if err := tx.Model(&nft{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
-				return err
-			}
-		case *iotago.FoundryOutput:
-			if err := tx.Model(&foundry{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
-				return err
-			}
-		case *iotago.DelegationOutput:
-			if err := tx.Model(&delegation{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
-				return err
-			}
+
+		// Delete committed MultiAddress deletions
+		return deleteMultiAddressesFromAddresses(tx, addressesInOutput(output.Output))
+	}
+
+	// Mark them as deleted but leave them in for now
+	switch output.Output.(type) {
+	case *iotago.BasicOutput:
+		if err := tx.Model(&basic{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+			return err
+		}
+	case *iotago.AccountOutput:
+		if err := tx.Model(&account{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+			return err
+		}
+	case *iotago.NFTOutput:
+		if err := tx.Model(&nft{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+			return err
+		}
+	case *iotago.FoundryOutput:
+		if err := tx.Model(&foundry{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+			return err
+		}
+	case *iotago.DelegationOutput:
+		if err := tx.Model(&delegation{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at", output.SpentAt).Error; err != nil {
+			return err
 		}
 	}
 
-	// TODO: handle pending deletions in the multiaddresses
-	return deleteMultiAddressesFromAddresses(tx, addressesInOutput(output.Output))
+	return nil
 }
 
 func removeUncommittedChangesUpUntilSlot(committedSlot iotago.SlotIndex, tx *gorm.DB) error {
@@ -155,14 +157,26 @@ func removeUncommittedChangesUpUntilSlot(committedSlot iotago.SlotIndex, tx *gor
 		if err := tx.Where("committed == false AND created_at <= ?", committedSlot).Delete(table).Error; err != nil {
 			return err
 		}
+
 		// Revert all uncommitted deletions
 		if err := tx.Model(table).Where("deleted_at > 0 AND deleted_at <= ?", committedSlot).Update("deleted_at", 0).Error; err != nil {
 			return err
 		}
 	}
 
-	//TODO: remove pending multiaddresses
 	return nil
+}
+
+func (i *Indexer) RemoveUncommittedChanges() error {
+	return i.db.Transaction(func(tx *gorm.DB) error {
+		// Remove all MultiAddresses with only pending references
+		if err := deleteMultiAddressesWithOnlyUncommittedReferences(tx); err != nil {
+			return err
+		}
+
+		// Remove all uncommitted outputs
+		return removeUncommittedChangesUpUntilSlot(iotago.MaxSlotIndex, tx)
+	})
 }
 
 func processOutput(output *LedgerOutput, committed bool, tx *gorm.DB) error {
@@ -175,8 +189,7 @@ func processOutput(output *LedgerOutput, committed bool, tx *gorm.DB) error {
 		return err
 	}
 
-	// TODO: handle pending insertions in the multiaddresses
-	return insertMultiAddressesFromAddresses(tx, addressesInOutput(output.Output))
+	return insertMultiAddressesFromAddresses(tx, addressesInOutput(output.Output), committed)
 }
 
 func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked iotago.SlotIndex, committed bool) (interface{}, error) {
