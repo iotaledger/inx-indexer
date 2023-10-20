@@ -229,7 +229,7 @@ func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsRespo
 		filters = append(filters, indexer.CombinedCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.CombinedOutputsWithFilters(filters...))
+	return outputsResponseFromResult(s.Indexer.Combined(filters...))
 }
 
 func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse, error) {

@@ -137,7 +137,7 @@ func (o *CombinedFilterOptions) DelegationFilterOptions() *DelegationFilterOptio
 	}
 }
 
-func (i *Indexer) CombinedOutputsWithFilters(filters ...options.Option[CombinedFilterOptions]) *IndexerResult {
+func (i *Indexer) Combined(filters ...options.Option[CombinedFilterOptions]) *IndexerResult {
 	opts := options.Apply(new(CombinedFilterOptions), filters)
 
 	var queries []*gorm.DB

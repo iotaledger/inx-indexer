@@ -102,7 +102,7 @@ func (i *Indexer) AccountByID(accountID iotago.AccountID) *IndexerResult {
 }
 
 func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) *gorm.DB {
-	query := i.db.Model(&account{})
+	query := i.db.Model(&account{}).Where("deleted_at == 0")
 
 	if opts.unlockableByAddress != nil {
 		addrID := opts.unlockableByAddress.ID()

@@ -155,8 +155,8 @@ func removeUncommittedChangesUpUntilSlot(committedSlot iotago.SlotIndex, tx *gor
 		if err := tx.Where("committed == false AND created_at <= ?", committedSlot).Delete(table).Error; err != nil {
 			return err
 		}
-		// Remove the uncommitted deletions
-		if err := tx.Where("deleted_at <= ?", committedSlot).Delete(table).Error; err != nil {
+		// Revert all uncommitted deletions
+		if err := tx.Model(table).Where("deleted_at > 0 AND deleted_at <= ?", committedSlot).Update("deleted_at", 0).Error; err != nil {
 			return err
 		}
 	}

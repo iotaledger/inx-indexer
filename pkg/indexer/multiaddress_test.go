@@ -9,36 +9,6 @@ import (
 	iotago_tpkg "github.com/iotaledger/iota.go/v4/tpkg"
 )
 
-func basicOutputWithAddress(address iotago.Address) iotago.Output {
-	return &iotago.BasicOutput{
-		Amount: 100000,
-		Mana:   0,
-		Conditions: iotago.BasicOutputUnlockConditions{
-			&iotago.AddressUnlockCondition{
-				Address: address,
-			},
-		},
-		Features: nil,
-	}
-}
-
-func nftOutputWithAddressAndSender(address iotago.Address) iotago.Output {
-	return &iotago.NFTOutput{
-		Amount: 100000,
-		Mana:   0,
-		Conditions: iotago.NFTOutputUnlockConditions{
-			&iotago.AddressUnlockCondition{
-				Address: address,
-			},
-		},
-		Features: iotago.NFTOutputFeatures{
-			&iotago.SenderFeature{
-				Address: address,
-			},
-		},
-	}
-}
-
 func TestIndexer_MultiAddress(t *testing.T) {
 	ts := newTestSuite(t)
 

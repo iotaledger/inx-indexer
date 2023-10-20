@@ -170,7 +170,7 @@ func (i *Indexer) NFTByID(nftID iotago.NFTID) *IndexerResult {
 }
 
 func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) *gorm.DB {
-	query := i.db.Model(&nft{})
+	query := i.db.Model(&nft{}).Where("deleted_at == 0")
 
 	if opts.unlockableByAddress != nil {
 		addrID := opts.unlockableByAddress.ID()
