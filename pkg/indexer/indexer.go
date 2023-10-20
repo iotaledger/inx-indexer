@@ -445,7 +445,7 @@ func (i *Indexer) AcceptLedgerUpdate(update *LedgerUpdate) error {
 
 		for _, output := range update.Created {
 			if _, wasSpentInSameSlot := spentOutputs[output.OutputID]; wasSpentInSameSlot {
-				// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
+				// We only care about the end-result of the confirmation, so outputs that were already spent in the same update can be ignored
 				continue
 			}
 			if err := processOutput(output, false, tx); err != nil {
@@ -474,7 +474,7 @@ func (i *Indexer) CommitLedgerUpdate(update *LedgerUpdate) error {
 
 		for _, output := range update.Created {
 			if _, wasSpentInSameSlot := spentOutputs[output.OutputID]; wasSpentInSameSlot {
-				// We only care about the end-result of the confirmation, so outputs that were already spent in the same milestone can be ignored
+				// We only care about the end-result of the confirmation, so outputs that were already spent in the same update can be ignored
 				continue
 			}
 			if err := processOutput(output, true, tx); err != nil {
