@@ -154,7 +154,7 @@ func processSpent(output *LedgerOutput, committed bool, tx *gorm.DB) error {
 func removeUncommittedChangesUpUntilSlot(committedSlot iotago.SlotIndex, tx *gorm.DB) error {
 	for _, table := range outputTables {
 		// Remove the uncommitted insertions
-		if err := tx.Where("committed == false AND created_at_slot <= ?", committedSlot).Delete(table).Error; err != nil {
+		if err := tx.Where("created_at_slot <= ? AND committed = false", committedSlot).Delete(table).Error; err != nil {
 			return err
 		}
 
