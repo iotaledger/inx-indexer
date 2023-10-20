@@ -14,11 +14,13 @@ type account struct {
 	AccountID       []byte `gorm:"primaryKey;notnull"`
 	OutputID        []byte `gorm:"unique;notnull"`
 	Amount          iotago.BaseToken
-	StateController []byte           `gorm:"notnull;index:account_state_controller"`
-	Governor        []byte           `gorm:"notnull;index:account_governor"`
-	Issuer          []byte           `gorm:"index:account_issuer"`
-	Sender          []byte           `gorm:"index:account_sender"`
-	CreatedAt       iotago.SlotIndex `gorm:"notnull;index:account_created_at"`
+	StateController []byte           `gorm:"notnull;index:accounts_state_controller"`
+	Governor        []byte           `gorm:"notnull;index:accounts_governor"`
+	Issuer          []byte           `gorm:"index:accounts_issuer"`
+	Sender          []byte           `gorm:"index:accounts_sender"`
+	CreatedAtSlot   iotago.SlotIndex `gorm:"notnull;index:accounts_created_at_slot"`
+	DeletedAtSlot   iotago.SlotIndex `gorm:"notnull;index:accounts_deleted_at_slot"`
+	Committed       bool
 }
 
 func (a *account) String() string {
@@ -100,7 +102,7 @@ func (i *Indexer) AccountByID(accountID iotago.AccountID) *IndexerResult {
 }
 
 func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) *gorm.DB {
-	query := i.db.Model(&account{})
+	query := i.db.Model(&account{}).Where("deleted_at_slot == 0")
 
 	if opts.unlockableByAddress != nil {
 		addrID := opts.unlockableByAddress.ID()
@@ -124,11 +126,11 @@ func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) *gorm.DB {
 	}
 
 	if opts.createdBefore != nil {
-		query = query.Where("created_at < ?", *opts.createdBefore)
+		query = query.Where("created_at_slot < ?", *opts.createdBefore)
 	}
 
 	if opts.createdAfter != nil {
-		query = query.Where("created_at > ?", *opts.createdAfter)
+		query = query.Where("created_at_slot > ?", *opts.createdAfter)
 	}
 
 	return query

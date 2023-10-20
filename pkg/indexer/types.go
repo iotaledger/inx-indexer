@@ -22,23 +22,23 @@ type LedgerUpdate struct {
 }
 
 type LedgerOutput struct {
-	OutputID  iotago.OutputID
-	Output    iotago.Output
-	CreatedAt iotago.SlotIndex
-	SpentAt   iotago.SlotIndex
+	OutputID iotago.OutputID
+	Output   iotago.Output
+	BookedAt iotago.SlotIndex
+	SpentAt  iotago.SlotIndex
 }
 
 type Status struct {
 	ID              uint `gorm:"primaryKey;notnull"`
-	LedgerIndex     iotago.SlotIndex
+	CommittedIndex  iotago.SlotIndex
 	NetworkName     string
 	DatabaseVersion uint32
 }
 
 type queryResult struct {
-	OutputID    []byte
-	Cursor      string
-	LedgerIndex iotago.SlotIndex
+	OutputID       []byte
+	Cursor         string
+	CommittedIndex iotago.SlotIndex
 }
 
 type queryResults []queryResult
@@ -54,11 +54,11 @@ func (q queryResults) IDs() iotago.OutputIDs {
 
 //nolint:revive // better be explicit here
 type IndexerResult struct {
-	OutputIDs   iotago.OutputIDs
-	LedgerIndex iotago.SlotIndex
-	PageSize    uint32
-	Cursor      *string
-	Error       error
+	OutputIDs      iotago.OutputIDs
+	CommittedIndex iotago.SlotIndex
+	PageSize       uint32
+	Cursor         *string
+	Error          error
 }
 
 func errorResult(err error) *IndexerResult {
@@ -68,21 +68,21 @@ func errorResult(err error) *IndexerResult {
 }
 
 func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string) (*gorm.DB, error) {
-	query = query.Select("output_id", "created_at").Order("created_at asc, output_id asc")
+	query = query.Select("output_id", "created_at_slot").Order("created_at_slot asc, output_id asc")
 	if pageSize > 0 {
 		var cursorQuery string
 		//nolint:exhaustive // we have a default case.
 		switch i.engine {
 		case database.EngineSQLite:
-			cursorQuery = "printf('%016X', created_at) || hex(output_id) as cursor"
+			cursorQuery = "printf('%016X', created_at_slot) || hex(output_id) as cursor"
 		case database.EnginePostgreSQL:
-			cursorQuery = "lpad(to_hex(created_at), 16, '0') || encode(output_id, 'hex') as cursor"
+			cursorQuery = "lpad(to_hex(created_at_slot), 16, '0') || encode(output_id, 'hex') as cursor"
 		default:
 			i.LogErrorfAndExit("Unsupported db engine pagination queries: %s", i.engine)
 		}
 
 		// We use pageSize + 1 to load the next item to use as the cursor
-		query = query.Select("output_id", "created_at", cursorQuery).Limit(int(pageSize + 1))
+		query = query.Select("output_id", "created_at_slot", cursorQuery).Limit(int(pageSize + 1))
 
 		if cursor != nil {
 			if len(*cursor) != CursorLength {
@@ -93,7 +93,7 @@ func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string)
 			case database.EngineSQLite:
 				query = query.Where("cursor >= ?", strings.ToUpper(*cursor))
 			case database.EnginePostgreSQL:
-				query = query.Where("lpad(to_hex(created_at), 16, '0') || encode(output_id, 'hex') >= ?", *cursor)
+				query = query.Where("lpad(to_hex(created_at_slot), 16, '0') || encode(output_id, 'hex') >= ?", *cursor)
 			default:
 				i.LogErrorfAndExit("Unsupported db engine pagination queries: %s", i.engine)
 			}
@@ -124,27 +124,27 @@ func (i *Indexer) combineOutputIDFilteredQueries(queries []*gorm.DB, pageSize ui
 		filteredQueries[q] = filtered
 	}
 
-	unionQueryItem := "SELECT output_id, created_at FROM (?) as temp;"
+	unionQueryItem := "SELECT output_id, created_at_slot FROM (?) as temp;"
 	if pageSize > 0 {
-		unionQueryItem = "SELECT output_id, created_at, cursor FROM (?) as temp;"
+		unionQueryItem = "SELECT output_id, created_at_slot, cursor FROM (?) as temp;"
 	}
 	repeatedUnionQueryItem := strings.Split(strings.Repeat(unionQueryItem, len(queries)), ";")
 	unionQuery := strings.Join(repeatedUnionQueryItem[:len(repeatedUnionQueryItem)-1], " UNION ")
 
 	// We use pageSize + 1 to load the next item to use as the cursor
-	unionQuery = fmt.Sprintf("%s ORDER BY created_at asc, output_id asc LIMIT %d", unionQuery, pageSize+1)
+	unionQuery = fmt.Sprintf("%s ORDER BY created_at_slot asc, output_id asc LIMIT %d", unionQuery, pageSize+1)
 
 	rawQuery := i.db.Raw(unionQuery, filteredQueries...)
-	rawQuery = rawQuery.Order("created_at asc, output_id asc")
+	rawQuery = rawQuery.Order("created_at_slot asc, output_id asc")
 
 	return i.resultsForQuery(rawQuery, pageSize)
 }
 
 func (i *Indexer) resultsForQuery(query *gorm.DB, pageSize uint32) *IndexerResult {
-	// This combines the query with a second query that checks for the current ledger_index.
+	// This combines the query with a second query that checks for the current committed_index.
 	// This way we do not need to lock anything and we know the index matches the results.
-	ledgerIndexQuery := i.db.Model(&Status{}).Select("ledger_index")
-	joinedQuery := i.db.Table("(?) as results, (?) as status", query, ledgerIndexQuery)
+	committedIndexQuery := i.db.Model(&Status{}).Select("committed_index")
+	joinedQuery := i.db.Table("(?) as results, (?) as status", query, committedIndexQuery)
 
 	var results queryResults
 
@@ -153,13 +153,13 @@ func (i *Indexer) resultsForQuery(query *gorm.DB, pageSize uint32) *IndexerResul
 		return errorResult(err)
 	}
 
-	var ledgerIndex iotago.SlotIndex
+	var committedIndex iotago.SlotIndex
 	if len(results) > 0 {
-		ledgerIndex = results[0].LedgerIndex
+		committedIndex = results[0].CommittedIndex
 	} else {
-		// Since we got no results for the query, return the current ledger index
+		// Since we got no results for the query, return the current committedIndex
 		if status, err := i.Status(); err == nil {
-			ledgerIndex = status.LedgerIndex
+			committedIndex = status.CommittedIndex
 		}
 	}
 
@@ -172,10 +172,10 @@ func (i *Indexer) resultsForQuery(query *gorm.DB, pageSize uint32) *IndexerResul
 	}
 
 	return &IndexerResult{
-		OutputIDs:   results.IDs(),
-		LedgerIndex: ledgerIndex,
-		PageSize:    pageSize,
-		Cursor:      nextCursor,
-		Error:       nil,
+		OutputIDs:      results.IDs(),
+		CommittedIndex: committedIndex,
+		PageSize:       pageSize,
+		Cursor:         nextCursor,
+		Error:          nil,
 	}
 }

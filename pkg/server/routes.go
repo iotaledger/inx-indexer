@@ -229,7 +229,7 @@ func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsRespo
 		filters = append(filters, indexer.CombinedCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.CombinedOutputsWithFilters(filters...))
+	return outputsResponseFromResult(s.Indexer.Combined(filters...))
 }
 
 func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
@@ -764,10 +764,10 @@ func outputsResponseFromResult(result *indexer.IndexerResult) (*outputsResponse,
 	}
 
 	return &outputsResponse{
-		LedgerIndex: result.LedgerIndex,
-		PageSize:    result.PageSize,
-		Cursor:      cursor,
-		Items:       result.OutputIDs.ToHex(),
+		CommittedIndex: result.CommittedIndex,
+		PageSize:       result.PageSize,
+		Cursor:         cursor,
+		Items:          result.OutputIDs.ToHex(),
 	}, nil
 }
 

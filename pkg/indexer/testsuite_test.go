@@ -20,7 +20,7 @@ type indexerTestsuite struct {
 	T       *testing.T
 	Indexer *indexer.Indexer
 
-	insertedOutputs *shrinkingmap.ShrinkingMap[iotago.OutputID, iotago.Output]
+	committedOutputs *shrinkingmap.ShrinkingMap[iotago.OutputID, iotago.Output]
 }
 
 type indexerOutputSet struct {
@@ -48,9 +48,9 @@ func newTestSuite(t *testing.T) *indexerTestsuite {
 	require.NoError(t, idx.AutoMigrate())
 
 	return &indexerTestsuite{
-		T:               t,
-		Indexer:         idx,
-		insertedOutputs: shrinkingmap.New[iotago.OutputID, iotago.Output](),
+		T:                t,
+		Indexer:          idx,
+		committedOutputs: shrinkingmap.New[iotago.OutputID, iotago.Output](),
 	}
 }
 
@@ -58,26 +58,36 @@ func (ts *indexerTestsuite) CurrentSlot() iotago.SlotIndex {
 	status, err := ts.Indexer.Status()
 	require.NoError(ts.T, err)
 
-	return status.LedgerIndex
+	return status.CommittedIndex
 }
 
-func (ts *indexerTestsuite) AddOutput(output iotago.Output, outputID iotago.OutputID) *indexerOutputSet {
-	currentSlot := ts.CurrentSlot()
+func (ts *indexerTestsuite) CommitEmptyLedgerUpdate() {
+	committedSlot := ts.CurrentSlot() + 1
 
 	update := &indexer.LedgerUpdate{
-		Slot: currentSlot + 1,
+		Slot: committedSlot,
+	}
+
+	require.NoError(ts.T, ts.Indexer.CommitLedgerUpdate(update))
+}
+
+func (ts *indexerTestsuite) AddOutputOnCommitment(output iotago.Output, outputID iotago.OutputID) *indexerOutputSet {
+	committedSlot := ts.CurrentSlot() + 1
+
+	update := &indexer.LedgerUpdate{
+		Slot: committedSlot,
 		Created: []*indexer.LedgerOutput{
 			{
-				OutputID:  outputID,
-				Output:    output,
-				CreatedAt: currentSlot + 1,
+				OutputID: outputID,
+				Output:   output,
+				BookedAt: committedSlot,
 			},
 		},
 	}
 
-	require.NoError(ts.T, ts.Indexer.UpdatedLedger(update))
+	require.NoError(ts.T, ts.Indexer.CommitLedgerUpdate(update))
 
-	ts.insertedOutputs.Set(outputID, output)
+	ts.committedOutputs.Set(outputID, output)
 
 	return &indexerOutputSet{
 		ts:      ts,
@@ -85,26 +95,72 @@ func (ts *indexerTestsuite) AddOutput(output iotago.Output, outputID iotago.Outp
 	}
 }
 
-func (ts *indexerTestsuite) DeleteOutput(outputID iotago.OutputID) {
-	currentSlot := ts.CurrentSlot()
+func (ts *indexerTestsuite) AddOutputOnAcceptance(output iotago.Output, outputID iotago.OutputID) *indexerOutputSet {
+	acceptedSlot := ts.CurrentSlot() + 1
 
-	output, found := ts.insertedOutputs.DeleteAndReturn(outputID)
+	ts.committedOutputs.Set(outputID, output)
+
+	update := &indexer.LedgerUpdate{
+		Slot: acceptedSlot,
+		Created: []*indexer.LedgerOutput{
+			{
+				OutputID: outputID,
+				Output:   output,
+				BookedAt: acceptedSlot,
+			},
+		},
+	}
+
+	require.NoError(ts.T, ts.Indexer.AcceptLedgerUpdate(update))
+
+	return &indexerOutputSet{
+		ts:      ts,
+		Outputs: iotago.OutputIDs{outputID},
+	}
+}
+
+func (ts *indexerTestsuite) DeleteOutputOnCommitment(outputID iotago.OutputID) {
+	committedSlot := ts.CurrentSlot() + 1
+
+	output, found := ts.committedOutputs.DeleteAndReturn(outputID)
 	if !found {
 		ts.T.Fatalf("output not found: %s", outputID)
 	}
 
 	update := &indexer.LedgerUpdate{
-		Slot: currentSlot + 1,
+		Slot: committedSlot,
 		Consumed: []*indexer.LedgerOutput{
 			{
 				OutputID: outputID,
 				Output:   output,
-				SpentAt:  currentSlot + 1,
+				SpentAt:  committedSlot,
 			},
 		},
 	}
 
-	require.NoError(ts.T, ts.Indexer.UpdatedLedger(update))
+	require.NoError(ts.T, ts.Indexer.CommitLedgerUpdate(update))
+}
+
+func (ts *indexerTestsuite) DeleteOutputOnAcceptance(outputID iotago.OutputID) {
+	acceptedSlot := ts.CurrentSlot() + 1
+
+	output, found := ts.committedOutputs.Get(outputID)
+	if !found {
+		ts.T.Fatalf("output not found: %s", outputID)
+	}
+
+	update := &indexer.LedgerUpdate{
+		Slot: acceptedSlot,
+		Consumed: []*indexer.LedgerOutput{
+			{
+				OutputID: outputID,
+				Output:   output,
+				SpentAt:  acceptedSlot,
+			},
+		},
+	}
+
+	require.NoError(ts.T, ts.Indexer.AcceptLedgerUpdate(update))
 }
 
 func (ts *indexerTestsuite) MultiAddressExists(multiAddress *iotago.MultiAddress) bool {
@@ -124,6 +180,14 @@ func (ts *indexerTestsuite) MultiAddressExists(multiAddress *iotago.MultiAddress
 	}
 
 	return multiAddress.Equal(fetchedAddress)
+}
+
+func (ts *indexerTestsuite) requireFound(outputID iotago.OutputID) {
+	require.Contains(ts.T, ts.Indexer.Combined().OutputIDs, outputID)
+}
+
+func (ts *indexerTestsuite) requireNotFound(outputID iotago.OutputID) {
+	require.NotContains(ts.T, ts.Indexer.Combined().OutputIDs, outputID)
 }
 
 func (os *indexerOutputSet) requireBasicFound(filters ...options.Option[indexer.BasicFilterOptions]) {

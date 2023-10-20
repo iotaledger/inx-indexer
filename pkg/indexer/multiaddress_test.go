@@ -9,36 +9,6 @@ import (
 	iotago_tpkg "github.com/iotaledger/iota.go/v4/tpkg"
 )
 
-func basicOutputWithAddress(address iotago.Address) iotago.Output {
-	return &iotago.BasicOutput{
-		Amount: 100000,
-		Mana:   0,
-		Conditions: iotago.BasicOutputUnlockConditions{
-			&iotago.AddressUnlockCondition{
-				Address: address,
-			},
-		},
-		Features: nil,
-	}
-}
-
-func nftOutputWithAddressAndSender(address iotago.Address) iotago.Output {
-	return &iotago.NFTOutput{
-		Amount: 100000,
-		Mana:   0,
-		Conditions: iotago.NFTOutputUnlockConditions{
-			&iotago.AddressUnlockCondition{
-				Address: address,
-			},
-		},
-		Features: iotago.NFTOutputFeatures{
-			&iotago.SenderFeature{
-				Address: address,
-			},
-		},
-	}
-}
-
 func TestIndexer_MultiAddress(t *testing.T) {
 	ts := newTestSuite(t)
 
@@ -61,29 +31,78 @@ func TestIndexer_MultiAddress(t *testing.T) {
 	output2 := basicOutputWithAddress(multiaddress)
 	output2ID := iotago_tpkg.RandOutputID(1)
 
-	ts.AddOutput(output1, output1ID)
+	ts.AddOutputOnCommitment(output1, output1ID)
 
 	require.True(t, ts.MultiAddressExists(multiaddress))
 
-	ts.AddOutput(output2, output2ID)
+	ts.AddOutputOnCommitment(output2, output2ID)
 
 	require.True(t, ts.MultiAddressExists(multiaddress))
 
-	ts.DeleteOutput(output1ID)
+	ts.DeleteOutputOnCommitment(output1ID)
 
 	require.True(t, ts.MultiAddressExists(multiaddress))
 
-	ts.DeleteOutput(output2ID)
+	ts.DeleteOutputOnCommitment(output2ID)
 
 	require.False(t, ts.MultiAddressExists(multiaddress))
 
 	output3 := nftOutputWithAddressAndSender(multiaddress)
 	output3ID := iotago_tpkg.RandOutputID(2)
-	ts.AddOutput(output3, output3ID)
+	ts.AddOutputOnCommitment(output3, output3ID)
 
 	require.True(t, ts.MultiAddressExists(multiaddress))
 
-	ts.DeleteOutput(output3ID)
+	ts.DeleteOutputOnCommitment(output3ID)
 
+	require.False(t, ts.MultiAddressExists(multiaddress))
+}
+
+func TestIndexer_MultiAddress_OnAcceptance(t *testing.T) {
+	ts := newTestSuite(t)
+
+	multiaddress := &iotago.MultiAddress{
+		Addresses: iotago.AddressesWithWeight{
+			&iotago.AddressWithWeight{
+				Address: iotago_tpkg.RandEd25519Address(),
+				Weight:  1,
+			},
+			&iotago.AddressWithWeight{
+				Address: iotago_tpkg.RandEd25519Address(),
+				Weight:  1,
+			},
+		},
+		Threshold: 2,
+	}
+
+	output1 := basicOutputWithAddress(multiaddress)
+	output1ID := iotago_tpkg.RandOutputID(0)
+	output2 := basicOutputWithAddress(multiaddress)
+	output2ID := iotago_tpkg.RandOutputID(1)
+
+	require.False(t, ts.MultiAddressExists(multiaddress))
+
+	ts.AddOutputOnAcceptance(output1, output1ID)
+
+	require.True(t, ts.MultiAddressExists(multiaddress))
+
+	ts.AddOutputOnCommitment(output1, output1ID)
+
+	require.True(t, ts.MultiAddressExists(multiaddress))
+
+	ts.AddOutputOnAcceptance(output2, output2ID)
+
+	require.True(t, ts.MultiAddressExists(multiaddress))
+
+	// Delete output1 on commitment, which should also delete the uncommitted output2
+	ts.DeleteOutputOnCommitment(output1ID)
+
+	// The multiaddress should still exist, because output2 held an uncommitted reference to it
+	require.True(t, ts.MultiAddressExists(multiaddress))
+
+	// Simulate indexer restart
+	require.NoError(t, ts.Indexer.RemoveUncommittedChanges())
+
+	// The multiaddress should not exist anymore
 	require.False(t, ts.MultiAddressExists(multiaddress))
 }

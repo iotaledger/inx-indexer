@@ -23,7 +23,9 @@ type nft struct {
 	TimelockSlot                *iotago.SlotIndex
 	ExpirationSlot              *iotago.SlotIndex
 	ExpirationReturnAddress     []byte           `gorm:"index:nfts_expiration_return_address"`
-	CreatedAt                   iotago.SlotIndex `gorm:"notnull;index:nfts_created_at"`
+	CreatedAtSlot               iotago.SlotIndex `gorm:"notnull;index:nfts_created_at_slot"`
+	DeletedAtSlot               iotago.SlotIndex `gorm:"notnull;index:nfts_deleted_at_slot"`
+	Committed                   bool
 }
 
 func (o *nft) String() string {
@@ -168,7 +170,7 @@ func (i *Indexer) NFTByID(nftID iotago.NFTID) *IndexerResult {
 }
 
 func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) *gorm.DB {
-	query := i.db.Model(&nft{})
+	query := i.db.Model(&nft{}).Where("deleted_at_slot == 0")
 
 	if opts.unlockableByAddress != nil {
 		addrID := opts.unlockableByAddress.ID()
@@ -240,11 +242,11 @@ func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) *gorm.DB {
 	}
 
 	if opts.createdBefore != nil {
-		query = query.Where("created_at < ?", *opts.createdBefore)
+		query = query.Where("created_at_slot < ?", *opts.createdBefore)
 	}
 
 	if opts.createdAfter != nil {
-		query = query.Where("created_at > ?", *opts.createdAfter)
+		query = query.Where("created_at_slot > ?", *opts.createdAfter)
 	}
 
 	return query

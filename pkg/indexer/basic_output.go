@@ -15,15 +15,17 @@ type basic struct {
 	Amount                      iotago.BaseToken
 	NativeToken                 []byte
 	NativeTokenAmount           *string
-	Sender                      []byte `gorm:"index:basic_sender_tag"`
-	Tag                         []byte `gorm:"index:basic_sender_tag"`
-	Address                     []byte `gorm:"notnull;index:basic_address"`
+	Sender                      []byte `gorm:"index:basics_sender_tag"`
+	Tag                         []byte `gorm:"index:basics_sender_tag"`
+	Address                     []byte `gorm:"notnull;index:basics_address"`
 	StorageDepositReturn        *iotago.BaseToken
-	StorageDepositReturnAddress []byte `gorm:"index:basic_storage_deposit_return_address"`
+	StorageDepositReturnAddress []byte `gorm:"index:basics_storage_deposit_return_address"`
 	TimelockSlot                *iotago.SlotIndex
 	ExpirationSlot              *iotago.SlotIndex
-	ExpirationReturnAddress     []byte           `gorm:"index:basic_expiration_return_address"`
-	CreatedAt                   iotago.SlotIndex `gorm:"notnull;index:basic_created_at"`
+	ExpirationReturnAddress     []byte           `gorm:"index:basics_expiration_return_address"`
+	CreatedAtSlot               iotago.SlotIndex `gorm:"notnull;index:basics_created_at_slot"`
+	DeletedAtSlot               iotago.SlotIndex `gorm:"notnull;index:basics_deleted_at_slot"`
+	Committed                   bool
 }
 
 func (o *basic) String() string {
@@ -167,7 +169,7 @@ func BasicCreatedAfter(slot iotago.SlotIndex) options.Option[BasicFilterOptions]
 }
 
 func (i *Indexer) basicQueryWithFilter(opts *BasicFilterOptions) *gorm.DB {
-	query := i.db.Model(&basic{})
+	query := i.db.Model(&basic{}).Where("deleted_at_slot == 0")
 
 	if opts.hasNativeToken != nil {
 		if *opts.hasNativeToken {
@@ -247,11 +249,11 @@ func (i *Indexer) basicQueryWithFilter(opts *BasicFilterOptions) *gorm.DB {
 	}
 
 	if opts.createdBefore != nil {
-		query = query.Where("created_at < ?", *opts.createdBefore)
+		query = query.Where("created_at_slot < ?", *opts.createdBefore)
 	}
 
 	if opts.createdAfter != nil {
-		query = query.Where("created_at > ?", *opts.createdAfter)
+		query = query.Where("created_at_slot > ?", *opts.createdAfter)
 	}
 
 	return query
