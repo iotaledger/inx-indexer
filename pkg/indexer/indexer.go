@@ -432,7 +432,7 @@ func (i *Indexer) AcceptSpent(output *LedgerOutput) error {
 	})
 }
 
-func (i *Indexer) UpdatedLedger(update *LedgerUpdate) error {
+func (i *Indexer) CommitLedgerUpdate(update *LedgerUpdate) error {
 	return i.db.Transaction(func(tx *gorm.DB) error {
 		// Cleanup uncommitted changes for this update
 		if err := removeUncommittedChangesUpUntilSlot(update.Slot, tx); err != nil {

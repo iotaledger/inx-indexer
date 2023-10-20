@@ -123,7 +123,7 @@ func run() error {
 			if err != nil {
 				return err
 			}
-			if err := deps.Indexer.UpdatedLedger(ledgerUpdate); err != nil {
+			if err := deps.Indexer.CommitLedgerUpdate(ledgerUpdate); err != nil {
 				return err
 			}
 

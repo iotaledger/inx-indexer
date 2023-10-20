@@ -77,7 +77,7 @@ func (ts *indexerTestsuite) AddOutputOnCommitment(output iotago.Output, outputID
 		},
 	}
 
-	require.NoError(ts.T, ts.Indexer.UpdatedLedger(update))
+	require.NoError(ts.T, ts.Indexer.CommitLedgerUpdate(update))
 
 	ts.insertedOutputs.Set(outputID, output)
 
@@ -123,7 +123,7 @@ func (ts *indexerTestsuite) DeleteOutputOnCommitment(outputID iotago.OutputID) {
 		},
 	}
 
-	require.NoError(ts.T, ts.Indexer.UpdatedLedger(update))
+	require.NoError(ts.T, ts.Indexer.CommitLedgerUpdate(update))
 }
 
 func (ts *indexerTestsuite) DeleteOutputOnAcceptance(outputID iotago.OutputID) {
