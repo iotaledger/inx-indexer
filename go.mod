@@ -5,22 +5,22 @@ go 1.21
 require (
 	github.com/ethereum/go-ethereum v1.13.4
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/iotaledger/hive.go/app v0.0.0-20231019112237-c749a64b9b29
-	github.com/iotaledger/hive.go/crypto v0.0.0-20231019112237-c749a64b9b29
-	github.com/iotaledger/hive.go/ds v0.0.0-20231019112237-c749a64b9b29
-	github.com/iotaledger/hive.go/ierrors v0.0.0-20231019112237-c749a64b9b29
-	github.com/iotaledger/hive.go/lo v0.0.0-20231019112237-c749a64b9b29
-	github.com/iotaledger/hive.go/logger v0.0.0-20231019112237-c749a64b9b29
-	github.com/iotaledger/hive.go/runtime v0.0.0-20231019112237-c749a64b9b29
-	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231019090035-140d9f256a26
+	github.com/iotaledger/hive.go/app v0.0.0-20231019175611-f85bce9102d1
+	github.com/iotaledger/hive.go/crypto v0.0.0-20231019175611-f85bce9102d1
+	github.com/iotaledger/hive.go/ds v0.0.0-20231019175611-f85bce9102d1
+	github.com/iotaledger/hive.go/ierrors v0.0.0-20231019175611-f85bce9102d1
+	github.com/iotaledger/hive.go/lo v0.0.0-20231019175611-f85bce9102d1
+	github.com/iotaledger/hive.go/logger v0.0.0-20231019175611-f85bce9102d1
+	github.com/iotaledger/hive.go/runtime v0.0.0-20231019175611-f85bce9102d1
+	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231020073823-bb79dc1afc33
 	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231011154428-257141868dad
-	github.com/iotaledger/iota.go/v4 v4.0.0-20231019112751-e9872df31648
+	github.com/iotaledger/iota.go/v4 v4.0.0-20231019174124-aa2290512bcd
 	github.com/labstack/echo-contrib v0.15.0
 	github.com/labstack/echo/v4 v4.11.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.17.0
 	github.com/stretchr/testify v1.8.4
-	go.uber.org/dig v1.17.0
+	go.uber.org/dig v1.17.1
 	golang.org/x/text v0.13.0
 	gorm.io/driver/postgres v1.5.3
 	gorm.io/driver/sqlite v1.5.4
@@ -49,10 +49,10 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/holiman/uint256 v1.2.3 // indirect
 	github.com/iancoleman/orderedmap v0.3.0 // indirect
-	github.com/iotaledger/hive.go/constraints v0.0.0-20231019112237-c749a64b9b29 // indirect
-	github.com/iotaledger/hive.go/core v1.0.0-rc.3.0.20231005142627-86973b2edb3b // indirect
-	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20231019081410-32f61b05bebe // indirect
-	github.com/iotaledger/hive.go/stringify v0.0.0-20231019112237-c749a64b9b29 // indirect
+	github.com/iotaledger/hive.go/constraints v0.0.0-20231019175611-f85bce9102d1 // indirect
+	github.com/iotaledger/hive.go/core v1.0.0-rc.3.0.20231019175611-f85bce9102d1 // indirect
+	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20231019175611-f85bce9102d1 // indirect
+	github.com/iotaledger/hive.go/stringify v0.0.0-20231019175611-f85bce9102d1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgx/v5 v5.4.3 // indirect
