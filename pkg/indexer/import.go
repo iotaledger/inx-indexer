@@ -37,6 +37,7 @@ func typeIsRefCountable[T any]() bool {
 }
 
 type refCountable interface {
+	primaryKeyRow() string
 	refCountDelta() int
 }
 
@@ -144,7 +145,7 @@ func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T
 						for _, item := range batch {
 							if itemWithRefCount, ok := interface{}(item).(refCountable); ok {
 								if err := tx.Clauses(clause.OnConflict{
-									Columns:   []clause.Column{{Name: "id"}},
+									Columns:   []clause.Column{{Name: itemWithRefCount.primaryKeyRow()}},
 									DoUpdates: clause.Assignments(map[string]interface{}{"ref_count": gorm.Expr("ref_count + ?", itemWithRefCount.refCountDelta())}),
 								}).Create(item).Error; err != nil {
 									return err

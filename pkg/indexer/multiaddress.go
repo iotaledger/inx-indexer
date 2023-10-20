@@ -27,6 +27,10 @@ func (m *multiaddress) String() string {
 	return fmt.Sprintf("multiaddress => AddressID: %s", hex.EncodeToString(m.AddressID))
 }
 
+func (m *multiaddress) primaryKeyRow() string {
+	return "address_id"
+}
+
 func (m *multiaddress) refCountDelta() int {
 	return m.RefCount
 }
@@ -79,8 +83,8 @@ func insertMultiAddressesFromAddresses(tx *gorm.DB, addresses []iotago.Address) 
 
 	for _, multiAddr := range multiAddresses {
 		if err := tx.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "address_id"}},
-			DoUpdates: clause.Assignments(map[string]interface{}{"ref_count": gorm.Expr("ref_count + ?", multiAddr.RefCount)}),
+			Columns:   []clause.Column{{Name: multiAddr.primaryKeyRow()}},
+			DoUpdates: clause.Assignments(map[string]interface{}{"ref_count": gorm.Expr("ref_count + ?", multiAddr.refCountDelta())}),
 		}).Create(multiAddresses).Error; err != nil {
 			return err
 		}
@@ -97,8 +101,8 @@ func deleteMultiAddressesFromAddresses(tx *gorm.DB, addresses []iotago.Address) 
 
 	for _, multiAddr := range multiAddresses {
 		if err := tx.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "address_id"}},
-			DoUpdates: clause.Assignments(map[string]interface{}{"ref_count": gorm.Expr("ref_count - ?", multiAddr.RefCount)}),
+			Columns:   []clause.Column{{Name: multiAddr.primaryKeyRow()}},
+			DoUpdates: clause.Assignments(map[string]interface{}{"ref_count": gorm.Expr("ref_count - ?", multiAddr.refCountDelta())}),
 		}).Create(multiAddresses).Error; err != nil {
 			return err
 		}
