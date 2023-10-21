@@ -117,7 +117,7 @@ func run() error {
 
 		Component.LogInfo("Starting LedgerUpdates ... done")
 
-		if err := deps.NodeBridge.ListenToLedgerUpdates(ctx, indexerStatus.CommittedIndex+1, 0, func(update *nodebridge.LedgerUpdate) error {
+		if err := deps.NodeBridge.ListenToLedgerUpdates(ctx, indexerStatus.CommittedSlot+1, 0, func(update *nodebridge.LedgerUpdate) error {
 			ts := time.Now()
 			ledgerUpdate, err := LedgerUpdateFromNodeBridge(update)
 			if err != nil {
@@ -258,7 +258,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		status, err = deps.Indexer.Status()
 		if err != nil {
 			if !errors.Is(err, indexer.ErrStatusNotFound) {
-				return nil, fmt.Errorf("reading committedIndex from Indexer failed! Error: %w", err)
+				return nil, fmt.Errorf("reading committedSlot from Indexer failed! Error: %w", err)
 			}
 			Component.LogInfo("Indexer is empty, so import initial ledger...")
 			needsToFillIndexer = true
@@ -272,8 +272,8 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 				Component.LogInfof("> Indexer database version changed: %d vs %d", status.DatabaseVersion, DBVersion)
 				needsToClearIndexer = true
 
-			case deps.NodeBridge.APIProvider().LatestAPI().TimeProvider().EpochStart(iotago.EpochIndex(nodeStatus.GetPruningEpoch())) > status.CommittedIndex:
-				Component.LogInfo("> Node has an newer pruning index than our current committedIndex")
+			case deps.NodeBridge.APIProvider().LatestAPI().TimeProvider().EpochStart(iotago.EpochIndex(nodeStatus.GetPruningEpoch())) > status.CommittedSlot:
+				Component.LogInfo("> Node has an newer pruning slot than our current committedSlot")
 				needsToClearIndexer = true
 			}
 		}
@@ -295,17 +295,17 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 			return nil, fmt.Errorf("filling Indexer failed! Error: %w", err)
 		}
 		duration := time.Since(timeStart)
-		// Read new committedIndex after filling up the indexer
+		// Read new committedSlot after filling up the indexer
 		status, err = deps.Indexer.Status()
 		if err != nil {
-			return nil, fmt.Errorf("reading committedIndex from Indexer failed! Error: %w", err)
+			return nil, fmt.Errorf("reading committedSlot from Indexer failed! Error: %w", err)
 		}
 		Component.LogInfo("Re-creating indexes")
 		// Run auto migrate to make sure all required tables and indexes are there
 		if err := deps.Indexer.AutoMigrate(); err != nil {
 			return nil, err
 		}
-		Component.LogInfof("Importing initial ledger with %d outputs at index %d took %s", count, status.CommittedIndex, duration.Truncate(time.Millisecond))
+		Component.LogInfof("Importing initial ledger with %d outputs at slot %d took %s", count, status.CommittedSlot, duration.Truncate(time.Millisecond))
 	} else {
 		Component.LogInfo("Checking database schema")
 		// Run auto migrate to make sure all required tables and indexes are there
@@ -319,7 +319,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 			return nil, err
 		}
 
-		Component.LogInfof("> Indexer started at committedIndex %d", status.CommittedIndex)
+		Component.LogInfof("> Indexer started at committedSlot %d", status.CommittedSlot)
 	}
 
 	return status, nil
@@ -348,7 +348,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 	tsStart := time.Now()
 	p := message.NewPrinter(language.English)
 	var innerErr error
-	var committedIndex iotago.SlotIndex
+	var committedSlot iotago.SlotIndex
 	var countReceive int
 	go func() {
 		for {
@@ -379,9 +379,9 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 
 				return
 			}
-			outputLedgerIndex := unspentOutput.GetLatestCommitmentId().Unwrap().Index()
-			if committedIndex < outputLedgerIndex {
-				committedIndex = outputLedgerIndex
+			outputLedgerSlot := unspentOutput.GetLatestCommitmentId().Unwrap().Index()
+			if committedSlot < outputLedgerSlot {
+				committedSlot = outputLedgerSlot
 			}
 
 			countReceive++
@@ -403,7 +403,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 
 	Component.LogInfo(p.Sprintf("received total=%d in %s @ %.2f per second", countReceive, time.Since(tsStart).Truncate(time.Millisecond), float64(countReceive)/float64(time.Since(tsStart)/time.Second)))
 
-	if err := importer.Finalize(committedIndex, deps.NodeBridge.APIProvider().CommittedAPI().ProtocolParameters().NetworkName(), DBVersion); err != nil {
+	if err := importer.Finalize(committedSlot, deps.NodeBridge.APIProvider().CommittedAPI().ProtocolParameters().NetworkName(), DBVersion); err != nil {
 		return 0, err
 	}
 

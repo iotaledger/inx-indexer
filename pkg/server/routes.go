@@ -15,6 +15,7 @@ import (
 	"github.com/iotaledger/inx-app/pkg/httpserver"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v4"
+	"github.com/iotaledger/iota.go/v4/nodeclient/apimodels"
 )
 
 const (
@@ -178,7 +179,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 	routeGroup.GET(RouteMultiAddressByAddress, s.multiAddressByAddress)
 }
 
-func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
+func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
 	filters := []options.Option[indexer.CombinedFilterOptions]{indexer.CombinedPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
@@ -229,10 +230,10 @@ func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*outputsRespo
 		filters = append(filters, indexer.CombinedCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.Combined(filters...))
+	return indexerResponseFromResult(s.Indexer.Combined(filters...))
 }
 
-func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse, error) {
+func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
 	filters := []options.Option[indexer.BasicFilterOptions]{indexer.BasicPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
@@ -379,10 +380,10 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*outputsResponse
 		filters = append(filters, indexer.BasicCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.Basic(filters...))
+	return indexerResponseFromResult(s.Indexer.Basic(filters...))
 }
 
-func (s *IndexerServer) accountByID(c echo.Context) (*outputsResponse, error) {
+func (s *IndexerServer) accountByID(c echo.Context) (*apimodels.IndexerResponse, error) {
 	accountID, err := httpserver.ParseAccountIDParam(c, ParameterAccountID)
 	if err != nil {
 		return nil, err
@@ -391,7 +392,7 @@ func (s *IndexerServer) accountByID(c echo.Context) (*outputsResponse, error) {
 	return singleOutputResponseFromResult(s.Indexer.AccountByID(accountID))
 }
 
-func (s *IndexerServer) accountsWithFilter(c echo.Context) (*outputsResponse, error) {
+func (s *IndexerServer) accountsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
 	filters := []options.Option[indexer.AccountFilterOptions]{indexer.AccountPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
@@ -458,10 +459,10 @@ func (s *IndexerServer) accountsWithFilter(c echo.Context) (*outputsResponse, er
 		filters = append(filters, indexer.AccountCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.Account(filters...))
+	return indexerResponseFromResult(s.Indexer.Account(filters...))
 }
 
-func (s *IndexerServer) nftByID(c echo.Context) (*outputsResponse, error) {
+func (s *IndexerServer) nftByID(c echo.Context) (*apimodels.IndexerResponse, error) {
 	nftID, err := httpserver.ParseNFTIDParam(c, ParameterNFTID)
 	if err != nil {
 		return nil, err
@@ -470,7 +471,7 @@ func (s *IndexerServer) nftByID(c echo.Context) (*outputsResponse, error) {
 	return singleOutputResponseFromResult(s.Indexer.NFTByID(nftID))
 }
 
-func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error) {
+func (s *IndexerServer) nftsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
 	filters := []options.Option[indexer.NFTFilterOptions]{indexer.NFTPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
@@ -609,10 +610,10 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*outputsResponse, error)
 		filters = append(filters, indexer.NFTCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.NFT(filters...))
+	return indexerResponseFromResult(s.Indexer.NFT(filters...))
 }
 
-func (s *IndexerServer) foundryByID(c echo.Context) (*outputsResponse, error) {
+func (s *IndexerServer) foundryByID(c echo.Context) (*apimodels.IndexerResponse, error) {
 	foundryID, err := httpserver.ParseFoundryIDParam(c, ParameterFoundryID)
 	if err != nil {
 		return nil, err
@@ -621,7 +622,7 @@ func (s *IndexerServer) foundryByID(c echo.Context) (*outputsResponse, error) {
 	return singleOutputResponseFromResult(s.Indexer.FoundryByID(foundryID))
 }
 
-func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, error) {
+func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
 	filters := []options.Option[indexer.FoundryFilterOptions]{indexer.FoundryPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
@@ -677,10 +678,10 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*outputsResponse, e
 		filters = append(filters, indexer.FoundryCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.Foundry(filters...))
+	return indexerResponseFromResult(s.Indexer.Foundry(filters...))
 }
 
-func (s *IndexerServer) delegationByID(c echo.Context) (*outputsResponse, error) {
+func (s *IndexerServer) delegationByID(c echo.Context) (*apimodels.IndexerResponse, error) {
 	delegationID, err := httpserver.ParseDelegationIDParam(c, ParameterDelegationID)
 	if err != nil {
 		return nil, err
@@ -689,7 +690,7 @@ func (s *IndexerServer) delegationByID(c echo.Context) (*outputsResponse, error)
 	return singleOutputResponseFromResult(s.Indexer.DelegationByID(delegationID))
 }
 
-func (s *IndexerServer) delegationsWithFilter(c echo.Context) (*outputsResponse, error) {
+func (s *IndexerServer) delegationsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
 	filters := []options.Option[indexer.DelegationFilterOptions]{indexer.DelegationPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterAddress)) > 0 {
@@ -737,10 +738,10 @@ func (s *IndexerServer) delegationsWithFilter(c echo.Context) (*outputsResponse,
 		filters = append(filters, indexer.DelegationCreatedAfter(slot))
 	}
 
-	return outputsResponseFromResult(s.Indexer.Delegation(filters...))
+	return indexerResponseFromResult(s.Indexer.Delegation(filters...))
 }
 
-func singleOutputResponseFromResult(result *indexer.IndexerResult) (*outputsResponse, error) {
+func singleOutputResponseFromResult(result *indexer.IndexerResult) (*apimodels.IndexerResponse, error) {
 	if result.Error != nil {
 		return nil, errors.WithMessagef(echo.ErrInternalServerError, "reading outputIDs failed: %s", result.Error)
 	}
@@ -748,26 +749,25 @@ func singleOutputResponseFromResult(result *indexer.IndexerResult) (*outputsResp
 		return nil, errors.WithMessage(echo.ErrNotFound, "record not found")
 	}
 
-	return outputsResponseFromResult(result)
+	return indexerResponseFromResult(result)
 }
 
-func outputsResponseFromResult(result *indexer.IndexerResult) (*outputsResponse, error) {
+func indexerResponseFromResult(result *indexer.IndexerResult) (*apimodels.IndexerResponse, error) {
 	if result.Error != nil {
 		return nil, errors.WithMessagef(echo.ErrInternalServerError, "reading outputIDs failed: %s", result.Error)
 	}
 
-	var cursor *string
+	var cursor string
 	if result.Cursor != nil {
 		// Add the pageSize to the cursor we expose in the API
-		cursorWithPageSize := fmt.Sprintf("%s.%d", *result.Cursor, result.PageSize)
-		cursor = &cursorWithPageSize
+		cursor = fmt.Sprintf("%s.%d", *result.Cursor, result.PageSize)
 	}
 
-	return &outputsResponse{
-		CommittedIndex: result.CommittedIndex,
-		PageSize:       result.PageSize,
-		Cursor:         cursor,
-		Items:          result.OutputIDs.ToHex(),
+	return &apimodels.IndexerResponse{
+		CommittedSlot: result.CommittedSlot,
+		PageSize:      result.PageSize,
+		Cursor:        cursor,
+		Items:         result.OutputIDs.ToHex(),
 	}, nil
 }
 
