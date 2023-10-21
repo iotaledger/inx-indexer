@@ -188,7 +188,7 @@ func run() error {
 
 		Component.LogInfo("Starting API server ...")
 
-		_ = server.NewIndexerServer(deps.Indexer, deps.Echo, deps.NodeBridge.APIProvider().CommittedAPI().ProtocolParameters().Bech32HRP(), ParamsRestAPI.MaxPageSize)
+		_ = server.NewIndexerServer(deps.Indexer, deps.Echo, deps.NodeBridge.APIProvider(), ParamsRestAPI.MaxPageSize)
 
 		go func() {
 			Component.LogInfof("You can now access the API using: http://%s", ParamsRestAPI.BindAddress)

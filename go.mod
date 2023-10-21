@@ -12,9 +12,9 @@ require (
 	github.com/iotaledger/hive.go/lo v0.0.0-20231020115340-13da292c580b
 	github.com/iotaledger/hive.go/logger v0.0.0-20231020115340-13da292c580b
 	github.com/iotaledger/hive.go/runtime v0.0.0-20231020115340-13da292c580b
-	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231021180658-c643e8798472
-	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231021180345-9a57a3eeac3b
-	github.com/iotaledger/iota.go/v4 v4.0.0-20231020175721-e9e5ab76e32d
+	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231021205206-ae075218c732
+	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231021205014-392b75609cc2
+	github.com/iotaledger/iota.go/v4 v4.0.0-20231021203915-ad9b32d411e8
 	github.com/labstack/echo-contrib v0.15.0
 	github.com/labstack/echo/v4 v4.11.2
 	github.com/pkg/errors v0.9.1

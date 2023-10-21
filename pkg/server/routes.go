@@ -1,9 +1,7 @@
 package server
 
 import (
-	"context"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -92,7 +90,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, resp)
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
 	routeGroup.GET(RouteOutputsBasic, func(c echo.Context) error {
@@ -101,7 +99,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, resp)
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
 	routeGroup.GET(RouteOutputsAccounts, func(c echo.Context) error {
@@ -110,7 +108,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, resp)
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
 	routeGroup.GET(RouteOutputsAccountByID, func(c echo.Context) error {
@@ -119,7 +117,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, resp)
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
 	routeGroup.GET(RouteOutputsNFTs, func(c echo.Context) error {
@@ -128,7 +126,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, resp)
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
 	routeGroup.GET(RouteOutputsNFTByID, func(c echo.Context) error {
@@ -137,7 +135,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, resp)
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
 	routeGroup.GET(RouteOutputsFoundries, func(c echo.Context) error {
@@ -146,7 +144,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, resp)
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
 	routeGroup.GET(RouteOutputsFoundryByID, func(c echo.Context) error {
@@ -155,7 +153,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, resp)
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
 	routeGroup.GET(RouteOutputsDelegations, func(c echo.Context) error {
@@ -164,7 +162,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, resp)
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
 	routeGroup.GET(RouteOutputsDelegationByID, func(c echo.Context) error {
@@ -173,7 +171,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, resp)
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
 	routeGroup.GET(RouteMultiAddressByAddress, s.multiAddressByAddress)
@@ -777,31 +775,6 @@ func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
 		return err
 	}
 
-	respondWithAddress := func(address iotago.Address) error {
-		mimeType, err := httpserver.GetAcceptHeaderContentType(c, httpserver.MIMEApplicationVendorIOTASerializerV2, echo.MIMEApplicationJSON)
-		if err != nil && ierrors.Is(err, httpserver.ErrNotAcceptable) {
-			return err
-		}
-
-		switch mimeType {
-		case httpserver.MIMEApplicationVendorIOTASerializerV2:
-			b, err := iotago.CommonSerixAPI().Encode(context.TODO(), address)
-			if err != nil {
-				return err
-			}
-
-			return c.Blob(http.StatusOK, httpserver.MIMEApplicationVendorIOTASerializerV2, b)
-
-		default:
-			j, err := iotago.CommonSerixAPI().JSONEncode(context.TODO(), address)
-			if err != nil {
-				return err
-			}
-
-			return c.Blob(http.StatusOK, echo.MIMEApplicationJSON, j)
-		}
-	}
-
 	if multiAddressRef, isMultiRef := address.(*iotago.MultiAddressReference); isMultiRef {
 		multiAddress, err := s.Indexer.MultiAddressForReference(multiAddressRef)
 		if err != nil {
@@ -812,7 +785,7 @@ func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
 			return err
 		}
 
-		return respondWithAddress(multiAddress)
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), multiAddress)
 	}
 
 	if restrictedAddress, isRestricted := address.(*iotago.RestrictedAddress); isRestricted {
@@ -826,7 +799,7 @@ func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
 				return err
 			}
 
-			return respondWithAddress(&iotago.RestrictedAddress{
+			return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), &iotago.RestrictedAddress{
 				Address:             multiAddress,
 				AllowedCapabilities: restrictedAddress.AllowedCapabilities,
 			})
