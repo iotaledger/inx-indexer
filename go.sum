@@ -206,10 +206,10 @@ github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20231020115340-13da292
 github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20231020115340-13da292c580b/go.mod h1:SdK26z8/VhWtxaqCuQrufm80SELgowQPmu9T/8eUQ8g=
 github.com/iotaledger/hive.go/stringify v0.0.0-20231020115340-13da292c580b h1:MDZhTZTVDiydXcW5j4TA7HixVCyAdToIMPhHfJee7cE=
 github.com/iotaledger/hive.go/stringify v0.0.0-20231020115340-13da292c580b/go.mod h1:FTo/UWzNYgnQ082GI9QVM9HFDERqf9rw9RivNpqrnTs=
-github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231020152103-b6ea7ff7a4af h1:3+heabXNGjv3Sx1sg0qG+QdqeEWIpf7jM3T5cPiVmSA=
-github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231020152103-b6ea7ff7a4af/go.mod h1:3BZ5r/MhswUZwXHDzMZacOhm6DWpUdGjefNRNshfwiM=
-github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231020151337-569450d5bf7d h1:PeJNFBkR28hdQCxUyC/cbOlDjFm3D1U7O5bxi+qsOvQ=
-github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231020151337-569450d5bf7d/go.mod h1:/LK3WJ2UhPPAbKTdvRasz0xaQ9qaMI2isYAX9d75WNU=
+github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231021180658-c643e8798472 h1:/cuwlPhbYvTWAfGaqN7wbR0ANxG5Ps2FrWo6RSZiVJo=
+github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231021180658-c643e8798472/go.mod h1:pkCgLQ+PbipD8zAeZzDoMyhRpzsciDqI0ZT7TOuE1t8=
+github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231021180345-9a57a3eeac3b h1:pa3Ht3ZOyeRLhBMxjTjUsF1KW4aoPXJ+nJi5Tz8s1BY=
+github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231021180345-9a57a3eeac3b/go.mod h1:yXIAs6BGYIljDvx8o6OSuyM03lQ3+HJ7sL4sG3RYSDs=
 github.com/iotaledger/iota.go/v4 v4.0.0-20231020175721-e9e5ab76e32d h1:PAAXoVUIsoQGJy2NTsbwxKSsnBan7PZx+BMkCZPmzIs=
 github.com/iotaledger/iota.go/v4 v4.0.0-20231020175721-e9e5ab76e32d/go.mod h1:jqbLYq4a/FwuiPBqFfkAwwxU8vs3+kReRq2/tyX5qRA=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
