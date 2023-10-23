@@ -273,7 +273,7 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 	return nil
 }
 
-func (i *ImportTransaction) Finalize(committedIndex iotago.SlotIndex, networkName string, databaseVersion uint32) error {
+func (i *ImportTransaction) Finalize(committedSlot iotago.SlotIndex, networkName string, databaseVersion uint32) error {
 	// drain all processors
 	i.basic.closeAndWait()
 	i.nft.closeAndWait()
@@ -282,12 +282,12 @@ func (i *ImportTransaction) Finalize(committedIndex iotago.SlotIndex, networkNam
 	i.delegation.closeAndWait()
 	i.multiAddress.closeAndWait()
 
-	i.LogDebugf("Finished insertion, update committedIndex")
+	i.LogDebugf("Finished insertion, update committedSlot")
 
 	// Update the indexer status
 	status := &Status{
 		ID:              1,
-		CommittedIndex:  committedIndex,
+		CommittedSlot:   committedSlot,
 		NetworkName:     networkName,
 		DatabaseVersion: databaseVersion,
 	}

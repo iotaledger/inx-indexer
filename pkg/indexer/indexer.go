@@ -482,7 +482,7 @@ func (i *Indexer) CommitLedgerUpdate(update *LedgerUpdate) error {
 			}
 		}
 
-		tx.Model(&Status{}).Where("id = ?", 1).Update("committed_index", update.Slot)
+		tx.Model(&Status{}).Where("id = ?", 1).Update("committed_slot", update.Slot)
 
 		return nil
 	})

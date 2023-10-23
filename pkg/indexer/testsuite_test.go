@@ -58,7 +58,7 @@ func (ts *indexerTestsuite) CurrentSlot() iotago.SlotIndex {
 	status, err := ts.Indexer.Status()
 	require.NoError(ts.T, err)
 
-	return status.CommittedIndex
+	return status.CommittedSlot
 }
 
 func (ts *indexerTestsuite) CommitEmptyLedgerUpdate() {

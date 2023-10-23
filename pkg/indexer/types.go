@@ -30,15 +30,15 @@ type LedgerOutput struct {
 
 type Status struct {
 	ID              uint `gorm:"primaryKey;notnull"`
-	CommittedIndex  iotago.SlotIndex
+	CommittedSlot   iotago.SlotIndex
 	NetworkName     string
 	DatabaseVersion uint32
 }
 
 type queryResult struct {
-	OutputID       []byte
-	Cursor         string
-	CommittedIndex iotago.SlotIndex
+	OutputID      []byte
+	Cursor        string
+	CommittedSlot iotago.SlotIndex
 }
 
 type queryResults []queryResult
@@ -54,11 +54,11 @@ func (q queryResults) IDs() iotago.OutputIDs {
 
 //nolint:revive // better be explicit here
 type IndexerResult struct {
-	OutputIDs      iotago.OutputIDs
-	CommittedIndex iotago.SlotIndex
-	PageSize       uint32
-	Cursor         *string
-	Error          error
+	OutputIDs     iotago.OutputIDs
+	CommittedSlot iotago.SlotIndex
+	PageSize      uint32
+	Cursor        *string
+	Error         error
 }
 
 func errorResult(err error) *IndexerResult {
@@ -141,10 +141,10 @@ func (i *Indexer) combineOutputIDFilteredQueries(queries []*gorm.DB, pageSize ui
 }
 
 func (i *Indexer) resultsForQuery(query *gorm.DB, pageSize uint32) *IndexerResult {
-	// This combines the query with a second query that checks for the current committed_index.
+	// This combines the query with a second query that checks for the current committed_slot.
 	// This way we do not need to lock anything and we know the index matches the results.
-	committedIndexQuery := i.db.Model(&Status{}).Select("committed_index")
-	joinedQuery := i.db.Table("(?) as results, (?) as status", query, committedIndexQuery)
+	committedSlotQuery := i.db.Model(&Status{}).Select("committed_slot")
+	joinedQuery := i.db.Table("(?) as results, (?) as status", query, committedSlotQuery)
 
 	var results queryResults
 
@@ -153,13 +153,13 @@ func (i *Indexer) resultsForQuery(query *gorm.DB, pageSize uint32) *IndexerResul
 		return errorResult(err)
 	}
 
-	var committedIndex iotago.SlotIndex
+	var committedSlot iotago.SlotIndex
 	if len(results) > 0 {
-		committedIndex = results[0].CommittedIndex
+		committedSlot = results[0].CommittedSlot
 	} else {
-		// Since we got no results for the query, return the current committedIndex
+		// Since we got no results for the query, return the current committedSlot
 		if status, err := i.Status(); err == nil {
-			committedIndex = status.CommittedIndex
+			committedSlot = status.CommittedSlot
 		}
 	}
 
@@ -172,10 +172,10 @@ func (i *Indexer) resultsForQuery(query *gorm.DB, pageSize uint32) *IndexerResul
 	}
 
 	return &IndexerResult{
-		OutputIDs:      results.IDs(),
-		CommittedIndex: committedIndex,
-		PageSize:       pageSize,
-		Cursor:         nextCursor,
-		Error:          nil,
+		OutputIDs:     results.IDs(),
+		CommittedSlot: committedSlot,
+		PageSize:      pageSize,
+		Cursor:        nextCursor,
+		Error:         nil,
 	}
 }
