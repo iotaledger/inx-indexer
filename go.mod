@@ -12,9 +12,9 @@ require (
 	github.com/iotaledger/hive.go/lo v0.0.0-20231020115340-13da292c580b
 	github.com/iotaledger/hive.go/logger v0.0.0-20231020115340-13da292c580b
 	github.com/iotaledger/hive.go/runtime v0.0.0-20231020115340-13da292c580b
-	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231023074100-348fe7fe4ec3
-	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231021205014-392b75609cc2
-	github.com/iotaledger/iota.go/v4 v4.0.0-20231023073721-97f39c627159
+	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231023191159-38919c4705e0
+	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231023190837-6e7b2cdfd4fd
+	github.com/iotaledger/iota.go/v4 v4.0.0-20231023190719-1a9daaa83ca8
 	github.com/labstack/echo-contrib v0.15.0
 	github.com/labstack/echo/v4 v4.11.2
 	github.com/pkg/errors v0.9.1
@@ -38,12 +38,12 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.4.3 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
-	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-github v17.0.0+incompatible // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/pprof v0.0.0-20230926050212-f7f687d19a98 // indirect
+	github.com/google/pprof v0.0.0-20231023181126-ff6d637d2a7b // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
