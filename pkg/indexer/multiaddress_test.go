@@ -82,26 +82,26 @@ func TestIndexer_MultiAddress_OnAcceptance(t *testing.T) {
 
 	require.False(t, ts.MultiAddressExists(multiaddress))
 
-	ts.AddOutputOnAcceptance(output1, output1ID)
+	ts.AddOutputOnAcceptance(output1, output1ID, 1)
 
 	require.True(t, ts.MultiAddressExists(multiaddress))
 
-	ts.AddOutputOnCommitment(output1, output1ID)
+	ts.AddOutputOnCommitment(output1, output1ID) // Slot 1
 
 	require.True(t, ts.MultiAddressExists(multiaddress))
 
-	ts.AddOutputOnAcceptance(output2, output2ID)
+	ts.AddOutputOnAcceptance(output2, output2ID, 2)
 
 	require.True(t, ts.MultiAddressExists(multiaddress))
 
 	// Delete output1 on commitment, which should also delete the uncommitted output2
-	ts.DeleteOutputOnCommitment(output1ID)
+	ts.DeleteOutputOnCommitment(output1ID) // Slot 2
 
 	// The multiaddress should still exist, because output2 held an uncommitted reference to it
 	require.True(t, ts.MultiAddressExists(multiaddress))
 
 	// Simulate indexer restart
-	require.NoError(t, ts.Indexer.RemoveUncommittedChanges())
+	require.NoError(t, ts.Indexer.RemoveUncommittedChanges()) // Reset to 2
 
 	// The multiaddress should not exist anymore
 	require.False(t, ts.MultiAddressExists(multiaddress))

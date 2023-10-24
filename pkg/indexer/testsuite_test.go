@@ -95,18 +95,16 @@ func (ts *indexerTestsuite) AddOutputOnCommitment(output iotago.Output, outputID
 	}
 }
 
-func (ts *indexerTestsuite) AddOutputOnAcceptance(output iotago.Output, outputID iotago.OutputID) *indexerOutputSet {
-	acceptedSlot := ts.CurrentSlot() + 1
-
+func (ts *indexerTestsuite) AddOutputOnAcceptance(output iotago.Output, outputID iotago.OutputID, slot iotago.SlotIndex) *indexerOutputSet {
 	ts.committedOutputs.Set(outputID, output)
 
 	update := &indexer.LedgerUpdate{
-		Slot: acceptedSlot,
+		Slot: slot,
 		Created: []*indexer.LedgerOutput{
 			{
 				OutputID: outputID,
 				Output:   output,
-				BookedAt: acceptedSlot,
+				BookedAt: slot,
 			},
 		},
 	}
@@ -141,21 +139,19 @@ func (ts *indexerTestsuite) DeleteOutputOnCommitment(outputID iotago.OutputID) {
 	require.NoError(ts.T, ts.Indexer.CommitLedgerUpdate(update))
 }
 
-func (ts *indexerTestsuite) DeleteOutputOnAcceptance(outputID iotago.OutputID) {
-	acceptedSlot := ts.CurrentSlot() + 1
-
+func (ts *indexerTestsuite) DeleteOutputOnAcceptance(outputID iotago.OutputID, slot iotago.SlotIndex) {
 	output, found := ts.committedOutputs.Get(outputID)
 	if !found {
 		ts.T.Fatalf("output not found: %s", outputID)
 	}
 
 	update := &indexer.LedgerUpdate{
-		Slot: acceptedSlot,
+		Slot: slot,
 		Consumed: []*indexer.LedgerOutput{
 			{
 				OutputID: outputID,
 				Output:   output,
-				SpentAt:  acceptedSlot,
+				SpentAt:  slot,
 			},
 		},
 	}

@@ -4,6 +4,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/iotaledger/hive.go/logger"
 	"github.com/iotaledger/inx-indexer/pkg/database"
@@ -153,8 +154,8 @@ func processSpent(output *LedgerOutput, committed bool, tx *gorm.DB) error {
 
 func removeUncommittedChangesUpUntilSlot(committedSlot iotago.SlotIndex, tx *gorm.DB) error {
 	for _, table := range outputTables {
-		// Remove the uncommitted insertions
-		if err := tx.Where("created_at_slot <= ? AND committed = false", committedSlot).Delete(table).Error; err != nil {
+		// Remove the uncommitted insertions (this does not delete the outputs that were already marked to be deleted at a later point in time)
+		if err := tx.Where("created_at_slot <= ? AND committed = false AND deleted_at_slot <= ?", committedSlot, committedSlot).Delete(table).Error; err != nil {
 			return err
 		}
 
@@ -185,7 +186,19 @@ func processOutput(output *LedgerOutput, committed bool, tx *gorm.DB) error {
 		return err
 	}
 
-	if err := tx.Create(entry).Error; err != nil {
+	var createQuery *gorm.DB
+	if committed {
+		// This output might still be in the database from a previous uncommitted state but it was already marked as deleted in a later slot, so we will only update the committed flag
+		createQuery = tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "output_id"}},
+			DoUpdates: clause.Assignments(map[string]interface{}{
+				"committed": true,
+			})}).Create(entry)
+	} else {
+		createQuery = tx.Create(entry)
+	}
+
+	if err := createQuery.Error; err != nil {
 		return err
 	}
 
