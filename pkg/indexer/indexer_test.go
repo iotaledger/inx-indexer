@@ -60,25 +60,25 @@ func (o *outputTest) acceptAddThenCommitAddThenAcceptDeleteThenCommitDelete(t *t
 	ts := newTestSuite(t)
 
 	// Accept Add
-	ts.AddOutputOnAcceptance(o.output, o.outputID)
+	ts.AddOutputOnAcceptance(o.output, o.outputID, 1)
 
 	// Accepted outputs are found
 	ts.requireFound(o.outputID)
 
 	// Commit Add
-	ts.AddOutputOnCommitment(o.output, o.outputID)
+	ts.AddOutputOnCommitment(o.output, o.outputID) // Slot 1
 
 	// Still needs to be found
 	ts.requireFound(o.outputID)
 
 	// Accept Delete
-	ts.DeleteOutputOnAcceptance(o.outputID)
+	ts.DeleteOutputOnAcceptance(o.outputID, 2)
 
 	// Output should not be found anymore (but still in db)
 	ts.requireNotFound(o.outputID)
 
 	// Commit Delete
-	ts.DeleteOutputOnCommitment(o.outputID)
+	ts.DeleteOutputOnCommitment(o.outputID) // Slot 2
 
 	// Output should not be found anymore (deleted from db)
 	ts.requireNotFound(o.outputID)
@@ -97,13 +97,13 @@ func (o *outputTest) acceptAddThenCommitEmpty(t *testing.T) {
 	ts := newTestSuite(t)
 
 	// Accept Add
-	ts.AddOutputOnAcceptance(o.output, o.outputID)
+	ts.AddOutputOnAcceptance(o.output, o.outputID, 1)
 
 	// Accepted outputs are found
 	ts.requireFound(o.outputID)
 
 	// Commit (so that all uncommitted outputs are deleted)
-	ts.CommitEmptyLedgerUpdate()
+	ts.CommitEmptyLedgerUpdate() // Slot 1
 
 	// Output should not be found anymore (deleted from db)
 	ts.requireNotFound(o.outputID)
@@ -123,19 +123,19 @@ func (o *outputTest) commitAddThenAcceptDeleteThenCommitEmpty(t *testing.T) {
 	ts := newTestSuite(t)
 
 	// Commit Add
-	ts.AddOutputOnCommitment(o.output, o.outputID)
+	ts.AddOutputOnCommitment(o.output, o.outputID) // Slot 1
 
 	// Committed outputs are found
 	ts.requireFound(o.outputID)
 
 	// Delete on acceptance
-	ts.DeleteOutputOnAcceptance(o.outputID)
+	ts.DeleteOutputOnAcceptance(o.outputID, 2)
 
 	// Output should not be found (but still in db)
 	ts.requireNotFound(o.outputID)
 
 	// Commit (so that all uncommitted deletes are reverted)
-	ts.CommitEmptyLedgerUpdate()
+	ts.CommitEmptyLedgerUpdate() // Slot 2
 
 	// Output should be found again because the deletion was never committed
 	ts.requireFound(o.outputID)
@@ -151,15 +151,15 @@ func (o *outputTest) acceptAddThenRestartIndexer(t *testing.T) {
 	ts := newTestSuite(t)
 
 	// Commit something so that we are not at zero
-	ts.CommitEmptyLedgerUpdate()
+	ts.CommitEmptyLedgerUpdate() // Slot 1
 
 	// Accept Add
-	ts.AddOutputOnAcceptance(o.output, o.outputID)
+	ts.AddOutputOnAcceptance(o.output, o.outputID, 2)
 
 	// Outputs are found
 	ts.requireFound(o.outputID)
 
-	require.NoError(t, ts.Indexer.RemoveUncommittedChanges())
+	require.NoError(t, ts.Indexer.RemoveUncommittedChanges()) // Reset to 1
 
 	// Output should not be found again because we removed all uncommitted changes
 	ts.requireNotFound(o.outputID)
@@ -175,21 +175,59 @@ func (o *outputTest) acceptDeleteThenRestartIndexer(t *testing.T) {
 	ts := newTestSuite(t)
 
 	// Commit Add
-	ts.AddOutputOnCommitment(o.output, o.outputID)
+	ts.AddOutputOnCommitment(o.output, o.outputID) // Slot 1
 
 	// Outputs are found
 	ts.requireFound(o.outputID)
 
 	// Accept Delete
-	ts.DeleteOutputOnAcceptance(o.outputID)
+	ts.DeleteOutputOnAcceptance(o.outputID, 2)
 
 	// Output should not be found anymore (but still in db)
 	ts.requireNotFound(o.outputID)
 
-	require.NoError(t, ts.Indexer.RemoveUncommittedChanges())
+	require.NoError(t, ts.Indexer.RemoveUncommittedChanges()) // Reset to 1
 
 	// Output should be found again because we reverted the uncommitted delete
 	ts.requireFound(o.outputID)
+}
+
+// TestIndexer_AcceptAdd_AcceptDelete_CommitAdd tests the following scenario:
+// 1. Add output on acceptance
+// 2. Delete output on acceptance
+// 2. Add initial output on commitment -> should not be found because it was deleted on 2
+func TestIndexer_AcceptAdd_AcceptDelete_CommitAdd(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, tt.acceptAddThenAcceptDeleteThenCommitAdd)
+	}
+}
+
+func (o *outputTest) acceptAddThenAcceptDeleteThenCommitAdd(t *testing.T) {
+	ts := newTestSuite(t)
+
+	// Accept Add
+	ts.AddOutputOnAcceptance(o.output, o.outputID, 1)
+
+	// Outputs are found
+	ts.requireFound(o.outputID)
+
+	// Accept Delete
+	ts.DeleteOutputOnAcceptance(o.outputID, 2)
+
+	// Output should not be found anymore (but still in db)
+	ts.requireNotFound(o.outputID)
+
+	// Commit Add
+	ts.AddOutputOnCommitment(o.output, o.outputID) // Slot 1
+
+	// Output should still not be found because it was deleted on slot 2
+	ts.requireNotFound(o.outputID)
+
+	// Commit deletion
+	ts.DeleteOutputOnCommitment(o.outputID) // Slot 2
+
+	// Output not found
+	ts.requireNotFound(o.outputID)
 }
 
 func basicOutputWithAddress(address iotago.Address) iotago.Output {
