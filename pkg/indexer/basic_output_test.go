@@ -60,6 +60,7 @@ func TestIndexer_BasicOutput(t *testing.T) {
 	outputSet.requireDelegationNotFound()
 	outputSet.requireNFTNotFound()
 	outputSet.requireFoundryNotFound()
+	outputSet.requireAnchorNotFound()
 
 	// Native Tokens
 	outputSet.requireBasicFound(indexer.BasicHasNativeToken(false))

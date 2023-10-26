@@ -217,6 +217,7 @@ type ImportTransaction struct {
 	basic        *processor[*basic]
 	nft          *processor[*nft]
 	account      *processor[*account]
+	anchor       *processor[*anchor]
 	foundry      *processor[*foundry]
 	delegation   *processor[*delegation]
 	multiAddress *processor[*multiaddress]
@@ -236,6 +237,7 @@ func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) 
 		basic:         newProcessor[*basic](ctx, dbSession, log),
 		nft:           newProcessor[*nft](ctx, dbSession, log),
 		account:       newProcessor[*account](ctx, dbSession, log),
+		anchor:        newProcessor[*anchor](ctx, dbSession, log),
 		foundry:       newProcessor[*foundry](ctx, dbSession, log),
 		delegation:    newProcessor[*delegation](ctx, dbSession, log),
 		multiAddress:  newProcessor[*multiaddress](ctx, dbSession, log),
@@ -257,6 +259,8 @@ func (i *ImportTransaction) AddOutput(outputID iotago.OutputID, output iotago.Ou
 		i.nft.enqueue(e)
 	case *account:
 		i.account.enqueue(e)
+	case *anchor:
+		i.anchor.enqueue(e)
 	case *foundry:
 		i.foundry.enqueue(e)
 	case *delegation:
@@ -278,6 +282,7 @@ func (i *ImportTransaction) Finalize(committedSlot iotago.SlotIndex, networkName
 	i.basic.closeAndWait()
 	i.nft.closeAndWait()
 	i.account.closeAndWait()
+	i.anchor.closeAndWait()
 	i.foundry.closeAndWait()
 	i.delegation.closeAndWait()
 	i.multiAddress.closeAndWait()

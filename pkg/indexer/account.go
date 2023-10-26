@@ -11,16 +11,15 @@ import (
 )
 
 type account struct {
-	AccountID       []byte `gorm:"primaryKey;notnull"`
-	OutputID        []byte `gorm:"unique;notnull"`
-	Amount          iotago.BaseToken
-	StateController []byte           `gorm:"notnull;index:accounts_state_controller"`
-	Governor        []byte           `gorm:"notnull;index:accounts_governor"`
-	Issuer          []byte           `gorm:"index:accounts_issuer"`
-	Sender          []byte           `gorm:"index:accounts_sender"`
-	CreatedAtSlot   iotago.SlotIndex `gorm:"notnull;index:accounts_created_at_slot"`
-	DeletedAtSlot   iotago.SlotIndex `gorm:"notnull;index:accounts_deleted_at_slot"`
-	Committed       bool
+	AccountID     []byte `gorm:"primaryKey;notnull"`
+	OutputID      []byte `gorm:"unique;notnull"`
+	Amount        iotago.BaseToken
+	Issuer        []byte           `gorm:"index:accounts_issuer"`
+	Sender        []byte           `gorm:"index:accounts_sender"`
+	Address       []byte           `gorm:"notnull;index:accounts_address"`
+	CreatedAtSlot iotago.SlotIndex `gorm:"notnull;index:accounts_created_at_slot"`
+	DeletedAtSlot iotago.SlotIndex `gorm:"notnull;index:accounts_deleted_at_slot"`
+	Committed     bool
 }
 
 func (a *account) String() string {
@@ -28,32 +27,18 @@ func (a *account) String() string {
 }
 
 type AccountFilterOptions struct {
-	unlockableByAddress iotago.Address
-	stateController     iotago.Address
-	governor            iotago.Address
-	issuer              iotago.Address
-	sender              iotago.Address
-	pageSize            uint32
-	cursor              *string
-	createdBefore       *iotago.SlotIndex
-	createdAfter        *iotago.SlotIndex
+	address       iotago.Address
+	issuer        iotago.Address
+	sender        iotago.Address
+	pageSize      uint32
+	cursor        *string
+	createdBefore *iotago.SlotIndex
+	createdAfter  *iotago.SlotIndex
 }
 
-func AccountUnlockableByAddress(address iotago.Address) options.Option[AccountFilterOptions] {
+func AccountUnlockAddress(address iotago.Address) options.Option[AccountFilterOptions] {
 	return func(args *AccountFilterOptions) {
-		args.unlockableByAddress = address
-	}
-}
-
-func AccountStateController(address iotago.Address) options.Option[AccountFilterOptions] {
-	return func(args *AccountFilterOptions) {
-		args.stateController = address
-	}
-}
-
-func AccountGovernor(address iotago.Address) options.Option[AccountFilterOptions] {
-	return func(args *AccountFilterOptions) {
-		args.governor = address
+		args.address = address
 	}
 }
 
@@ -104,17 +89,8 @@ func (i *Indexer) AccountByID(accountID iotago.AccountID) *IndexerResult {
 func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) *gorm.DB {
 	query := i.db.Model(&account{}).Where("deleted_at_slot == 0")
 
-	if opts.unlockableByAddress != nil {
-		addrID := opts.unlockableByAddress.ID()
-		query = query.Where("(state_controller = ? OR governor = ?)", addrID, addrID)
-	}
-
-	if opts.stateController != nil {
-		query = query.Where("state_controller = ?", opts.stateController.ID())
-	}
-
-	if opts.governor != nil {
-		query = query.Where("governor = ?", opts.governor.ID())
+	if opts.address != nil {
+		query = query.Where("address = ?", opts.address.ID())
 	}
 
 	if opts.sender != nil {

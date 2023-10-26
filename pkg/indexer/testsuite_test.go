@@ -210,6 +210,22 @@ func (os *indexerOutputSet) requireAccountNotFoundByID(accountID iotago.AccountI
 	require.NotEqual(os.ts.T, os.Outputs, os.ts.Indexer.AccountByID(accountID).OutputIDs)
 }
 
+func (os *indexerOutputSet) requireAnchorFound(filters ...options.Option[indexer.AnchorFilterOptions]) {
+	require.Equal(os.ts.T, os.Outputs, os.ts.Indexer.Anchor(filters...).OutputIDs)
+}
+
+func (os *indexerOutputSet) requireAnchorNotFound(filters ...options.Option[indexer.AnchorFilterOptions]) {
+	require.NotEqual(os.ts.T, os.Outputs, os.ts.Indexer.Anchor(filters...).OutputIDs)
+}
+
+func (os *indexerOutputSet) requireAnchorFoundByID(anchorID iotago.AnchorID) {
+	require.Equal(os.ts.T, os.Outputs, os.ts.Indexer.AnchorByID(anchorID).OutputIDs)
+}
+
+func (os *indexerOutputSet) requireAnchorNotFoundByID(anchorID iotago.AnchorID) {
+	require.NotEqual(os.ts.T, os.Outputs, os.ts.Indexer.AnchorByID(anchorID).OutputIDs)
+}
+
 func (os *indexerOutputSet) requireNFTFound(filters ...options.Option[indexer.NFTFilterOptions]) {
 	require.Equal(os.ts.T, os.Outputs, os.ts.Indexer.NFT(filters...).OutputIDs)
 }
