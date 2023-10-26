@@ -22,7 +22,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/dig v1.17.1
 	golang.org/x/text v0.13.0
-	gorm.io/driver/postgres v1.5.3
+	gorm.io/driver/postgres v1.5.4
 	gorm.io/driver/sqlite v1.5.4
 	gorm.io/gorm v1.25.5
 )
