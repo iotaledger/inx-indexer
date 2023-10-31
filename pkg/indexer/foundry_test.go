@@ -51,6 +51,7 @@ func TestIndexer_FoundryOutput(t *testing.T) {
 	outputSet.requireAccountNotFound()
 	outputSet.requireDelegationNotFound()
 	outputSet.requireNFTNotFound()
+	outputSet.requireAnchorNotFound()
 
 	// Native Tokens
 	outputSet.requireFoundryFound(indexer.FoundryHasNativeToken(false))

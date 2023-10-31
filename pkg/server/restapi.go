@@ -7,6 +7,9 @@ const (
 	// ParameterAccountID is used to identify an account by its ID.
 	ParameterAccountID = "accountID"
 
+	// ParameterAnchorID is used to identify an anchor by its ID.
+	ParameterAnchorID = "anchorID"
+
 	// ParameterDelegationID is used to identify a delegation by its ID.
 	ParameterDelegationID = "delegationID"
 

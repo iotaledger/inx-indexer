@@ -21,21 +21,15 @@ func TestIndexer_AccountOutput(t *testing.T) {
 
 	senderAddress := iotago_tpkg.RandEd25519Address()
 	issuerAddress := iotago_tpkg.RandEd25519Address()
-	stateControllerAddress := iotago_tpkg.RandEd25519Address()
-	governorAddress := iotago_tpkg.RandEd25519Address()
+	address := iotago_tpkg.RandEd25519Address()
 
 	output := &iotago.AccountOutput{
 		Amount:         iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.TestAPI.ProtocolParameters().TokenSupply()))),
 		Mana:           iotago.Mana(iotago_tpkg.RandUint64(math.MaxUint64)),
-		StateIndex:     0,
-		StateMetadata:  nil,
 		FoundryCounter: 0,
 		Conditions: iotago.AccountOutputUnlockConditions{
-			&iotago.StateControllerAddressUnlockCondition{
-				Address: stateControllerAddress,
-			},
-			&iotago.GovernorAddressUnlockCondition{
-				Address: governorAddress,
+			&iotago.AddressUnlockCondition{
+				Address: address,
 			},
 		},
 		Features: iotago.AccountOutputFeatures{
@@ -80,6 +74,7 @@ func TestIndexer_AccountOutput(t *testing.T) {
 	outputSet.requireDelegationNotFound()
 	outputSet.requireNFTNotFound()
 	outputSet.requireFoundryNotFound()
+	outputSet.requireAnchorNotFound()
 
 	// Creation Slot
 	outputSet.requireAccountFound(indexer.AccountCreatedAfter(0))
@@ -89,13 +84,9 @@ func TestIndexer_AccountOutput(t *testing.T) {
 	outputSet.requireAccountNotFound(indexer.AccountCreatedBefore(1))
 	outputSet.requireAccountFound(indexer.AccountCreatedBefore(2))
 
-	// State Controller
-	outputSet.requireAccountFound(indexer.AccountStateController(stateControllerAddress))
-	outputSet.requireAccountNotFound(indexer.AccountStateController(governorAddress))
-
-	// Governor
-	outputSet.requireAccountFound(indexer.AccountGovernor(governorAddress))
-	outputSet.requireAccountNotFound(indexer.AccountGovernor(stateControllerAddress))
+	// Address
+	outputSet.requireAccountFound(indexer.AccountUnlockAddress(address))
+	outputSet.requireAccountNotFound(indexer.AccountUnlockAddress(randomAddress))
 
 	// Sender
 	outputSet.requireAccountFound(indexer.AccountSender(senderAddress))
@@ -104,14 +95,4 @@ func TestIndexer_AccountOutput(t *testing.T) {
 	// Issuer
 	outputSet.requireAccountFound(indexer.AccountIssuer(issuerAddress))
 	outputSet.requireAccountNotFound(indexer.AccountIssuer(randomAddress))
-
-	// Unlockable by the following addresses
-	for _, addr := range []iotago.Address{stateControllerAddress, governorAddress} {
-		outputSet.requireAccountFound(indexer.AccountUnlockableByAddress(addr))
-	}
-
-	// Not unlockable by the following addresses
-	for _, addr := range []iotago.Address{senderAddress, issuerAddress, accountAddress} {
-		outputSet.requireAccountNotFound(indexer.AccountUnlockableByAddress(addr))
-	}
 }

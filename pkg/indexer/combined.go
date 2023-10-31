@@ -99,6 +99,21 @@ func (o *CombinedFilterOptions) AccountFilterOptions() *AccountFilterOptions {
 	}
 
 	return &AccountFilterOptions{
+		address:       o.unlockableByAddress,
+		pageSize:      o.pageSize,
+		cursor:        o.cursor,
+		createdBefore: o.createdBefore,
+		createdAfter:  o.createdAfter,
+	}
+}
+
+func (o *CombinedFilterOptions) AnchorFilterOptions() *AnchorFilterOptions {
+	if o.hasNativeToken != nil && *o.hasNativeToken {
+		// Do not support native tokens
+		return nil
+	}
+
+	return &AnchorFilterOptions{
 		unlockableByAddress: o.unlockableByAddress,
 		pageSize:            o.pageSize,
 		cursor:              o.cursor,
@@ -148,6 +163,10 @@ func (i *Indexer) Combined(filters ...options.Option[CombinedFilterOptions]) *In
 
 	if filter := opts.AccountFilterOptions(); filter != nil {
 		queries = append(queries, i.accountQueryWithFilter(filter))
+	}
+
+	if filter := opts.AnchorFilterOptions(); filter != nil {
+		queries = append(queries, i.anchorQueryWithFilter(filter))
 	}
 
 	if filter := opts.NFTFilterOptions(); filter != nil {

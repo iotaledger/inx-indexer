@@ -50,6 +50,7 @@ func TestIndexer_DelegationOutput(t *testing.T) {
 	outputSet.requireBasicNotFound()
 	outputSet.requireNFTNotFound()
 	outputSet.requireFoundryNotFound()
+	outputSet.requireAnchorNotFound()
 
 	// Creation Slot
 	outputSet.requireDelegationFound(indexer.DelegationCreatedAfter(0))

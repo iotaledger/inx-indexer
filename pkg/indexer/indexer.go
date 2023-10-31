@@ -24,6 +24,7 @@ var (
 		&nft{},
 		&foundry{},
 		&account{},
+		&anchor{},
 		&delegation{},
 	}
 )
@@ -95,30 +96,31 @@ func addressesInOutput(output iotago.Output) []iotago.Address {
 	return foundAddresses
 }
 
+func tableForOutput(output iotago.Output) interface{} {
+	switch output.(type) {
+	case *iotago.BasicOutput:
+		return &basic{}
+	case *iotago.AccountOutput:
+		return &account{}
+	case *iotago.AnchorOutput:
+		return &anchor{}
+	case *iotago.NFTOutput:
+		return &nft{}
+	case *iotago.FoundryOutput:
+		return &foundry{}
+	case *iotago.DelegationOutput:
+		return &delegation{}
+	default:
+		panic("unexpected output type")
+	}
+}
+
 func processSpent(output *LedgerOutput, committed bool, tx *gorm.DB) error {
+
 	// Properly delete the outputs if they were committed
 	if committed {
-		switch output.Output.(type) {
-		case *iotago.BasicOutput:
-			if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&basic{}).Error; err != nil {
-				return err
-			}
-		case *iotago.AccountOutput:
-			if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&account{}).Error; err != nil {
-				return err
-			}
-		case *iotago.NFTOutput:
-			if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&nft{}).Error; err != nil {
-				return err
-			}
-		case *iotago.FoundryOutput:
-			if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&foundry{}).Error; err != nil {
-				return err
-			}
-		case *iotago.DelegationOutput:
-			if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(&delegation{}).Error; err != nil {
-				return err
-			}
+		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(tableForOutput(output.Output)).Error; err != nil {
+			return err
 		}
 
 		// Delete committed MultiAddress deletions
@@ -126,27 +128,8 @@ func processSpent(output *LedgerOutput, committed bool, tx *gorm.DB) error {
 	}
 
 	// Mark them as deleted but leave them in for now
-	switch output.Output.(type) {
-	case *iotago.BasicOutput:
-		if err := tx.Model(&basic{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at_slot", output.SpentAt).Error; err != nil {
-			return err
-		}
-	case *iotago.AccountOutput:
-		if err := tx.Model(&account{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at_slot", output.SpentAt).Error; err != nil {
-			return err
-		}
-	case *iotago.NFTOutput:
-		if err := tx.Model(&nft{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at_slot", output.SpentAt).Error; err != nil {
-			return err
-		}
-	case *iotago.FoundryOutput:
-		if err := tx.Model(&foundry{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at_slot", output.SpentAt).Error; err != nil {
-			return err
-		}
-	case *iotago.DelegationOutput:
-		if err := tx.Model(&delegation{}).Where("output_id = ?", output.OutputID[:]).Update("deleted_at_slot", output.SpentAt).Error; err != nil {
-			return err
-		}
+	if err := tx.Model(tableForOutput(output.Output)).Where("output_id = ?", output.OutputID[:]).Update("deleted_at_slot", output.SpentAt).Error; err != nil {
+		return err
 	}
 
 	return nil
@@ -284,15 +267,50 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 			acc.Sender = senderBlock.Address.ID()
 		}
 
-		if stateController := conditions.StateControllerAddress(); stateController != nil {
-			acc.StateController = stateController.Address.ID()
-		}
-
-		if governor := conditions.GovernorAddress(); governor != nil {
-			acc.Governor = governor.Address.ID()
+		if address := conditions.Address(); address != nil {
+			acc.Address = address.Address.ID()
 		}
 
 		entry = acc
+
+	case *iotago.AnchorOutput:
+		anchorID := iotaOutput.AnchorID
+		if anchorID.Empty() {
+			// Use implicit AnchorID
+			anchorID = iotago.AnchorIDFromOutputID(outputID)
+		}
+
+		features := iotaOutput.FeatureSet()
+		immutableFeatures := iotaOutput.ImmutableFeatureSet()
+		conditions := iotaOutput.UnlockConditionSet()
+
+		anc := &anchor{
+			Amount:        iotaOutput.Amount,
+			AnchorID:      make([]byte, iotago.AnchorIDLength),
+			OutputID:      make([]byte, iotago.OutputIDLength),
+			CreatedAtSlot: slotBooked,
+			Committed:     committed,
+		}
+		copy(anc.AnchorID, anchorID[:])
+		copy(anc.OutputID, outputID[:])
+
+		if issuerBlock := immutableFeatures.Issuer(); issuerBlock != nil {
+			anc.Issuer = issuerBlock.Address.ID()
+		}
+
+		if senderBlock := features.SenderFeature(); senderBlock != nil {
+			anc.Sender = senderBlock.Address.ID()
+		}
+
+		if stateController := conditions.StateControllerAddress(); stateController != nil {
+			anc.StateController = stateController.Address.ID()
+		}
+
+		if governor := conditions.GovernorAddress(); governor != nil {
+			anc.Governor = governor.Address.ID()
+		}
+
+		entry = anc
 
 	case *iotago.NFTOutput:
 		features := iotaOutput.FeatureSet()

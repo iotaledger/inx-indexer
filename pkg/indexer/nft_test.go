@@ -74,6 +74,7 @@ func TestIndexer_NFTOutput(t *testing.T) {
 	outputSet.requireAccountNotFound()
 	outputSet.requireDelegationNotFound()
 	outputSet.requireFoundryNotFound()
+	outputSet.requireAnchorNotFound()
 
 	// Address
 	outputSet.requireNFTFound(indexer.NFTUnlockAddress(address))

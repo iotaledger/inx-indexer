@@ -32,6 +32,11 @@ var (
 			outputID: iotago_tpkg.RandOutputID(0),
 		},
 		{
+			name:     "anchor output",
+			output:   anchorOutputWithAddress(iotago_tpkg.RandEd25519Address()),
+			outputID: iotago_tpkg.RandOutputID(0),
+		},
+		{
 			name:     "foundry output",
 			output:   foundryOutputWithAddress(iotago_tpkg.RandAccountAddress()),
 			outputID: iotago_tpkg.RandOutputID(0),
@@ -276,6 +281,17 @@ func accountOutputWithAddress(address iotago.Address) iotago.Output {
 	return &iotago.AccountOutput{
 		Amount: 100000,
 		Conditions: iotago.AccountOutputUnlockConditions{
+			&iotago.AddressUnlockCondition{
+				Address: address,
+			},
+		},
+	}
+}
+
+func anchorOutputWithAddress(address iotago.Address) iotago.Output {
+	return &iotago.AnchorOutput{
+		Amount: 100000,
+		Conditions: iotago.AnchorOutputUnlockConditions{
 			&iotago.StateControllerAddressUnlockCondition{
 				Address: address,
 			},

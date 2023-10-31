@@ -34,7 +34,7 @@ const (
 
 	// RouteOutputsAccounts is the route for getting accounts filtered by the given parameters.
 	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "unlockableByAddress", "stateController", "governor", "issuer", "sender",
+	// Query parameters: "address", "issuer", "sender",
 	//					 "createdBefore", "createdAfter"
 	// Returns an empty list if no results are found.
 	RouteOutputsAccounts = "/outputs/account"
@@ -42,6 +42,17 @@ const (
 	// RouteOutputsAccountByID is the route for getting accounts by their accountID.
 	// GET returns the outputIDs or 404 if no record is found.
 	RouteOutputsAccountByID = "/outputs/account/:" + ParameterAccountID
+
+	// RouteOutputsAnchors is the route for getting anchors filtered by the given parameters.
+	// GET with query parameter returns all outputIDs that fit these filter criteria.
+	// Query parameters: "unlockableByAddress", "stateController", "governor", "issuer", "sender",
+	//					 "createdBefore", "createdAfter"
+	// Returns an empty list if no results are found.
+	RouteOutputsAnchors = "/outputs/anchor"
+
+	// RouteOutputsAnchorByID is the route for getting anchors by their anchorID.
+	// GET returns the outputIDs or 404 if no record is found.
+	RouteOutputsAnchorByID = "/outputs/anchor/:" + ParameterAnchorID
 
 	// RouteOutputsNFTs is the route for getting NFT filtered by the given parameters.
 	// Query parameters: "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
@@ -113,6 +124,24 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 
 	routeGroup.GET(RouteOutputsAccountByID, func(c echo.Context) error {
 		resp, err := s.accountByID(c)
+		if err != nil {
+			return err
+		}
+
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
+	})
+
+	routeGroup.GET(RouteOutputsAnchors, func(c echo.Context) error {
+		resp, err := s.anchorsWithFilter(c)
+		if err != nil {
+			return err
+		}
+
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
+	})
+
+	routeGroup.GET(RouteOutputsAnchorByID, func(c echo.Context) error {
+		resp, err := s.anchorByID(c)
 		if err != nil {
 			return err
 		}
@@ -393,28 +422,12 @@ func (s *IndexerServer) accountByID(c echo.Context) (*apimodels.IndexerResponse,
 func (s *IndexerServer) accountsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
 	filters := []options.Option[indexer.AccountFilterOptions]{indexer.AccountPageSize(s.pageSizeFromContext(c))}
 
-	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
-		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterUnlockableByAddress)
+	if len(c.QueryParam(QueryParameterAddress)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterAddress)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, indexer.AccountUnlockableByAddress(addr))
-	}
-
-	if len(c.QueryParam(QueryParameterStateController)) > 0 {
-		stateController, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStateController)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.AccountStateController(stateController))
-	}
-
-	if len(c.QueryParam(QueryParameterGovernor)) > 0 {
-		governor, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterGovernor)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, indexer.AccountGovernor(governor))
+		filters = append(filters, indexer.AccountUnlockAddress(addr))
 	}
 
 	if len(c.QueryParam(QueryParameterIssuer)) > 0 {
@@ -458,6 +471,85 @@ func (s *IndexerServer) accountsWithFilter(c echo.Context) (*apimodels.IndexerRe
 	}
 
 	return indexerResponseFromResult(s.Indexer.Account(filters...))
+}
+
+func (s *IndexerServer) anchorByID(c echo.Context) (*apimodels.IndexerResponse, error) {
+	anchorID, err := httpserver.ParseAnchorIDParam(c, ParameterAccountID)
+	if err != nil {
+		return nil, err
+	}
+
+	return singleOutputResponseFromResult(s.Indexer.AnchorByID(anchorID))
+}
+
+func (s *IndexerServer) anchorsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
+	filters := []options.Option[indexer.AnchorFilterOptions]{indexer.AnchorPageSize(s.pageSizeFromContext(c))}
+
+	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
+		addr, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterUnlockableByAddress)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.AnchorUnlockableByAddress(addr))
+	}
+
+	if len(c.QueryParam(QueryParameterStateController)) > 0 {
+		stateController, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterStateController)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.AnchorStateController(stateController))
+	}
+
+	if len(c.QueryParam(QueryParameterGovernor)) > 0 {
+		governor, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterGovernor)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.AnchorGovernor(governor))
+	}
+
+	if len(c.QueryParam(QueryParameterIssuer)) > 0 {
+		issuer, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterIssuer)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.AnchorIssuer(issuer))
+	}
+
+	if len(c.QueryParam(QueryParameterSender)) > 0 {
+		sender, err := httpserver.ParseBech32AddressQueryParam(c, s.Bech32HRP, QueryParameterSender)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.AnchorSender(sender))
+	}
+
+	if len(c.QueryParam(QueryParameterCursor)) > 0 {
+		cursor, pageSize, err := s.parseCursorQueryParameter(c)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.AnchorCursor(cursor), indexer.AnchorPageSize(pageSize))
+	}
+
+	if len(c.QueryParam(QueryParameterCreatedBefore)) > 0 {
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedBefore)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.AnchorCreatedBefore(slot))
+	}
+
+	if len(c.QueryParam(QueryParameterCreatedAfter)) > 0 {
+		slot, err := httpserver.ParseSlotQueryParam(c, QueryParameterCreatedAfter)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, indexer.AnchorCreatedAfter(slot))
+	}
+
+	return indexerResponseFromResult(s.Indexer.Anchor(filters...))
 }
 
 func (s *IndexerServer) nftByID(c echo.Context) (*apimodels.IndexerResponse, error) {
