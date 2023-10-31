@@ -286,7 +286,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 
 		anc := &anchor{
 			Amount:        iotaOutput.Amount,
-			AnchorID:      make([]byte, iotago.AccountIDLength),
+			AnchorID:      make([]byte, iotago.AnchorIDLength),
 			OutputID:      make([]byte, iotago.OutputIDLength),
 			CreatedAtSlot: slotBooked,
 			Committed:     committed,
