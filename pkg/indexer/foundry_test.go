@@ -29,7 +29,7 @@ func TestIndexer_FoundryOutput(t *testing.T) {
 			MeltedTokens:  iotago_tpkg.RandUint256(),
 			MaximumSupply: iotago_tpkg.RandUint256(),
 		},
-		Conditions: iotago.FoundryOutputUnlockConditions{
+		UnlockConditions: iotago.FoundryOutputUnlockConditions{
 			&iotago.ImmutableAccountUnlockCondition{
 				Address: accountAddress,
 			},
@@ -80,7 +80,7 @@ func TestIndexer_FoundryOutput_NativeToken(t *testing.T) {
 			MeltedTokens:  iotago_tpkg.RandUint256(),
 			MaximumSupply: iotago_tpkg.RandUint256(),
 		},
-		Conditions: iotago.FoundryOutputUnlockConditions{
+		UnlockConditions: iotago.FoundryOutputUnlockConditions{
 			&iotago.ImmutableAccountUnlockCondition{
 				Address: accountAddress,
 			},

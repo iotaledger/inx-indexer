@@ -239,7 +239,7 @@ func basicOutputWithAddress(address iotago.Address) iotago.Output {
 	return &iotago.BasicOutput{
 		Amount: 100000,
 		Mana:   0,
-		Conditions: iotago.BasicOutputUnlockConditions{
+		UnlockConditions: iotago.BasicOutputUnlockConditions{
 			&iotago.AddressUnlockCondition{
 				Address: address,
 			},
@@ -252,7 +252,7 @@ func nftOutputWithAddressAndSender(address iotago.Address) iotago.Output {
 	return &iotago.NFTOutput{
 		Amount: 100000,
 		Mana:   0,
-		Conditions: iotago.NFTOutputUnlockConditions{
+		UnlockConditions: iotago.NFTOutputUnlockConditions{
 			&iotago.AddressUnlockCondition{
 				Address: address,
 			},
@@ -269,7 +269,7 @@ func delegationOutputWithAddress(address iotago.Address) iotago.Output {
 	return &iotago.DelegationOutput{
 		Amount:           100000,
 		ValidatorAddress: iotago_tpkg.RandAccountAddress(),
-		Conditions: iotago.DelegationOutputUnlockConditions{
+		UnlockConditions: iotago.DelegationOutputUnlockConditions{
 			&iotago.AddressUnlockCondition{
 				Address: address,
 			},
@@ -280,7 +280,7 @@ func delegationOutputWithAddress(address iotago.Address) iotago.Output {
 func accountOutputWithAddress(address iotago.Address) iotago.Output {
 	return &iotago.AccountOutput{
 		Amount: 100000,
-		Conditions: iotago.AccountOutputUnlockConditions{
+		UnlockConditions: iotago.AccountOutputUnlockConditions{
 			&iotago.AddressUnlockCondition{
 				Address: address,
 			},
@@ -291,7 +291,7 @@ func accountOutputWithAddress(address iotago.Address) iotago.Output {
 func anchorOutputWithAddress(address iotago.Address) iotago.Output {
 	return &iotago.AnchorOutput{
 		Amount: 100000,
-		Conditions: iotago.AnchorOutputUnlockConditions{
+		UnlockConditions: iotago.AnchorOutputUnlockConditions{
 			&iotago.StateControllerAddressUnlockCondition{
 				Address: address,
 			},
@@ -310,7 +310,7 @@ func foundryOutputWithAddress(accountAddress *iotago.AccountAddress) iotago.Outp
 			MeltedTokens:  iotago_tpkg.RandUint256(),
 			MaximumSupply: iotago_tpkg.RandUint256(),
 		},
-		Conditions: iotago.FoundryOutputUnlockConditions{
+		UnlockConditions: iotago.FoundryOutputUnlockConditions{
 			&iotago.ImmutableAccountUnlockCondition{
 				Address: accountAddress,
 			},

@@ -27,7 +27,7 @@ func TestIndexer_NFTOutput(t *testing.T) {
 	output := &iotago.NFTOutput{
 		Amount: iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.TestAPI.ProtocolParameters().TokenSupply()))),
 		Mana:   iotago.Mana(iotago_tpkg.RandUint64(math.MaxUint64)),
-		Conditions: iotago.NFTOutputUnlockConditions{
+		UnlockConditions: iotago.NFTOutputUnlockConditions{
 			&iotago.AddressUnlockCondition{
 				Address: address,
 			},

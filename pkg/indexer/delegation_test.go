@@ -27,7 +27,7 @@ func TestIndexer_DelegationOutput(t *testing.T) {
 		ValidatorAddress: validatorAddress,
 		StartEpoch:       0,
 		EndEpoch:         0,
-		Conditions: iotago.DelegationOutputUnlockConditions{
+		UnlockConditions: iotago.DelegationOutputUnlockConditions{
 			&iotago.AddressUnlockCondition{
 				Address: address,
 			},
