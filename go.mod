@@ -3,7 +3,7 @@ module github.com/iotaledger/inx-indexer
 go 1.21
 
 require (
-	github.com/ethereum/go-ethereum v1.13.4
+	github.com/ethereum/go-ethereum v1.13.5
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/iotaledger/hive.go/app v0.0.0-20231110120127-f90b276b7c05
 	github.com/iotaledger/hive.go/crypto v0.0.0-20231110120127-f90b276b7c05
