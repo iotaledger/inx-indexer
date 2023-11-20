@@ -127,7 +127,7 @@ func run() error {
 				return err
 			}
 
-			Component.LogInfof("Applying slot %d with %d new and %d consumed outputs took %s", update.Slot, len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
+			Component.LogInfof("Applying slot %d with %d new and %d consumed outputs took %s", update.CommitmentID.Slot(), len(update.Created), len(update.Consumed), time.Since(ts).Truncate(time.Millisecond))
 
 			return nil
 		}); err != nil {
@@ -442,7 +442,7 @@ func LedgerUpdateFromNodeBridge(update *nodebridge.LedgerUpdate) (*indexer.Ledge
 	}
 
 	return &indexer.LedgerUpdate{
-		Slot:     update.Slot,
+		Slot:     update.CommitmentID.Slot(),
 		Consumed: consumed,
 		Created:  created,
 	}, nil
