@@ -13,80 +13,8 @@ import (
 	"github.com/iotaledger/inx-app/pkg/httpserver"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v4"
+	"github.com/iotaledger/iota.go/v4/nodeclient"
 	"github.com/iotaledger/iota.go/v4/nodeclient/apimodels"
-)
-
-const (
-	// RouteOutputs is the route for getting basic, foundry, account, delegation and nft outputs filtered by the given parameters.
-	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeToken", "nativeToken", "unlockableByAddress", "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputs = "/outputs"
-
-	// RouteOutputsBasic is the route for getting basic outputs filtered by the given parameters.
-	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeToken", "nativeToken", "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
-	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
-	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "sender", "tag",
-	//					 "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputsBasic = "/outputs/basic"
-
-	// RouteOutputsAccounts is the route for getting accounts filtered by the given parameters.
-	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "address", "issuer", "sender",
-	//					 "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputsAccounts = "/outputs/account"
-
-	// RouteOutputsAccountByID is the route for getting accounts by their accountID.
-	// GET returns the outputIDs or 404 if no record is found.
-	RouteOutputsAccountByID = "/outputs/account/:" + ParameterAccountID
-
-	// RouteOutputsAnchors is the route for getting anchors filtered by the given parameters.
-	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "unlockableByAddress", "stateController", "governor", "issuer", "sender",
-	//					 "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputsAnchors = "/outputs/anchor"
-
-	// RouteOutputsAnchorByID is the route for getting anchors by their anchorID.
-	// GET returns the outputIDs or 404 if no record is found.
-	RouteOutputsAnchorByID = "/outputs/anchor/:" + ParameterAnchorID
-
-	// RouteOutputsNFTs is the route for getting NFT filtered by the given parameters.
-	// Query parameters: "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
-	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
-	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "issuer", "sender", "tag",
-	//					 "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputsNFTs = "/outputs/nft"
-
-	// RouteOutputsNFTByID is the route for getting NFT by their nftID.
-	// GET returns the outputIDs or 404 if no record is found.
-	RouteOutputsNFTByID = "/outputs/nft/:" + ParameterNFTID
-
-	// RouteOutputsFoundries is the route for getting foundries filtered by the given parameters.
-	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeToken", "nativeToken", "account", "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputsFoundries = "/outputs/foundry"
-
-	// RouteOutputsFoundryByID is the route for getting foundries by their foundryID.
-	// GET returns the outputIDs or 404 if no record is found.
-	RouteOutputsFoundryByID = "/outputs/foundry/:" + ParameterFoundryID
-
-	// RouteOutputsDelegations is the route for getting delegations filtered by the given parameters.
-	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "address", "validator", "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputsDelegations = "/outputs/delegation"
-
-	// RouteOutputsDelegationByID is the route for getting delegations by their delegationID.
-	// GET returns the outputIDs or 404 if no record is found.
-	RouteOutputsDelegationByID = "/outputs/delegation/:" + ParameterDelegationID
-
-	RouteMultiAddressByAddress = "/multiaddress/:" + ParameterAddress
 )
 
 const (
@@ -95,7 +23,11 @@ const (
 
 func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 
-	routeGroup.GET(RouteOutputs, func(c echo.Context) error {
+	formatEndpoint := func(endpoint string, parameter string) string {
+		return fmt.Sprintf(endpoint, ":"+parameter)
+	}
+
+	routeGroup.GET(nodeclient.IndexerEndpointOutputs, func(c echo.Context) error {
 		resp, err := s.combinedOutputsWithFilter(c)
 		if err != nil {
 			return err
@@ -104,7 +36,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsBasic, func(c echo.Context) error {
+	routeGroup.GET(nodeclient.IndexerEndpointOutputsBasic, func(c echo.Context) error {
 		resp, err := s.basicOutputsWithFilter(c)
 		if err != nil {
 			return err
@@ -113,7 +45,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsAccounts, func(c echo.Context) error {
+	routeGroup.GET(nodeclient.IndexerEndpointOutputsAccounts, func(c echo.Context) error {
 		resp, err := s.accountsWithFilter(c)
 		if err != nil {
 			return err
@@ -122,7 +54,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsAccountByID, func(c echo.Context) error {
+	routeGroup.GET(formatEndpoint(nodeclient.IndexerEndpointOutputsAccountByID, ParameterAccountID), func(c echo.Context) error {
 		resp, err := s.accountByID(c)
 		if err != nil {
 			return err
@@ -131,7 +63,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsAnchors, func(c echo.Context) error {
+	routeGroup.GET(nodeclient.IndexerEndpointOutputsAnchors, func(c echo.Context) error {
 		resp, err := s.anchorsWithFilter(c)
 		if err != nil {
 			return err
@@ -140,7 +72,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsAnchorByID, func(c echo.Context) error {
+	routeGroup.GET(formatEndpoint(nodeclient.IndexerEndpointOutputsAnchorByID, ParameterAnchorID), func(c echo.Context) error {
 		resp, err := s.anchorByID(c)
 		if err != nil {
 			return err
@@ -149,25 +81,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsNFTs, func(c echo.Context) error {
-		resp, err := s.nftsWithFilter(c)
-		if err != nil {
-			return err
-		}
-
-		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
-	})
-
-	routeGroup.GET(RouteOutputsNFTByID, func(c echo.Context) error {
-		resp, err := s.nftByID(c)
-		if err != nil {
-			return err
-		}
-
-		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
-	})
-
-	routeGroup.GET(RouteOutputsFoundries, func(c echo.Context) error {
+	routeGroup.GET(nodeclient.IndexerEndpointOutputsFoundries, func(c echo.Context) error {
 		resp, err := s.foundriesWithFilter(c)
 		if err != nil {
 			return err
@@ -176,7 +90,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsFoundryByID, func(c echo.Context) error {
+	routeGroup.GET(formatEndpoint(nodeclient.IndexerEndpointOutputsFoundryByID, ParameterFoundryID), func(c echo.Context) error {
 		resp, err := s.foundryByID(c)
 		if err != nil {
 			return err
@@ -185,7 +99,25 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsDelegations, func(c echo.Context) error {
+	routeGroup.GET(nodeclient.IndexerEndpointOutputsNFTs, func(c echo.Context) error {
+		resp, err := s.nftsWithFilter(c)
+		if err != nil {
+			return err
+		}
+
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
+	})
+
+	routeGroup.GET(formatEndpoint(nodeclient.IndexerEndpointOutputsNFTByID, ParameterNFTID), func(c echo.Context) error {
+		resp, err := s.nftByID(c)
+		if err != nil {
+			return err
+		}
+
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
+	})
+
+	routeGroup.GET(nodeclient.IndexerEndpointOutputsDelegations, func(c echo.Context) error {
 		resp, err := s.delegationsWithFilter(c)
 		if err != nil {
 			return err
@@ -194,7 +126,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsDelegationByID, func(c echo.Context) error {
+	routeGroup.GET(formatEndpoint(nodeclient.IndexerEndpointOutputsDelegationByID, ParameterDelegationID), func(c echo.Context) error {
 		resp, err := s.delegationByID(c)
 		if err != nil {
 			return err
@@ -203,7 +135,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteMultiAddressByAddress, s.multiAddressByAddress)
+	routeGroup.GET(formatEndpoint(nodeclient.IndexerEndpointMultiAddressByAddress, ParameterAddress), s.multiAddressByAddress)
 }
 
 func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
