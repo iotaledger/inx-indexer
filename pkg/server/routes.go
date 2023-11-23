@@ -13,80 +13,7 @@ import (
 	"github.com/iotaledger/inx-app/pkg/httpserver"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v4"
-	"github.com/iotaledger/iota.go/v4/nodeclient/apimodels"
-)
-
-const (
-	// RouteOutputs is the route for getting basic, foundry, account, delegation and nft outputs filtered by the given parameters.
-	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeToken", "nativeToken", "unlockableByAddress", "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputs = "/outputs"
-
-	// RouteOutputsBasic is the route for getting basic outputs filtered by the given parameters.
-	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeToken", "nativeToken", "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
-	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
-	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "sender", "tag",
-	//					 "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputsBasic = "/outputs/basic"
-
-	// RouteOutputsAccounts is the route for getting accounts filtered by the given parameters.
-	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "address", "issuer", "sender",
-	//					 "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputsAccounts = "/outputs/account"
-
-	// RouteOutputsAccountByID is the route for getting accounts by their accountID.
-	// GET returns the outputIDs or 404 if no record is found.
-	RouteOutputsAccountByID = "/outputs/account/:" + ParameterAccountID
-
-	// RouteOutputsAnchors is the route for getting anchors filtered by the given parameters.
-	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "unlockableByAddress", "stateController", "governor", "issuer", "sender",
-	//					 "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputsAnchors = "/outputs/anchor"
-
-	// RouteOutputsAnchorByID is the route for getting anchors by their anchorID.
-	// GET returns the outputIDs or 404 if no record is found.
-	RouteOutputsAnchorByID = "/outputs/anchor/:" + ParameterAnchorID
-
-	// RouteOutputsNFTs is the route for getting NFT filtered by the given parameters.
-	// Query parameters: "address", "unlockableByAddress", "hasStorageDepositReturn", "storageDepositReturnAddress",
-	// 					 "hasExpiration", "expiresBefore", "expiresAfter", "expirationReturnAddress",
-	//					 "hasTimelock", "timelockedBefore", "timelockedAfter", "issuer", "sender", "tag",
-	//					 "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputsNFTs = "/outputs/nft"
-
-	// RouteOutputsNFTByID is the route for getting NFT by their nftID.
-	// GET returns the outputIDs or 404 if no record is found.
-	RouteOutputsNFTByID = "/outputs/nft/:" + ParameterNFTID
-
-	// RouteOutputsFoundries is the route for getting foundries filtered by the given parameters.
-	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "hasNativeToken", "nativeToken", "account", "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputsFoundries = "/outputs/foundry"
-
-	// RouteOutputsFoundryByID is the route for getting foundries by their foundryID.
-	// GET returns the outputIDs or 404 if no record is found.
-	RouteOutputsFoundryByID = "/outputs/foundry/:" + ParameterFoundryID
-
-	// RouteOutputsDelegations is the route for getting delegations filtered by the given parameters.
-	// GET with query parameter returns all outputIDs that fit these filter criteria.
-	// Query parameters: "address", "validator", "createdBefore", "createdAfter"
-	// Returns an empty list if no results are found.
-	RouteOutputsDelegations = "/outputs/delegation"
-
-	// RouteOutputsDelegationByID is the route for getting delegations by their delegationID.
-	// GET returns the outputIDs or 404 if no record is found.
-	RouteOutputsDelegationByID = "/outputs/delegation/:" + ParameterDelegationID
-
-	RouteMultiAddressByAddress = "/multiaddress/:" + ParameterAddress
+	"github.com/iotaledger/iota.go/v4/api"
 )
 
 const (
@@ -94,8 +21,7 @@ const (
 )
 
 func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
-
-	routeGroup.GET(RouteOutputs, func(c echo.Context) error {
+	routeGroup.GET(api.IndexerEndpointOutputs, func(c echo.Context) error {
 		resp, err := s.combinedOutputsWithFilter(c)
 		if err != nil {
 			return err
@@ -104,7 +30,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsBasic, func(c echo.Context) error {
+	routeGroup.GET(api.IndexerEndpointOutputsBasic, func(c echo.Context) error {
 		resp, err := s.basicOutputsWithFilter(c)
 		if err != nil {
 			return err
@@ -113,7 +39,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsAccounts, func(c echo.Context) error {
+	routeGroup.GET(api.IndexerEndpointOutputsAccounts, func(c echo.Context) error {
 		resp, err := s.accountsWithFilter(c)
 		if err != nil {
 			return err
@@ -122,8 +48,8 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsAccountByID, func(c echo.Context) error {
-		resp, err := s.accountByID(c)
+	routeGroup.GET(api.EndpointWithEchoParameters(api.IndexerEndpointOutputsAccountByAddress), func(c echo.Context) error {
+		resp, err := s.accountByAddress(c)
 		if err != nil {
 			return err
 		}
@@ -131,7 +57,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsAnchors, func(c echo.Context) error {
+	routeGroup.GET(api.IndexerEndpointOutputsAnchors, func(c echo.Context) error {
 		resp, err := s.anchorsWithFilter(c)
 		if err != nil {
 			return err
@@ -140,8 +66,8 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsAnchorByID, func(c echo.Context) error {
-		resp, err := s.anchorByID(c)
+	routeGroup.GET(api.EndpointWithEchoParameters(api.IndexerEndpointOutputsAnchorByAddress), func(c echo.Context) error {
+		resp, err := s.anchorByAddress(c)
 		if err != nil {
 			return err
 		}
@@ -149,25 +75,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsNFTs, func(c echo.Context) error {
-		resp, err := s.nftsWithFilter(c)
-		if err != nil {
-			return err
-		}
-
-		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
-	})
-
-	routeGroup.GET(RouteOutputsNFTByID, func(c echo.Context) error {
-		resp, err := s.nftByID(c)
-		if err != nil {
-			return err
-		}
-
-		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
-	})
-
-	routeGroup.GET(RouteOutputsFoundries, func(c echo.Context) error {
+	routeGroup.GET(api.IndexerEndpointOutputsFoundries, func(c echo.Context) error {
 		resp, err := s.foundriesWithFilter(c)
 		if err != nil {
 			return err
@@ -176,7 +84,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsFoundryByID, func(c echo.Context) error {
+	routeGroup.GET(api.EndpointWithEchoParameters(api.IndexerEndpointOutputsFoundryByID), func(c echo.Context) error {
 		resp, err := s.foundryByID(c)
 		if err != nil {
 			return err
@@ -185,7 +93,25 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsDelegations, func(c echo.Context) error {
+	routeGroup.GET(api.IndexerEndpointOutputsNFTs, func(c echo.Context) error {
+		resp, err := s.nftsWithFilter(c)
+		if err != nil {
+			return err
+		}
+
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
+	})
+
+	routeGroup.GET(api.EndpointWithEchoParameters(api.IndexerEndpointOutputsNFTByAddress), func(c echo.Context) error {
+		resp, err := s.nftByAddress(c)
+		if err != nil {
+			return err
+		}
+
+		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
+	})
+
+	routeGroup.GET(api.IndexerEndpointOutputsDelegations, func(c echo.Context) error {
 		resp, err := s.delegationsWithFilter(c)
 		if err != nil {
 			return err
@@ -194,7 +120,7 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteOutputsDelegationByID, func(c echo.Context) error {
+	routeGroup.GET(api.EndpointWithEchoParameters(api.IndexerEndpointOutputsDelegationByID), func(c echo.Context) error {
 		resp, err := s.delegationByID(c)
 		if err != nil {
 			return err
@@ -203,10 +129,10 @@ func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 		return httpserver.SendResponseByHeader(c, s.APIProvider.CommittedAPI(), resp)
 	})
 
-	routeGroup.GET(RouteMultiAddressByAddress, s.multiAddressByAddress)
+	routeGroup.GET(api.EndpointWithEchoParameters(api.IndexerEndpointMultiAddressByAddress), s.multiAddressByAddress)
 }
 
-func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
+func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*api.IndexerResponse, error) {
 	filters := []options.Option[indexer.CombinedFilterOptions]{indexer.CombinedPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
@@ -260,7 +186,7 @@ func (s *IndexerServer) combinedOutputsWithFilter(c echo.Context) (*apimodels.In
 	return indexerResponseFromResult(s.Indexer.Combined(filters...))
 }
 
-func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
+func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*api.IndexerResponse, error) {
 	filters := []options.Option[indexer.BasicFilterOptions]{indexer.BasicPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
@@ -410,16 +336,21 @@ func (s *IndexerServer) basicOutputsWithFilter(c echo.Context) (*apimodels.Index
 	return indexerResponseFromResult(s.Indexer.Basic(filters...))
 }
 
-func (s *IndexerServer) accountByID(c echo.Context) (*apimodels.IndexerResponse, error) {
-	accountID, err := httpserver.ParseAccountIDParam(c, ParameterAccountID)
+func (s *IndexerServer) accountByAddress(c echo.Context) (*api.IndexerResponse, error) {
+	address, err := httpserver.ParseBech32AddressParam(c, s.Bech32HRP, api.ParameterBech32Address)
 	if err != nil {
 		return nil, err
 	}
 
-	return singleOutputResponseFromResult(s.Indexer.AccountByID(accountID))
+	accountAddress, ok := address.(*iotago.AccountAddress)
+	if !ok {
+		return nil, ierrors.Wrapf(httpserver.ErrInvalidParameter, "invalid address: %s, not an account address", address.String())
+	}
+
+	return singleOutputResponseFromResult(s.Indexer.AccountByID(accountAddress.AccountID()))
 }
 
-func (s *IndexerServer) accountsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
+func (s *IndexerServer) accountsWithFilter(c echo.Context) (*api.IndexerResponse, error) {
 	filters := []options.Option[indexer.AccountFilterOptions]{indexer.AccountPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterAddress)) > 0 {
@@ -473,16 +404,21 @@ func (s *IndexerServer) accountsWithFilter(c echo.Context) (*apimodels.IndexerRe
 	return indexerResponseFromResult(s.Indexer.Account(filters...))
 }
 
-func (s *IndexerServer) anchorByID(c echo.Context) (*apimodels.IndexerResponse, error) {
-	anchorID, err := httpserver.ParseAnchorIDParam(c, ParameterAccountID)
+func (s *IndexerServer) anchorByAddress(c echo.Context) (*api.IndexerResponse, error) {
+	address, err := httpserver.ParseBech32AddressParam(c, s.Bech32HRP, api.ParameterBech32Address)
 	if err != nil {
 		return nil, err
 	}
 
-	return singleOutputResponseFromResult(s.Indexer.AnchorByID(anchorID))
+	anchorAddress, ok := address.(*iotago.AnchorAddress)
+	if !ok {
+		return nil, ierrors.Wrapf(httpserver.ErrInvalidParameter, "invalid address: %s, not an anchor address", address.String())
+	}
+
+	return singleOutputResponseFromResult(s.Indexer.AnchorByID(anchorAddress.AnchorID()))
 }
 
-func (s *IndexerServer) anchorsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
+func (s *IndexerServer) anchorsWithFilter(c echo.Context) (*api.IndexerResponse, error) {
 	filters := []options.Option[indexer.AnchorFilterOptions]{indexer.AnchorPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
@@ -552,16 +488,21 @@ func (s *IndexerServer) anchorsWithFilter(c echo.Context) (*apimodels.IndexerRes
 	return indexerResponseFromResult(s.Indexer.Anchor(filters...))
 }
 
-func (s *IndexerServer) nftByID(c echo.Context) (*apimodels.IndexerResponse, error) {
-	nftID, err := httpserver.ParseNFTIDParam(c, ParameterNFTID)
+func (s *IndexerServer) nftByAddress(c echo.Context) (*api.IndexerResponse, error) {
+	address, err := httpserver.ParseBech32AddressParam(c, s.Bech32HRP, api.ParameterBech32Address)
 	if err != nil {
 		return nil, err
 	}
 
-	return singleOutputResponseFromResult(s.Indexer.NFTByID(nftID))
+	nftAddress, ok := address.(*iotago.NFTAddress)
+	if !ok {
+		return nil, ierrors.Wrapf(httpserver.ErrInvalidParameter, "invalid address: %s, not an nft address", address.String())
+	}
+
+	return singleOutputResponseFromResult(s.Indexer.NFTByID(nftAddress.NFTID()))
 }
 
-func (s *IndexerServer) nftsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
+func (s *IndexerServer) nftsWithFilter(c echo.Context) (*api.IndexerResponse, error) {
 	filters := []options.Option[indexer.NFTFilterOptions]{indexer.NFTPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterUnlockableByAddress)) > 0 {
@@ -703,8 +644,8 @@ func (s *IndexerServer) nftsWithFilter(c echo.Context) (*apimodels.IndexerRespon
 	return indexerResponseFromResult(s.Indexer.NFT(filters...))
 }
 
-func (s *IndexerServer) foundryByID(c echo.Context) (*apimodels.IndexerResponse, error) {
-	foundryID, err := httpserver.ParseFoundryIDParam(c, ParameterFoundryID)
+func (s *IndexerServer) foundryByID(c echo.Context) (*api.IndexerResponse, error) {
+	foundryID, err := httpserver.ParseFoundryIDParam(c, api.ParameterFoundryID)
 	if err != nil {
 		return nil, err
 	}
@@ -712,7 +653,7 @@ func (s *IndexerServer) foundryByID(c echo.Context) (*apimodels.IndexerResponse,
 	return singleOutputResponseFromResult(s.Indexer.FoundryByID(foundryID))
 }
 
-func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
+func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*api.IndexerResponse, error) {
 	filters := []options.Option[indexer.FoundryFilterOptions]{indexer.FoundryPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterHasNativeToken)) > 0 {
@@ -771,8 +712,8 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*apimodels.IndexerR
 	return indexerResponseFromResult(s.Indexer.Foundry(filters...))
 }
 
-func (s *IndexerServer) delegationByID(c echo.Context) (*apimodels.IndexerResponse, error) {
-	delegationID, err := httpserver.ParseDelegationIDParam(c, ParameterDelegationID)
+func (s *IndexerServer) delegationByID(c echo.Context) (*api.IndexerResponse, error) {
+	delegationID, err := httpserver.ParseDelegationIDParam(c, api.ParameterDelegationID)
 	if err != nil {
 		return nil, err
 	}
@@ -780,7 +721,7 @@ func (s *IndexerServer) delegationByID(c echo.Context) (*apimodels.IndexerRespon
 	return singleOutputResponseFromResult(s.Indexer.DelegationByID(delegationID))
 }
 
-func (s *IndexerServer) delegationsWithFilter(c echo.Context) (*apimodels.IndexerResponse, error) {
+func (s *IndexerServer) delegationsWithFilter(c echo.Context) (*api.IndexerResponse, error) {
 	filters := []options.Option[indexer.DelegationFilterOptions]{indexer.DelegationPageSize(s.pageSizeFromContext(c))}
 
 	if len(c.QueryParam(QueryParameterAddress)) > 0 {
@@ -831,7 +772,7 @@ func (s *IndexerServer) delegationsWithFilter(c echo.Context) (*apimodels.Indexe
 	return indexerResponseFromResult(s.Indexer.Delegation(filters...))
 }
 
-func singleOutputResponseFromResult(result *indexer.IndexerResult) (*apimodels.IndexerResponse, error) {
+func singleOutputResponseFromResult(result *indexer.IndexerResult) (*api.IndexerResponse, error) {
 	if result.Error != nil {
 		return nil, errors.WithMessagef(echo.ErrInternalServerError, "reading outputIDs failed: %s", result.Error)
 	}
@@ -842,7 +783,7 @@ func singleOutputResponseFromResult(result *indexer.IndexerResult) (*apimodels.I
 	return indexerResponseFromResult(result)
 }
 
-func indexerResponseFromResult(result *indexer.IndexerResult) (*apimodels.IndexerResponse, error) {
+func indexerResponseFromResult(result *indexer.IndexerResult) (*api.IndexerResponse, error) {
 	if result.Error != nil {
 		return nil, errors.WithMessagef(echo.ErrInternalServerError, "reading outputIDs failed: %s", result.Error)
 	}
@@ -853,7 +794,7 @@ func indexerResponseFromResult(result *indexer.IndexerResult) (*apimodels.Indexe
 		cursor = fmt.Sprintf("%s.%d", *result.Cursor, result.PageSize)
 	}
 
-	return &apimodels.IndexerResponse{
+	return &api.IndexerResponse{
 		CommittedSlot: result.CommittedSlot,
 		PageSize:      result.PageSize,
 		Cursor:        cursor,
@@ -862,7 +803,7 @@ func indexerResponseFromResult(result *indexer.IndexerResult) (*apimodels.Indexe
 }
 
 func (s *IndexerServer) multiAddressByAddress(c echo.Context) error {
-	address, err := httpserver.ParseBech32AddressParam(c, s.Bech32HRP, ParameterAddress)
+	address, err := httpserver.ParseBech32AddressParam(c, s.Bech32HRP, api.ParameterBech32Address)
 	if err != nil {
 		return err
 	}

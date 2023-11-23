@@ -1,24 +1,6 @@
 package server
 
 const (
-	// ParameterFoundryID is used to identify a foundry by its ID.
-	ParameterFoundryID = "foundryID"
-
-	// ParameterAccountID is used to identify an account by its ID.
-	ParameterAccountID = "accountID"
-
-	// ParameterAnchorID is used to identify an anchor by its ID.
-	ParameterAnchorID = "anchorID"
-
-	// ParameterDelegationID is used to identify a delegation by its ID.
-	ParameterDelegationID = "delegationID"
-
-	// ParameterNFTID is used to identify a nft by its ID.
-	ParameterNFTID = "nftID"
-
-	// ParameterAddress is used to identify an address.
-	ParameterAddress = "address"
-
 	// QueryParameterUnlockableByAddress is used to filter for all unlock conditions regarding a certain address.
 	QueryParameterUnlockableByAddress = "unlockableByAddress"
 
