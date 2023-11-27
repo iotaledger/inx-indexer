@@ -42,7 +42,7 @@ func init() {
 
 type dependencies struct {
 	dig.In
-	NodeBridge      *nodebridge.NodeBridge
+	NodeBridge      nodebridge.NodeBridge
 	Indexer         *indexer.Indexer
 	ShutdownHandler *shutdown.ShutdownHandler
 	Echo            *echo.Echo
@@ -412,32 +412,21 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 
 func LedgerUpdateFromNodeBridge(update *nodebridge.LedgerUpdate) (*indexer.LedgerUpdate, error) {
 	consumed := make([]*indexer.LedgerOutput, len(update.Consumed))
-	for i, spent := range update.Consumed {
-		output := spent.GetOutput()
-		iotaOutput, err := output.UnwrapOutput(update.API)
-		if err != nil {
-			return nil, err
-		}
-
+	for i, output := range update.Consumed {
 		consumed[i] = &indexer.LedgerOutput{
-			OutputID: output.UnwrapOutputID(),
-			Output:   iotaOutput,
-			BookedAt: iotago.SlotIndex(output.GetSlotBooked()),
-			SpentAt:  iotago.SlotIndex(spent.GetSlotSpent()),
+			OutputID: output.OutputID,
+			Output:   output.Output,
+			BookedAt: output.SlotBooked,
+			SpentAt:  output.SlotSpent,
 		}
 	}
 
 	created := make([]*indexer.LedgerOutput, len(update.Created))
 	for i, output := range update.Created {
-		iotaOutput, err := output.UnwrapOutput(update.API)
-		if err != nil {
-			return nil, err
-		}
-
 		created[i] = &indexer.LedgerOutput{
-			OutputID: output.UnwrapOutputID(),
-			Output:   iotaOutput,
-			BookedAt: iotago.SlotIndex(output.GetSlotBooked()),
+			OutputID: output.OutputID,
+			Output:   output.Output,
+			BookedAt: output.SlotBooked,
 		}
 	}
 
@@ -450,32 +439,21 @@ func LedgerUpdateFromNodeBridge(update *nodebridge.LedgerUpdate) (*indexer.Ledge
 
 func LedgerUpdateFromNodeBridgeAcceptedTransaction(tx *nodebridge.AcceptedTransaction) (*indexer.LedgerUpdate, error) {
 	consumed := make([]*indexer.LedgerOutput, len(tx.Consumed))
-	for i, spent := range tx.Consumed {
-		output := spent.GetOutput()
-		iotaOutput, err := output.UnwrapOutput(tx.API)
-		if err != nil {
-			return nil, err
-		}
-
+	for i, output := range tx.Consumed {
 		consumed[i] = &indexer.LedgerOutput{
-			OutputID: output.UnwrapOutputID(),
-			Output:   iotaOutput,
-			BookedAt: iotago.SlotIndex(output.GetSlotBooked()),
-			SpentAt:  tx.Slot,
+			OutputID: output.OutputID,
+			Output:   output.Output,
+			BookedAt: output.SlotBooked,
+			SpentAt:  output.SlotSpent,
 		}
 	}
 
 	created := make([]*indexer.LedgerOutput, len(tx.Created))
 	for i, output := range tx.Created {
-		iotaOutput, err := output.UnwrapOutput(tx.API)
-		if err != nil {
-			return nil, err
-		}
-
 		created[i] = &indexer.LedgerOutput{
-			OutputID: output.UnwrapOutputID(),
-			Output:   iotaOutput,
-			BookedAt: tx.Slot,
+			OutputID: output.OutputID,
+			Output:   output.Output,
+			BookedAt: output.SlotBooked,
 		}
 	}
 

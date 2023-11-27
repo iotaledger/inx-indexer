@@ -44,9 +44,9 @@ require (
 	github.com/iotaledger/hive.go/runtime v0.0.0-20231122112629-bdf1cc39fba7 // indirect
 	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20231113110812-4ca2b6cc9a42 // indirect
 	github.com/iotaledger/hive.go/stringify v0.0.0-20231122112629-bdf1cc39fba7 // indirect
-	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231123103852-bb039cbab83b // indirect
-	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231123103318-f6ea945e2e98 // indirect
-	github.com/iotaledger/iota.go/v4 v4.0.0-20231123102955-eff367396512 // indirect
+	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20231127162144-bba7e494e442 // indirect
+	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20231124154447-f20fb8921e8c // indirect
+	github.com/iotaledger/iota.go/v4 v4.0.0-20231124103306-ad44904e2b86 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgx/v5 v5.5.0 // indirect
