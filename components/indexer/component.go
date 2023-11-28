@@ -416,8 +416,8 @@ func LedgerUpdateFromNodeBridge(update *nodebridge.LedgerUpdate) (*indexer.Ledge
 		consumed[i] = &indexer.LedgerOutput{
 			OutputID: output.OutputID,
 			Output:   output.Output,
-			BookedAt: output.SlotBooked,
-			SpentAt:  output.SlotSpent,
+			BookedAt: output.Metadata.Included.Slot,
+			SpentAt:  output.Metadata.Spent.Slot,
 		}
 	}
 
@@ -426,7 +426,7 @@ func LedgerUpdateFromNodeBridge(update *nodebridge.LedgerUpdate) (*indexer.Ledge
 		created[i] = &indexer.LedgerOutput{
 			OutputID: output.OutputID,
 			Output:   output.Output,
-			BookedAt: output.SlotBooked,
+			BookedAt: output.Metadata.Included.Slot,
 		}
 	}
 
@@ -443,8 +443,8 @@ func LedgerUpdateFromNodeBridgeAcceptedTransaction(tx *nodebridge.AcceptedTransa
 		consumed[i] = &indexer.LedgerOutput{
 			OutputID: output.OutputID,
 			Output:   output.Output,
-			BookedAt: output.SlotBooked,
-			SpentAt:  output.SlotSpent,
+			BookedAt: output.Metadata.Included.Slot,
+			SpentAt:  output.Metadata.Spent.Slot,
 		}
 	}
 
@@ -453,7 +453,7 @@ func LedgerUpdateFromNodeBridgeAcceptedTransaction(tx *nodebridge.AcceptedTransa
 		created[i] = &indexer.LedgerOutput{
 			OutputID: output.OutputID,
 			Output:   output.Output,
-			BookedAt: output.SlotBooked,
+			BookedAt: output.Metadata.Included.Slot,
 		}
 	}
 
