@@ -23,7 +23,7 @@ func TestIndexer_AnchorOutput(t *testing.T) {
 	governorAddress := iotago_tpkg.RandEd25519Address()
 
 	output := &iotago.AnchorOutput{
-		Amount:     iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.TestAPI.ProtocolParameters().TokenSupply()))),
+		Amount:     iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.ZeroCostTestAPI.ProtocolParameters().TokenSupply()))),
 		Mana:       iotago.Mana(iotago_tpkg.RandUint64(math.MaxUint64)),
 		StateIndex: 0,
 		UnlockConditions: iotago.AnchorOutputUnlockConditions{

@@ -19,7 +19,7 @@ func TestIndexer_DelegationOutput(t *testing.T) {
 
 	address := iotago_tpkg.RandEd25519Address()
 	validatorAddress := iotago_tpkg.RandAccountAddress()
-	amount := iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.TestAPI.ProtocolParameters().TokenSupply())))
+	amount := iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.ZeroCostTestAPI.ProtocolParameters().TokenSupply())))
 
 	output := &iotago.DelegationOutput{
 		Amount:           amount,
