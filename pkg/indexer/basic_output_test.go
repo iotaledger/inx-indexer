@@ -23,7 +23,7 @@ func TestIndexer_BasicOutput(t *testing.T) {
 	tag := iotago_tpkg.RandBytes(20)
 
 	output := &iotago.BasicOutput{
-		Amount: iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.TestAPI.ProtocolParameters().TokenSupply()))),
+		Amount: iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.ZeroCostTestAPI.ProtocolParameters().TokenSupply()))),
 		Mana:   iotago.Mana(iotago_tpkg.RandUint64(math.MaxUint64)),
 		UnlockConditions: iotago.BasicOutputUnlockConditions{
 			&iotago.AddressUnlockCondition{
@@ -141,7 +141,7 @@ func TestIndexer_BasicOutput_NativeToken(t *testing.T) {
 	nativeTokenID := iotago_tpkg.RandNativeTokenID()
 
 	output := &iotago.BasicOutput{
-		Amount: iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.TestAPI.ProtocolParameters().TokenSupply()))),
+		Amount: iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.ZeroCostTestAPI.ProtocolParameters().TokenSupply()))),
 		Mana:   iotago.Mana(iotago_tpkg.RandUint64(math.MaxUint64)),
 		UnlockConditions: iotago.BasicOutputUnlockConditions{
 			&iotago.AddressUnlockCondition{

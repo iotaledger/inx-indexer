@@ -24,7 +24,7 @@ func TestIndexer_AccountOutput(t *testing.T) {
 	address := iotago_tpkg.RandEd25519Address()
 
 	output := &iotago.AccountOutput{
-		Amount:         iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.TestAPI.ProtocolParameters().TokenSupply()))),
+		Amount:         iotago.BaseToken(iotago_tpkg.RandUint64(uint64(iotago_tpkg.ZeroCostTestAPI.ProtocolParameters().TokenSupply()))),
 		Mana:           iotago.Mana(iotago_tpkg.RandUint64(math.MaxUint64)),
 		FoundryCounter: 0,
 		UnlockConditions: iotago.AccountOutputUnlockConditions{

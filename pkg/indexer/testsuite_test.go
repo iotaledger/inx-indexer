@@ -160,7 +160,7 @@ func (ts *indexerTestsuite) DeleteOutputOnAcceptance(outputID iotago.OutputID, s
 }
 
 func (ts *indexerTestsuite) MultiAddressExists(multiAddress *iotago.MultiAddress) bool {
-	multiAddressBech32 := multiAddress.Bech32(iotago_tpkg.TestAPI.ProtocolParameters().Bech32HRP())
+	multiAddressBech32 := multiAddress.Bech32(iotago_tpkg.ZeroCostTestAPI.ProtocolParameters().Bech32HRP())
 
 	_, parsedAddr, err := iotago.ParseBech32(multiAddressBech32)
 	require.NoError(ts.T, err)
