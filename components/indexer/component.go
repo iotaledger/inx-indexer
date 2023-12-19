@@ -80,14 +80,14 @@ func provide(c *dig.Container) error {
 			dbParams.Password = ParamsIndexer.Database.PostgreSQL.Password
 		}
 
-		return indexer.NewIndexer(dbParams, Component.Logger())
+		return indexer.NewIndexer(dbParams, Component.Logger)
 	}); err != nil {
 		return err
 	}
 
 	return c.Provide(func() *echo.Echo {
 		return httpserver.NewEcho(
-			Component.Logger(),
+			Component.Logger,
 			nil,
 			ParamsRestAPI.DebugRequestLoggerEnabled,
 		)
@@ -109,7 +109,7 @@ func run() error {
 
 		indexerStatus, err := checkIndexerStatus(ctx)
 		if err != nil {
-			Component.LogErrorfAndExit("Checking initial Indexer state failed: %s", err.Error())
+			Component.LogFatalf("Checking initial Indexer state failed: %s", err.Error())
 
 			return
 		}
@@ -193,7 +193,7 @@ func run() error {
 		go func() {
 			Component.LogInfof("You can now access the API using: http://%s", ParamsRestAPI.BindAddress)
 			if err := deps.Echo.Start(ParamsRestAPI.BindAddress); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				Component.LogErrorfAndExit("Stopped REST-API server due to an error (%s)", err)
+				Component.LogFatalf("Stopped REST-API server due to an error (%s)", err)
 			}
 		}()
 
@@ -206,7 +206,7 @@ func run() error {
 
 		routeName := strings.Replace(server.APIRoute, "/api/", "", 1)
 		if err := deps.NodeBridge.RegisterAPIRoute(ctxRegister, routeName, advertisedAddress, server.APIRoute); err != nil {
-			Component.LogErrorfAndExit("Registering INX api route failed: %s", err)
+			Component.LogFatalf("Registering INX api route failed: %s", err)
 		}
 		cancelRegister()
 
@@ -227,7 +227,7 @@ func run() error {
 
 		//nolint:contextcheck // false positive
 		if err := deps.Echo.Shutdown(shutdownCtx); err != nil {
-			Component.LogWarn(err)
+			Component.LogWarn(err.Error())
 		}
 
 		Component.LogInfo("Stopping API ... done")

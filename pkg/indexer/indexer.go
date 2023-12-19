@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/iotaledger/hive.go/logger"
+	"github.com/iotaledger/hive.go/log"
 	"github.com/iotaledger/inx-indexer/pkg/database"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
@@ -30,21 +30,21 @@ var (
 )
 
 type Indexer struct {
-	*logger.WrappedLogger
+	log.Logger
 	db     *gorm.DB
 	engine database.Engine
 }
 
-func NewIndexer(dbParams database.Params, log *logger.Logger) (*Indexer, error) {
-	db, engine, err := database.NewWithDefaultSettings(dbParams, true, log)
+func NewIndexer(dbParams database.Params, logger log.Logger) (*Indexer, error) {
+	db, engine, err := database.NewWithDefaultSettings(dbParams, true, logger)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Indexer{
-		WrappedLogger: logger.NewWrappedLogger(log),
-		db:            db,
-		engine:        engine,
+		Logger: logger,
+		db:     db,
+		engine: engine,
 	}, nil
 }
 

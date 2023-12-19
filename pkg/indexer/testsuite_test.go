@@ -8,7 +8,7 @@ import (
 
 	"github.com/iotaledger/hive.go/ds/shrinkingmap"
 	"github.com/iotaledger/hive.go/ierrors"
-	"github.com/iotaledger/hive.go/logger"
+	"github.com/iotaledger/hive.go/log"
 	"github.com/iotaledger/hive.go/runtime/options"
 	"github.com/iotaledger/inx-indexer/pkg/database"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
@@ -34,10 +34,9 @@ func newTestSuite(t *testing.T) *indexerTestsuite {
 		Path:   t.TempDir(),
 	}
 
-	rootLogger, err := logger.NewRootLogger(logger.DefaultCfg)
-	require.NoError(t, err)
+	rootLogger := log.NewLogger()
 
-	idx, err := indexer.NewIndexer(dbParams, rootLogger.Named(t.Name()))
+	idx, err := indexer.NewIndexer(dbParams, rootLogger.NewChildLogger(t.Name()))
 	require.NoError(t, err)
 
 	require.NoError(t, idx.CreateTables())

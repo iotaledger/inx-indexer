@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
 
-	"github.com/iotaledger/hive.go/logger"
+	"github.com/iotaledger/hive.go/log"
 	"github.com/iotaledger/hive.go/runtime/ioutils"
 )
 
@@ -199,12 +199,12 @@ func storeDatabaseInfoToFile(filePath string, engine Engine) error {
 }
 
 type sqliteLogger struct {
-	*logger.WrappedLogger
+	log.Logger
 }
 
-func newLogger(log *logger.Logger) *sqliteLogger {
+func newLogger(logger log.Logger) *sqliteLogger {
 	return &sqliteLogger{
-		WrappedLogger: logger.NewWrappedLogger(log),
+		Logger: logger,
 	}
 }
 
@@ -212,7 +212,7 @@ func (l *sqliteLogger) Printf(t string, args ...interface{}) {
 	l.LogWarnf(t, args...)
 }
 
-func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, log *logger.Logger) (*gorm.DB, Engine, error) {
+func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, logger log.Logger) (*gorm.DB, Engine, error) {
 
 	targetEngine := dbParams.Engine
 	if len(dbParams.Path) > 0 {
@@ -238,7 +238,7 @@ func NewWithDefaultSettings(dbParams Params, createDatabaseIfNotExists bool, log
 	}
 
 	db, err := gorm.Open(dbDialector, &gorm.Config{
-		Logger: gormLogger.New(newLogger(log), gormLogger.Config{
+		Logger: gormLogger.New(newLogger(logger), gormLogger.Config{
 			SlowThreshold:             100 * time.Millisecond,
 			LogLevel:                  gormLogger.Warn,
 			IgnoreRecordNotFoundError: true,
