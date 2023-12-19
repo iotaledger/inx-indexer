@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm/clause"
 	gormLogger "gorm.io/gorm/logger"
 
-	"github.com/iotaledger/hive.go/logger"
+	"github.com/iotaledger/hive.go/log"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
 
@@ -42,7 +42,7 @@ type refCountable interface {
 }
 
 type batcher[T any] struct {
-	*logger.WrappedLogger
+	log.Logger
 
 	name string
 	wg   sync.WaitGroup
@@ -51,12 +51,12 @@ type batcher[T any] struct {
 	output chan []T
 }
 
-func newBatcher[T any](log *logger.Logger) *batcher[T] {
+func newBatcher[T any](logger log.Logger) *batcher[T] {
 	w := &batcher[T]{
-		WrappedLogger: logger.NewWrappedLogger(log),
-		name:          typeOf[T](),
-		input:         make(chan T, 1_000*batchSize),
-		output:        make(chan []T, 1000),
+		Logger: logger,
+		name:   typeOf[T](),
+		input:  make(chan T, 1_000*batchSize),
+		output: make(chan []T, 1000),
 	}
 
 	return w
@@ -101,18 +101,18 @@ func (b *batcher[T]) Run(ctx context.Context, workerCount int) {
 }
 
 type inserter[T any] struct {
-	*logger.WrappedLogger
+	log.Logger
 
 	name string
 	db   *gorm.DB
 	wg   sync.WaitGroup
 }
 
-func newImporter[T any](db *gorm.DB, log *logger.Logger) *inserter[T] {
+func newImporter[T any](db *gorm.DB, logger log.Logger) *inserter[T] {
 	w := &inserter[T]{
-		WrappedLogger: logger.NewWrappedLogger(log),
-		name:          typeOf[T](),
-		db:            db,
+		Logger: logger,
+		name:   typeOf[T](),
+		db:     db,
 	}
 
 	return w
@@ -160,7 +160,7 @@ func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T
 
 					return tx.Create(batch).Error
 				}); err != nil {
-					i.LogErrorAndExit(err)
+					i.LogFatal(err.Error())
 				}
 				count += len(batch)
 				if count > 0 && count%100_000 == 0 {
@@ -181,10 +181,10 @@ type processor[T fmt.Stringer] struct {
 	importer *inserter[T]
 }
 
-func newProcessor[T fmt.Stringer](ctx context.Context, db *gorm.DB, log *logger.Logger) *processor[T] {
+func newProcessor[T fmt.Stringer](ctx context.Context, db *gorm.DB, logger log.Logger) *processor[T] {
 	p := &processor[T]{
-		batcher:  newBatcher[T](log),
-		importer: newImporter[T](db, log),
+		batcher:  newBatcher[T](logger),
+		importer: newImporter[T](db, logger),
 	}
 	p.batcher.Run(ctx, perBatcherWorkers)
 	p.importer.Run(ctx, perImporterWorkers, p.batcher.output)
@@ -206,11 +206,11 @@ func (p *processor[T]) closeAndWait() {
 }
 
 func (i *Indexer) ImportTransaction(ctx context.Context) *ImportTransaction {
-	return newImportTransaction(ctx, i.db, i.Logger())
+	return newImportTransaction(ctx, i.db, i.Logger)
 }
 
 type ImportTransaction struct {
-	*logger.WrappedLogger
+	log.Logger
 
 	db *gorm.DB
 
@@ -223,7 +223,7 @@ type ImportTransaction struct {
 	multiAddress *processor[*multiaddress]
 }
 
-func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) *ImportTransaction {
+func newImportTransaction(ctx context.Context, db *gorm.DB, logger log.Logger) *ImportTransaction {
 	// use a session without logger and hooks to reduce the amount of work that needs to be done by gorm.
 	dbSession := db.Session(&gorm.Session{
 		SkipHooks:              true,
@@ -232,15 +232,15 @@ func newImportTransaction(ctx context.Context, db *gorm.DB, log *logger.Logger) 
 	})
 
 	t := &ImportTransaction{
-		WrappedLogger: logger.NewWrappedLogger(log),
-		db:            dbSession,
-		basic:         newProcessor[*basic](ctx, dbSession, log),
-		nft:           newProcessor[*nft](ctx, dbSession, log),
-		account:       newProcessor[*account](ctx, dbSession, log),
-		anchor:        newProcessor[*anchor](ctx, dbSession, log),
-		foundry:       newProcessor[*foundry](ctx, dbSession, log),
-		delegation:    newProcessor[*delegation](ctx, dbSession, log),
-		multiAddress:  newProcessor[*multiaddress](ctx, dbSession, log),
+		Logger:       logger,
+		db:           dbSession,
+		basic:        newProcessor[*basic](ctx, dbSession, logger),
+		nft:          newProcessor[*nft](ctx, dbSession, logger),
+		account:      newProcessor[*account](ctx, dbSession, logger),
+		anchor:       newProcessor[*anchor](ctx, dbSession, logger),
+		foundry:      newProcessor[*foundry](ctx, dbSession, logger),
+		delegation:   newProcessor[*delegation](ctx, dbSession, logger),
+		multiAddress: newProcessor[*multiaddress](ctx, dbSession, logger),
 	}
 
 	return t

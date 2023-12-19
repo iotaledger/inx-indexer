@@ -78,7 +78,7 @@ func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string)
 		case database.EnginePostgreSQL:
 			cursorQuery = "lpad(to_hex(created_at_slot), 16, '0') || encode(output_id, 'hex') as cursor"
 		default:
-			i.LogErrorfAndExit("Unsupported db engine pagination queries: %s", i.engine)
+			i.LogFatalf("Unsupported db engine pagination queries: %s", i.engine)
 		}
 
 		// We use pageSize + 1 to load the next item to use as the cursor
@@ -95,7 +95,7 @@ func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string)
 			case database.EnginePostgreSQL:
 				query = query.Where("lpad(to_hex(created_at_slot), 16, '0') || encode(output_id, 'hex') >= ?", *cursor)
 			default:
-				i.LogErrorfAndExit("Unsupported db engine pagination queries: %s", i.engine)
+				i.LogFatalf("Unsupported db engine pagination queries: %s", i.engine)
 			}
 		}
 	}
