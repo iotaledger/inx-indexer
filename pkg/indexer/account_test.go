@@ -214,12 +214,11 @@ func TestIndexer_MutateExistingAccount(t *testing.T) {
 	require.NoError(t, err)
 	newOutputID := iotago_tpkg.RandOutputID(0)
 
-	foundryOutput, err := builder.NewFoundryOutputBuilder(accountAddress, &iotago.SimpleTokenScheme{
+	foundryOutput, err := builder.NewFoundryOutputBuilder(accountAddress, basicOutput.BaseTokenAmount(), 1, &iotago.SimpleTokenScheme{
 		MintedTokens:  big.NewInt(100),
 		MeltedTokens:  big.NewInt(50),
 		MaximumSupply: big.NewInt(1000),
-	}, basicOutput.BaseTokenAmount()).Build()
-	foundryOutput.SerialNumber = 1
+	}).Build()
 	require.NoError(t, err)
 	foundryOutputID := iotago_tpkg.RandOutputID(1)
 
