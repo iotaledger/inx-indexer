@@ -251,4 +251,7 @@ func TestIndexer_MutateExistingAccount(t *testing.T) {
 	}
 
 	require.NoError(ts.T, ts.Indexer.AcceptLedgerUpdate(update))
+	
+	ts.requireFound(newOutputID)
+	ts.requireFound(foundryOutputID)
 }
