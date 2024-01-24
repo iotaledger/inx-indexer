@@ -11,8 +11,8 @@ import (
 )
 
 type anchor struct {
-	AnchorID        []byte `gorm:"primaryKey;notnull"`
-	OutputID        []byte `gorm:"unique;notnull"`
+	OutputID        []byte `gorm:"primaryKey;notnull"`
+	AnchorID        []byte `gorm:"notnull"`
 	Amount          iotago.BaseToken
 	StateController []byte           `gorm:"notnull;index:anchors_state_controller"`
 	Governor        []byte           `gorm:"notnull;index:anchors_governor"`
@@ -102,7 +102,7 @@ func (i *Indexer) AnchorByID(anchorID iotago.AnchorID) *IndexerResult {
 }
 
 func (i *Indexer) anchorQueryWithFilter(opts *AnchorFilterOptions) *gorm.DB {
-	query := i.db.Model(&anchor{}).Where("deleted_at_slot == 0")
+	query := i.db.Model(&anchor{}).Where("deleted_at_slot = 0")
 
 	if opts.unlockableByAddress != nil {
 		addrID := opts.unlockableByAddress.ID()
@@ -137,7 +137,9 @@ func (i *Indexer) anchorQueryWithFilter(opts *AnchorFilterOptions) *gorm.DB {
 }
 
 func (i *Indexer) Anchor(filters ...options.Option[AnchorFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(AnchorFilterOptions), filters)
+	opts := options.Apply(&AnchorFilterOptions{
+		pageSize: DefaultPageSize,
+	}, filters)
 	query := i.anchorQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

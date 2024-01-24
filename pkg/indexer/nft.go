@@ -11,8 +11,8 @@ import (
 )
 
 type nft struct {
-	NFTID                       []byte `gorm:"primaryKey;notnull"`
-	OutputID                    []byte `gorm:"unique;notnull"`
+	OutputID                    []byte `gorm:"primaryKey;notnull"`
+	NFTID                       []byte `gorm:"notnull"`
 	Amount                      iotago.BaseToken
 	Issuer                      []byte `gorm:"index:nfts_issuer"`
 	Sender                      []byte `gorm:"index:nfts_sender_tag"`
@@ -170,7 +170,7 @@ func (i *Indexer) NFTByID(nftID iotago.NFTID) *IndexerResult {
 }
 
 func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) *gorm.DB {
-	query := i.db.Model(&nft{}).Where("deleted_at_slot == 0")
+	query := i.db.Model(&nft{}).Where("deleted_at_slot = 0")
 
 	if opts.unlockableByAddress != nil {
 		addrID := opts.unlockableByAddress.ID()
@@ -253,7 +253,9 @@ func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) *gorm.DB {
 }
 
 func (i *Indexer) NFT(filters ...options.Option[NFTFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(NFTFilterOptions), filters)
+	opts := options.Apply(&NFTFilterOptions{
+		pageSize: DefaultPageSize,
+	}, filters)
 	query := i.nftQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

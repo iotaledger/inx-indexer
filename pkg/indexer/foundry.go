@@ -11,8 +11,8 @@ import (
 )
 
 type foundry struct {
-	FoundryID         []byte `gorm:"primaryKey;notnull"`
-	OutputID          []byte `gorm:"unique;notnull"`
+	OutputID          []byte `gorm:"primaryKey;notnull"`
+	FoundryID         []byte `gorm:"notnull"`
 	Amount            iotago.BaseToken
 	NativeTokenAmount *string
 	AccountAddress    []byte           `gorm:"notnull;index:foundries_account_address"`
@@ -86,7 +86,7 @@ func (i *Indexer) FoundryByID(foundryID iotago.FoundryID) *IndexerResult {
 }
 
 func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gorm.DB {
-	query := i.db.Model(&foundry{}).Where("deleted_at_slot == 0")
+	query := i.db.Model(&foundry{}).Where("deleted_at_slot = 0")
 
 	if opts.hasNativeToken != nil {
 		if *opts.hasNativeToken {
@@ -117,7 +117,9 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gor
 }
 
 func (i *Indexer) Foundry(filters ...options.Option[FoundryFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(FoundryFilterOptions), filters)
+	opts := options.Apply(&FoundryFilterOptions{
+		pageSize: DefaultPageSize,
+	}, filters)
 	query := i.foundryOutputsQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

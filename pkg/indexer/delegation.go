@@ -11,8 +11,8 @@ import (
 )
 
 type delegation struct {
-	DelegationID  []byte `gorm:"primaryKey;notnull"`
-	OutputID      []byte `gorm:"unique;notnull"`
+	OutputID      []byte `gorm:"primaryKey;notnull"`
+	DelegationID  []byte `gorm:"notnull"`
 	Amount        iotago.BaseToken
 	Address       []byte           `gorm:"notnull;index:delegations_address"`
 	Validator     []byte           `gorm:"index:delegations_validator"`
@@ -79,7 +79,7 @@ func (i *Indexer) DelegationByID(delegationID iotago.DelegationID) *IndexerResul
 }
 
 func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) *gorm.DB {
-	query := i.db.Model(&delegation{}).Where("deleted_at_slot == 0")
+	query := i.db.Model(&delegation{}).Where("deleted_at_slot = 0")
 
 	if opts.address != nil {
 		query = query.Where("address = ?", opts.address.ID())
@@ -101,7 +101,9 @@ func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) *gorm
 }
 
 func (i *Indexer) Delegation(filters ...options.Option[DelegationFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(DelegationFilterOptions), filters)
+	opts := options.Apply(&DelegationFilterOptions{
+		pageSize: DefaultPageSize,
+	}, filters)
 	query := i.delegationQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

@@ -11,8 +11,8 @@ import (
 )
 
 type account struct {
-	AccountID     []byte `gorm:"primaryKey;notnull"`
-	OutputID      []byte `gorm:"unique;notnull"`
+	OutputID      []byte `gorm:"primaryKey;notnull"`
+	AccountID     []byte `gorm:"notnull"`
 	Amount        iotago.BaseToken
 	Issuer        []byte           `gorm:"index:accounts_issuer"`
 	Sender        []byte           `gorm:"index:accounts_sender"`
@@ -87,7 +87,7 @@ func (i *Indexer) AccountByID(accountID iotago.AccountID) *IndexerResult {
 }
 
 func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) *gorm.DB {
-	query := i.db.Model(&account{}).Where("deleted_at_slot == 0")
+	query := i.db.Model(&account{}).Where("deleted_at_slot = 0")
 
 	if opts.address != nil {
 		query = query.Where("address = ?", opts.address.ID())
@@ -113,7 +113,9 @@ func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) *gorm.DB {
 }
 
 func (i *Indexer) Account(filters ...options.Option[AccountFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(AccountFilterOptions), filters)
+	opts := options.Apply(&AccountFilterOptions{
+		pageSize: DefaultPageSize,
+	}, filters)
 	query := i.accountQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)
