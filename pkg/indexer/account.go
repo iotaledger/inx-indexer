@@ -113,7 +113,9 @@ func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) *gorm.DB {
 }
 
 func (i *Indexer) Account(filters ...options.Option[AccountFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(AccountFilterOptions), filters)
+	opts := options.Apply(&AccountFilterOptions{
+		pageSize: DefaultPageSize,
+	}, filters)
 	query := i.accountQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

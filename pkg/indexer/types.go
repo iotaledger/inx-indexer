@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	CursorLength = 84
+	CursorLength    = 84
+	DefaultPageSize = 100
 )
 
 type LedgerUpdate struct {

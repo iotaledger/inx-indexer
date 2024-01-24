@@ -260,7 +260,9 @@ func (i *Indexer) basicQueryWithFilter(opts *BasicFilterOptions) *gorm.DB {
 }
 
 func (i *Indexer) Basic(filters ...options.Option[BasicFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(BasicFilterOptions), filters)
+	opts := options.Apply(&BasicFilterOptions{
+		pageSize: DefaultPageSize,
+	}, filters)
 	query := i.basicQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

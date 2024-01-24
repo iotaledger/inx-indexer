@@ -117,7 +117,9 @@ func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gor
 }
 
 func (i *Indexer) Foundry(filters ...options.Option[FoundryFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(FoundryFilterOptions), filters)
+	opts := options.Apply(&FoundryFilterOptions{
+		pageSize: DefaultPageSize,
+	}, filters)
 	query := i.foundryOutputsQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

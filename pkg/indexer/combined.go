@@ -153,7 +153,9 @@ func (o *CombinedFilterOptions) DelegationFilterOptions() *DelegationFilterOptio
 }
 
 func (i *Indexer) Combined(filters ...options.Option[CombinedFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(CombinedFilterOptions), filters)
+	opts := options.Apply(&CombinedFilterOptions{
+		pageSize: DefaultPageSize,
+	}, filters)
 
 	var queries []*gorm.DB
 

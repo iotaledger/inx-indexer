@@ -137,7 +137,9 @@ func (i *Indexer) anchorQueryWithFilter(opts *AnchorFilterOptions) *gorm.DB {
 }
 
 func (i *Indexer) Anchor(filters ...options.Option[AnchorFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(AnchorFilterOptions), filters)
+	opts := options.Apply(&AnchorFilterOptions{
+		pageSize: DefaultPageSize,
+	}, filters)
 	query := i.anchorQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

@@ -253,7 +253,9 @@ func (i *Indexer) nftQueryWithFilter(opts *NFTFilterOptions) *gorm.DB {
 }
 
 func (i *Indexer) NFT(filters ...options.Option[NFTFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(NFTFilterOptions), filters)
+	opts := options.Apply(&NFTFilterOptions{
+		pageSize: DefaultPageSize,
+	}, filters)
 	query := i.nftQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)

@@ -101,7 +101,9 @@ func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) *gorm
 }
 
 func (i *Indexer) Delegation(filters ...options.Option[DelegationFilterOptions]) *IndexerResult {
-	opts := options.Apply(new(DelegationFilterOptions), filters)
+	opts := options.Apply(&DelegationFilterOptions{
+		pageSize: DefaultPageSize,
+	}, filters)
 	query := i.delegationQueryWithFilter(opts)
 
 	return i.combineOutputIDFilteredQuery(query, opts.pageSize, opts.cursor)
