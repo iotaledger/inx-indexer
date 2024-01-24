@@ -798,7 +798,7 @@ func indexerResponseFromResult(result *indexer.IndexerResult) (*api.IndexerRespo
 		CommittedSlot: result.CommittedSlot,
 		PageSize:      result.PageSize,
 		Cursor:        cursor,
-		Items:         result.OutputIDs.ToHex(),
+		Items:         iotago.HexOutputIDsFromOutputIDs(result.OutputIDs...),
 	}, nil
 }
 
