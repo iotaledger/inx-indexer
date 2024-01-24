@@ -11,8 +11,8 @@ import (
 )
 
 type nft struct {
-	NFTID                       []byte `gorm:"primaryKey;notnull"`
-	OutputID                    []byte `gorm:"unique;notnull"`
+	OutputID                    []byte `gorm:"primaryKey;notnull"`
+	NFTID                       []byte `gorm:"notnull"`
 	Amount                      iotago.BaseToken
 	Issuer                      []byte `gorm:"index:nfts_issuer"`
 	Sender                      []byte `gorm:"index:nfts_sender_tag"`

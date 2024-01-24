@@ -11,8 +11,8 @@ import (
 )
 
 type delegation struct {
-	DelegationID  []byte `gorm:"primaryKey;notnull"`
-	OutputID      []byte `gorm:"unique;notnull"`
+	OutputID      []byte `gorm:"primaryKey;notnull"`
+	DelegationID  []byte `gorm:"notnull"`
 	Amount        iotago.BaseToken
 	Address       []byte           `gorm:"notnull;index:delegations_address"`
 	Validator     []byte           `gorm:"index:delegations_validator"`

@@ -11,8 +11,8 @@ import (
 )
 
 type anchor struct {
-	AnchorID        []byte `gorm:"primaryKey;notnull"`
-	OutputID        []byte `gorm:"unique;notnull"`
+	OutputID        []byte `gorm:"primaryKey;notnull"`
+	AnchorID        []byte `gorm:"notnull"`
 	Amount          iotago.BaseToken
 	StateController []byte           `gorm:"notnull;index:anchors_state_controller"`
 	Governor        []byte           `gorm:"notnull;index:anchors_governor"`

@@ -11,8 +11,8 @@ import (
 )
 
 type account struct {
-	AccountID     []byte `gorm:"primaryKey;notnull"`
-	OutputID      []byte `gorm:"unique;notnull"`
+	OutputID      []byte `gorm:"primaryKey;notnull"`
+	AccountID     []byte `gorm:"notnull"`
 	Amount        iotago.BaseToken
 	Issuer        []byte           `gorm:"index:accounts_issuer"`
 	Sender        []byte           `gorm:"index:accounts_sender"`

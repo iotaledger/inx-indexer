@@ -11,8 +11,8 @@ import (
 )
 
 type foundry struct {
-	FoundryID         []byte `gorm:"primaryKey;notnull"`
-	OutputID          []byte `gorm:"unique;notnull"`
+	OutputID          []byte `gorm:"primaryKey;notnull"`
+	FoundryID         []byte `gorm:"notnull"`
 	Amount            iotago.BaseToken
 	NativeTokenAmount *string
 	AccountAddress    []byte           `gorm:"notnull;index:foundries_account_address"`
