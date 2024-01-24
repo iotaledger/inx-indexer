@@ -87,7 +87,7 @@ func (i *Indexer) AccountByID(accountID iotago.AccountID) *IndexerResult {
 }
 
 func (i *Indexer) accountQueryWithFilter(opts *AccountFilterOptions) *gorm.DB {
-	query := i.db.Model(&account{}).Where("deleted_at_slot == 0")
+	query := i.db.Model(&account{}).Where("deleted_at_slot = 0")
 
 	if opts.address != nil {
 		query = query.Where("address = ?", opts.address.ID())

@@ -79,7 +79,7 @@ func (i *Indexer) DelegationByID(delegationID iotago.DelegationID) *IndexerResul
 }
 
 func (i *Indexer) delegationQueryWithFilter(opts *DelegationFilterOptions) *gorm.DB {
-	query := i.db.Model(&delegation{}).Where("deleted_at_slot == 0")
+	query := i.db.Model(&delegation{}).Where("deleted_at_slot = 0")
 
 	if opts.address != nil {
 		query = query.Where("address = ?", opts.address.ID())

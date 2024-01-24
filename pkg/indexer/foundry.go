@@ -86,7 +86,7 @@ func (i *Indexer) FoundryByID(foundryID iotago.FoundryID) *IndexerResult {
 }
 
 func (i *Indexer) foundryOutputsQueryWithFilter(opts *FoundryFilterOptions) *gorm.DB {
-	query := i.db.Model(&foundry{}).Where("deleted_at_slot == 0")
+	query := i.db.Model(&foundry{}).Where("deleted_at_slot = 0")
 
 	if opts.hasNativeToken != nil {
 		if *opts.hasNativeToken {

@@ -169,7 +169,7 @@ func BasicCreatedAfter(slot iotago.SlotIndex) options.Option[BasicFilterOptions]
 }
 
 func (i *Indexer) basicQueryWithFilter(opts *BasicFilterOptions) *gorm.DB {
-	query := i.db.Model(&basic{}).Where("deleted_at_slot == 0")
+	query := i.db.Model(&basic{}).Where("deleted_at_slot = 0")
 
 	if opts.hasNativeToken != nil {
 		if *opts.hasNativeToken {

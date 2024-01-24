@@ -102,7 +102,7 @@ func (i *Indexer) AnchorByID(anchorID iotago.AnchorID) *IndexerResult {
 }
 
 func (i *Indexer) anchorQueryWithFilter(opts *AnchorFilterOptions) *gorm.DB {
-	query := i.db.Model(&anchor{}).Where("deleted_at_slot == 0")
+	query := i.db.Model(&anchor{}).Where("deleted_at_slot = 0")
 
 	if opts.unlockableByAddress != nil {
 		addrID := opts.unlockableByAddress.ID()
