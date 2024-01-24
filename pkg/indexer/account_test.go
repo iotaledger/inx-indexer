@@ -3,6 +3,7 @@ package indexer_test
 import (
 	"crypto/ed25519"
 	"math"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -10,6 +11,7 @@ import (
 	hive_ed25519 "github.com/iotaledger/hive.go/crypto/ed25519"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v4"
+	"github.com/iotaledger/iota.go/v4/builder"
 	iotago_tpkg "github.com/iotaledger/iota.go/v4/tpkg"
 )
 
@@ -182,4 +184,72 @@ func TestIndexer_ExistingAccountOutput(t *testing.T) {
 	// Issuer
 	outputSet.requireAccountFound(indexer.AccountIssuer(issuerAddress))
 	outputSet.requireAccountNotFound(indexer.AccountIssuer(randomAddress))
+}
+
+func TestIndexer_MutateExistingAccount(t *testing.T) {
+	ts := newTestSuite(t)
+
+	basicOutput := basicOutputWithAddress(iotago_tpkg.RandEd25519Address())
+	basicOutputID := iotago_tpkg.RandOutputID(0)
+
+	_ = ts.AddOutputOnCommitment(basicOutput, basicOutputID)
+	require.Equal(t, iotago.SlotIndex(1), ts.CurrentSlot())
+
+	accountUnlockAddress := iotago_tpkg.RandEd25519Address()
+	accountAddress := iotago.AccountAddressFromOutputID(iotago_tpkg.RandOutputID(0))
+	accountOutput := accountOutputWithAddress(accountUnlockAddress).(*iotago.AccountOutput)
+	accountOutput.AccountID = accountAddress.AccountID()
+	accountOutputID := iotago_tpkg.RandOutputID(0)
+
+	outputSet := ts.AddOutputOnCommitment(accountOutput, accountOutputID)
+	require.Equal(t, iotago.SlotIndex(2), ts.CurrentSlot())
+	require.Contains(ts.T, outputSet.Outputs, accountOutputID)
+	outputSet.requireAccountFound(indexer.AccountUnlockAddress(accountUnlockAddress))
+	outputSet.requireAccountFoundByID(accountAddress.AccountID())
+
+	ts.requireFound(basicOutputID)
+	ts.requireFound(accountOutputID)
+
+	newOutput, err := builder.NewAccountOutputBuilderFromPrevious(accountOutput).FoundriesToGenerate(1).Build()
+	require.NoError(t, err)
+	newOutputID := iotago_tpkg.RandOutputID(0)
+
+	foundryOutput, err := builder.NewFoundryOutputBuilder(accountAddress, &iotago.SimpleTokenScheme{
+		MintedTokens:  big.NewInt(100),
+		MeltedTokens:  big.NewInt(50),
+		MaximumSupply: big.NewInt(1000),
+	}, basicOutput.BaseTokenAmount()).Build()
+	foundryOutput.SerialNumber = 1
+	require.NoError(t, err)
+	foundryOutputID := iotago_tpkg.RandOutputID(1)
+
+	update := &indexer.LedgerUpdate{
+		Slot: 2,
+		Consumed: []*indexer.LedgerOutput{
+			{
+				OutputID: basicOutputID,
+				Output:   basicOutput,
+				SpentAt:  2,
+			},
+			{
+				OutputID: accountOutputID,
+				Output:   accountOutput,
+				SpentAt:  2,
+			},
+		},
+		Created: []*indexer.LedgerOutput{
+			{
+				OutputID: newOutputID,
+				Output:   newOutput,
+				BookedAt: 2,
+			},
+			{
+				OutputID: foundryOutputID,
+				Output:   foundryOutput,
+				BookedAt: 2,
+			},
+		},
+	}
+
+	require.NoError(ts.T, ts.Indexer.AcceptLedgerUpdate(update))
 }
