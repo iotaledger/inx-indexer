@@ -1,5 +1,9 @@
 .idea
 .DS_Store
+
+# IDE related files
+.vscode/
+
 indexer.db
 inx-indexer
 /database
