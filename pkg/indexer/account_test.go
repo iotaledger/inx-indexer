@@ -46,9 +46,7 @@ func TestIndexer_NewAccountOutput(t *testing.T) {
 			},
 			&iotago.BlockIssuerFeature{
 				BlockIssuerKeys: iotago.BlockIssuerKeys{
-					&iotago.Ed25519PublicKeyBlockIssuerKey{
-						PublicKey: hive_ed25519.PublicKey(iotago_tpkg.RandEd25519PrivateKey().Public().(ed25519.PublicKey)),
-					},
+					iotago.Ed25519PublicKeyHashBlockIssuerKeyFromPublicKey(hive_ed25519.PublicKey(iotago_tpkg.RandEd25519PrivateKey().Public().(ed25519.PublicKey))),
 				},
 				ExpirySlot: 0,
 			},
@@ -134,9 +132,7 @@ func TestIndexer_ExistingAccountOutput(t *testing.T) {
 			},
 			&iotago.BlockIssuerFeature{
 				BlockIssuerKeys: iotago.BlockIssuerKeys{
-					&iotago.Ed25519PublicKeyBlockIssuerKey{
-						PublicKey: hive_ed25519.PublicKey(iotago_tpkg.RandEd25519PrivateKey().Public().(ed25519.PublicKey)),
-					},
+					iotago.Ed25519PublicKeyHashBlockIssuerKeyFromPublicKey(hive_ed25519.PublicKey(iotago_tpkg.RandEd25519PrivateKey().Public().(ed25519.PublicKey))),
 				},
 				ExpirySlot: 0,
 			},
@@ -251,7 +247,7 @@ func TestIndexer_MutateExistingAccount(t *testing.T) {
 	}
 
 	require.NoError(ts.T, ts.Indexer.AcceptLedgerUpdate(update))
-	
+
 	ts.requireFound(newOutputID)
 	ts.requireFound(foundryOutputID)
 }
