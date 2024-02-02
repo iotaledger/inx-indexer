@@ -24,6 +24,7 @@ import (
 	"github.com/iotaledger/inx-indexer/pkg/server"
 	inx "github.com/iotaledger/inx/go"
 	iotago "github.com/iotaledger/iota.go/v4"
+	"github.com/iotaledger/iota.go/v4/api"
 )
 
 const (
@@ -188,6 +189,8 @@ func run() error {
 
 		Component.LogInfo("Starting API server ...")
 
+		// setup the `/health` route
+		setupRoutes()
 		_ = server.NewIndexerServer(deps.Indexer, deps.Echo, deps.NodeBridge.APIProvider(), ParamsRestAPI.MaxPageSize)
 
 		go func() {
@@ -236,6 +239,22 @@ func run() error {
 	}
 
 	return nil
+}
+
+func setupRoutes() {
+	deps.Echo.GET(api.RouteHealth, func(c echo.Context) error {
+		status, err := deps.Indexer.Status()
+		if err != nil {
+			return c.NoContent(http.StatusServiceUnavailable)
+		}
+
+		nodeStatus := deps.NodeBridge.LatestCommitment()
+		if status.CommittedSlot == nodeStatus.CommitmentID.Slot() {
+			return c.NoContent(http.StatusOK)
+		}
+
+		return c.NoContent(http.StatusServiceUnavailable)
+	})
 }
 
 func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
