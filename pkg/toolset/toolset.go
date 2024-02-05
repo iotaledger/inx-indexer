@@ -41,7 +41,7 @@ func HandleTools() {
 	}
 
 	tools := map[string]func([]string) error{
-		ToolIndexerHealth: health,
+		ToolIndexerHealth: checkHealth,
 	}
 
 	tool, exists := tools[strings.ToLower(args[1])]

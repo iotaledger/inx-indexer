@@ -12,7 +12,7 @@ import (
 	"github.com/iotaledger/iota.go/v4/api"
 )
 
-func health(args []string) error {
+func checkHealth(args []string) error {
 	fs := configuration.NewUnsortedFlagSet("", flag.ContinueOnError)
 	nodeURLFlag := fs.String(FlagToolIndexerURL, "http://localhost:9091", "URL of the indexer (optional)")
 
