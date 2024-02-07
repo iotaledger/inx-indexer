@@ -9,6 +9,7 @@ import (
 	flag "github.com/spf13/pflag"
 
 	"github.com/iotaledger/hive.go/app/configuration"
+	"github.com/iotaledger/inx-indexer/pkg/server"
 	"github.com/iotaledger/iota.go/v4/api"
 )
 
@@ -30,7 +31,7 @@ func checkHealth(args []string) error {
 		return err
 	}
 
-	url := fmt.Sprintf("%s%s", *nodeURLFlag, api.RouteHealth)
+	url := fmt.Sprintf("%s%s%s", *nodeURLFlag, server.APIRoute, api.RouteHealth)
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
 		return err
