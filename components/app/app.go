@@ -7,6 +7,7 @@ import (
 	"github.com/iotaledger/inx-app/components/inx"
 	"github.com/iotaledger/inx-indexer/components/indexer"
 	"github.com/iotaledger/inx-indexer/components/prometheus"
+	"github.com/iotaledger/inx-indexer/pkg/toolset"
 )
 
 var (
@@ -44,5 +45,15 @@ func init() {
 			"help",
 			"version",
 		},
+		Init: initialize,
 	}
+}
+
+func initialize(_ *app.App) error {
+	if toolset.ShouldHandleTools() {
+		toolset.HandleTools()
+		// HandleTools will call os.Exit
+	}
+
+	return nil
 }

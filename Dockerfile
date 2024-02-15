@@ -31,6 +31,8 @@ COPY ./config_defaults.json /app/config.json
 # using distroless cc "nonroot" image, which includes everything in the base image (glibc, libssl and openssl)
 FROM gcr.io/distroless/cc-debian11:nonroot
 
+HEALTHCHECK --interval=10s --timeout=5s --retries=30 CMD [ "/app/inx-indexer", "tools", "health"]
+
 EXPOSE 9091/tcp
 
 # Copy the app dir into distroless image

@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -18,9 +19,32 @@ import (
 
 const (
 	MaxTagLength = 64
+
+	isNodeAlmostSyncedThreshold = 2
 )
 
 func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
+	routeGroup.GET(api.RouteHealth, func(c echo.Context) error {
+		indexerStatus, err := s.Indexer.Status()
+		if err != nil {
+			return c.NoContent(http.StatusServiceUnavailable)
+		}
+
+		nodeLatestCommitmentSlot := s.NodeBridge.LatestCommitment().CommitmentID.Slot()
+
+		if nodeLatestCommitmentSlot < isNodeAlmostSyncedThreshold {
+			// If the network has not yet produced enough commitments, we consider it as not synced
+			return c.NoContent(http.StatusServiceUnavailable)
+		}
+
+		isIndexerAlmostSynced := indexerStatus.CommittedSlot >= (nodeLatestCommitmentSlot - isNodeAlmostSyncedThreshold)
+		if isIndexerAlmostSynced {
+			return c.NoContent(http.StatusOK)
+		}
+
+		return c.NoContent(http.StatusServiceUnavailable)
+	})
+
 	routeGroup.GET(api.IndexerEndpointOutputs, func(c echo.Context) error {
 		resp, err := s.combinedOutputsWithFilter(c)
 		if err != nil {
