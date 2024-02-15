@@ -25,14 +25,20 @@ const (
 
 func (s *IndexerServer) configureRoutes(routeGroup *echo.Group) {
 	routeGroup.GET(api.RouteHealth, func(c echo.Context) error {
-		status, err := s.Indexer.Status()
+		indexerStatus, err := s.Indexer.Status()
 		if err != nil {
 			return c.NoContent(http.StatusServiceUnavailable)
 		}
 
-		nodeStatus := s.nodeLatestCommitmentFunc()
-		isNodeAlmostSynced := status.CommittedSlot >= (nodeStatus.CommitmentID.Slot() - isNodeAlmostSyncedThreshold)
-		if isNodeAlmostSynced {
+		nodeLatestCommitmentSlot := s.NodeBridge.LatestCommitment().CommitmentID.Slot()
+
+		if nodeLatestCommitmentSlot < isNodeAlmostSyncedThreshold {
+			// If the network has not yet produced enough commitments, we consider it as not synced
+			return c.NoContent(http.StatusServiceUnavailable)
+		}
+
+		isIndexerAlmostSynced := indexerStatus.CommittedSlot >= (nodeLatestCommitmentSlot - isNodeAlmostSyncedThreshold)
+		if isIndexerAlmostSynced {
 			return c.NoContent(http.StatusOK)
 		}
 

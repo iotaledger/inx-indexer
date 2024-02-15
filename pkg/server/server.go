@@ -14,20 +14,20 @@ const (
 
 type IndexerServer struct {
 	Indexer                 *indexer.Indexer
-	APIProvider             iotago.APIProvider
-	Bech32HRP               iotago.NetworkPrefix
+	NodeBridge              nodebridge.NodeBridge
 	RestAPILimitsMaxResults int
 
-	nodeLatestCommitmentFunc func() *nodebridge.Commitment
+	APIProvider iotago.APIProvider
+	Bech32HRP   iotago.NetworkPrefix
 }
 
-func NewIndexerServer(indexer *indexer.Indexer, echo *echo.Echo, apiProvider iotago.APIProvider, latestCommitmentFunc func() *nodebridge.Commitment, maxPageSize int) *IndexerServer {
+func NewIndexerServer(indexer *indexer.Indexer, echo *echo.Echo, nodeBridge nodebridge.NodeBridge, maxPageSize int) *IndexerServer {
 	s := &IndexerServer{
-		Indexer:                  indexer,
-		APIProvider:              apiProvider,
-		Bech32HRP:                apiProvider.CommittedAPI().ProtocolParameters().Bech32HRP(),
-		RestAPILimitsMaxResults:  maxPageSize,
-		nodeLatestCommitmentFunc: latestCommitmentFunc,
+		Indexer:                 indexer,
+		NodeBridge:              nodeBridge,
+		RestAPILimitsMaxResults: maxPageSize,
+		APIProvider:             nodeBridge.APIProvider(),
+		Bech32HRP:               nodeBridge.APIProvider().CommittedAPI().ProtocolParameters().Bech32HRP(),
 	}
 	s.configureRoutes(echo.Group(APIRoute))
 
