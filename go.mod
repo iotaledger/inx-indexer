@@ -1,20 +1,20 @@
 module github.com/iotaledger/inx-indexer
 
-go 1.21
+go 1.22
 
 require (
 	github.com/ethereum/go-ethereum v1.13.12
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/iotaledger/hive.go/app v0.0.0-20240214175801-9ca9f93790f5
-	github.com/iotaledger/hive.go/crypto v0.0.0-20240214175801-9ca9f93790f5
-	github.com/iotaledger/hive.go/ds v0.0.0-20240214175801-9ca9f93790f5
-	github.com/iotaledger/hive.go/ierrors v0.0.0-20240214175801-9ca9f93790f5
-	github.com/iotaledger/hive.go/lo v0.0.0-20240214175801-9ca9f93790f5
-	github.com/iotaledger/hive.go/log v0.0.0-20240214175801-9ca9f93790f5
-	github.com/iotaledger/hive.go/runtime v0.0.0-20240214175801-9ca9f93790f5
-	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20240214181534-9a393ea95057
-	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20240214181217-a6dd0abaab8d
-	github.com/iotaledger/iota.go/v4 v4.0.0-20240214180848-ff6a4bb7bc41
+	github.com/iotaledger/hive.go/app v0.0.0-20240216135101-261e99d9d84a
+	github.com/iotaledger/hive.go/crypto v0.0.0-20240216135101-261e99d9d84a
+	github.com/iotaledger/hive.go/ds v0.0.0-20240216135101-261e99d9d84a
+	github.com/iotaledger/hive.go/ierrors v0.0.0-20240216135101-261e99d9d84a
+	github.com/iotaledger/hive.go/lo v0.0.0-20240216135101-261e99d9d84a
+	github.com/iotaledger/hive.go/log v0.0.0-20240216135101-261e99d9d84a
+	github.com/iotaledger/hive.go/runtime v0.0.0-20240216135101-261e99d9d84a
+	github.com/iotaledger/inx-app v1.0.0-rc.3.0.20240216141618-d7dfe94bdc1e
+	github.com/iotaledger/inx/go v1.0.0-rc.2.0.20240216141023-6d5f4ef12ac5
+	github.com/iotaledger/iota.go/v4 v4.0.0-20240216140514-c867d6524642
 	github.com/labstack/echo-contrib v0.15.0
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/pkg/errors v0.9.1
@@ -23,9 +23,9 @@ require (
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/dig v1.17.1
 	golang.org/x/text v0.14.0
-	gorm.io/driver/postgres v1.5.4
-	gorm.io/driver/sqlite v1.5.4
-	gorm.io/gorm v1.25.5
+	gorm.io/driver/postgres v1.5.6
+	gorm.io/driver/sqlite v1.5.5
+	gorm.io/gorm v1.25.7
 )
 
 require (
@@ -50,13 +50,13 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
 	github.com/iancoleman/orderedmap v0.3.0 // indirect
-	github.com/iotaledger/hive.go/constraints v0.0.0-20240214175801-9ca9f93790f5 // indirect
-	github.com/iotaledger/hive.go/core v1.0.0-rc.3.0.20240214175801-9ca9f93790f5 // indirect
-	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20240214175801-9ca9f93790f5 // indirect
-	github.com/iotaledger/hive.go/stringify v0.0.0-20240214175801-9ca9f93790f5 // indirect
+	github.com/iotaledger/hive.go/constraints v0.0.0-20240216135101-261e99d9d84a // indirect
+	github.com/iotaledger/hive.go/core v1.0.0-rc.3.0.20240216135101-261e99d9d84a // indirect
+	github.com/iotaledger/hive.go/serializer/v2 v2.0.0-rc.1.0.20240216135101-261e99d9d84a // indirect
+	github.com/iotaledger/hive.go/stringify v0.0.0-20240216135101-261e99d9d84a // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
-	github.com/jackc/pgx/v5 v5.5.2 // indirect
+	github.com/jackc/pgx/v5 v5.5.3 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -65,7 +65,7 @@ require (
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-sqlite3 v1.14.19 // indirect
+	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
@@ -75,7 +75,7 @@ require (
 	github.com/petermattis/goid v0.0.0-20231207134359-e60b3f734c67 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
-	github.com/prometheus/common v0.46.0 // indirect
+	github.com/prometheus/common v0.47.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
