@@ -17,7 +17,6 @@ require (
 	github.com/iotaledger/iota.go/v4 v4.0.0-20240216140514-c867d6524642
 	github.com/labstack/echo-contrib v0.15.0
 	github.com/labstack/echo/v4 v4.11.4
-	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4

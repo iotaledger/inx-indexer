@@ -7,7 +7,7 @@ const (
 func main() {
 	/*
 		if err := convert(); err != nil {
-			if !errors.Is(err, flag.ErrHelp) {
+			if !ierrors.Is(err, flag.ErrHelp) {
 				fmt.Printf("\nERROR: %s\n", err.Error())
 			}
 			os.Exit(1)
@@ -87,7 +87,7 @@ func convert() error {
 		}
 
 		if idx.IsInitialized() {
-			return errors.New("indexer database already initialized")
+			return ierrors.New("indexer database already initialized")
 		}
 
 		log.Info("> Creating tables ...")

@@ -2,7 +2,6 @@ package indexer
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/iotaledger/hive.go/app"
 	"github.com/iotaledger/hive.go/app/shutdown"
+	"github.com/iotaledger/hive.go/ierrors"
 	"github.com/iotaledger/inx-app/pkg/httpserver"
 	"github.com/iotaledger/inx-app/pkg/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/daemon"
@@ -192,7 +192,7 @@ func run() error {
 
 		go func() {
 			Component.LogInfof("You can now access the API using: http://%s", ParamsRestAPI.BindAddress)
-			if err := deps.Echo.Start(ParamsRestAPI.BindAddress); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			if err := deps.Echo.Start(ParamsRestAPI.BindAddress); err != nil && !ierrors.Is(err, http.ErrServerClosed) {
 				Component.LogFatalf("Stopped REST-API server due to an error (%s)", err)
 			}
 		}()
@@ -257,7 +257,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		// Checking current indexer state to see if it needs a reset or not
 		status, err = deps.Indexer.Status()
 		if err != nil {
-			if !errors.Is(err, indexer.ErrStatusNotFound) {
+			if !ierrors.Is(err, indexer.ErrStatusNotFound) {
 				return nil, fmt.Errorf("reading committedSlot from Indexer failed! Error: %w", err)
 			}
 			Component.LogInfo("Indexer is empty, so import initial ledger...")
@@ -354,7 +354,7 @@ func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
 		for {
 			unspentOutput, err := stream.Recv()
 			if err != nil {
-				if !errors.Is(err, io.EOF) {
+				if !ierrors.Is(err, io.EOF) {
 					innerErr = err
 				}
 				receiveCancel()

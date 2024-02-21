@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
+	"github.com/iotaledger/hive.go/ierrors"
 	"github.com/iotaledger/inx-indexer/pkg/database"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
@@ -87,7 +87,7 @@ func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string)
 
 		if cursor != nil {
 			if len(*cursor) != CursorLength {
-				return nil, errors.Errorf("Invalid cursor length: %d", len(*cursor))
+				return nil, ierrors.Errorf("Invalid cursor length: %d", len(*cursor))
 			}
 			//nolint:exhaustive // we have a default case.
 			switch i.engine {

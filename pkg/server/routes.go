@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/pkg/errors"
 
 	"github.com/iotaledger/hive.go/ierrors"
 	"github.com/iotaledger/hive.go/runtime/options"
@@ -702,7 +701,7 @@ func (s *IndexerServer) foundriesWithFilter(c echo.Context) (*api.IndexerRespons
 			return nil, err
 		}
 		if addr.Type() != iotago.AddressAccount {
-			return nil, errors.WithMessagef(httpserver.ErrInvalidParameter, "invalid address: %s, not an account address", addr.Bech32(s.Bech32HRP))
+			return nil, ierrors.WithMessagef(httpserver.ErrInvalidParameter, "invalid address: %s, not an account address", addr.Bech32(s.Bech32HRP))
 		}
 
 		//nolint:forcetypeassert // we already checked the type
@@ -762,7 +761,7 @@ func (s *IndexerServer) delegationsWithFilter(c echo.Context) (*api.IndexerRespo
 			return nil, err
 		}
 		if addr.Type() != iotago.AddressAccount {
-			return nil, errors.WithMessagef(httpserver.ErrInvalidParameter, "invalid address: %s, not an account address", addr.Bech32(s.Bech32HRP))
+			return nil, ierrors.WithMessagef(httpserver.ErrInvalidParameter, "invalid address: %s, not an account address", addr.Bech32(s.Bech32HRP))
 		}
 
 		//nolint:forcetypeassert // we already checked the type
@@ -798,10 +797,10 @@ func (s *IndexerServer) delegationsWithFilter(c echo.Context) (*api.IndexerRespo
 
 func singleOutputResponseFromResult(result *indexer.IndexerResult) (*api.IndexerResponse, error) {
 	if result.Error != nil {
-		return nil, errors.WithMessagef(echo.ErrInternalServerError, "reading outputIDs failed: %s", result.Error)
+		return nil, ierrors.WithMessagef(echo.ErrInternalServerError, "reading outputIDs failed: %s", result.Error)
 	}
 	if len(result.OutputIDs) == 0 {
-		return nil, errors.WithMessage(echo.ErrNotFound, "record not found")
+		return nil, ierrors.WithMessage(echo.ErrNotFound, "record not found")
 	}
 
 	return indexerResponseFromResult(result)
@@ -809,7 +808,7 @@ func singleOutputResponseFromResult(result *indexer.IndexerResult) (*api.Indexer
 
 func indexerResponseFromResult(result *indexer.IndexerResult) (*api.IndexerResponse, error) {
 	if result.Error != nil {
-		return nil, errors.WithMessagef(echo.ErrInternalServerError, "reading outputIDs failed: %s", result.Error)
+		return nil, ierrors.WithMessagef(echo.ErrInternalServerError, "reading outputIDs failed: %s", result.Error)
 	}
 
 	var cursor string
@@ -871,16 +870,16 @@ func (s *IndexerServer) parseCursorQueryParameter(c echo.Context) (string, uint3
 
 	components := strings.Split(cursorWithPageSize, ".")
 	if len(components) != 2 {
-		return "", 0, errors.WithMessage(httpserver.ErrInvalidParameter, fmt.Sprintf("query parameter %s has wrong format", QueryParameterCursor))
+		return "", 0, ierrors.WithMessage(httpserver.ErrInvalidParameter, fmt.Sprintf("query parameter %s has wrong format", QueryParameterCursor))
 	}
 
 	if len(components[0]) != indexer.CursorLength {
-		return "", 0, errors.WithMessage(httpserver.ErrInvalidParameter, fmt.Sprintf("query parameter %s has wrong format", QueryParameterCursor))
+		return "", 0, ierrors.WithMessage(httpserver.ErrInvalidParameter, fmt.Sprintf("query parameter %s has wrong format", QueryParameterCursor))
 	}
 
 	size, err := strconv.ParseUint(components[1], 10, 32)
 	if err != nil {
-		return "", 0, errors.WithMessage(httpserver.ErrInvalidParameter, fmt.Sprintf("query parameter %s has wrong format", QueryParameterCursor))
+		return "", 0, ierrors.WithMessage(httpserver.ErrInvalidParameter, fmt.Sprintf("query parameter %s has wrong format", QueryParameterCursor))
 	}
 
 	pageSize := uint32(size)

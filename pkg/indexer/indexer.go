@@ -2,17 +2,17 @@ package indexer
 
 import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/iotaledger/hive.go/ierrors"
 	"github.com/iotaledger/hive.go/log"
 	"github.com/iotaledger/inx-indexer/pkg/database"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
 
 var (
-	ErrStatusNotFound = errors.New("status not found")
+	ErrStatusNotFound = ierrors.New("status not found")
 
 	dbTables = append([]interface{}{
 		&Status{},
@@ -425,7 +425,7 @@ func entryForOutput(outputID iotago.OutputID, output iotago.Output, slotBooked i
 		entry = delegation
 
 	default:
-		return nil, errors.New("unknown output type")
+		return nil, ierrors.New("unknown output type")
 	}
 
 	return entry, nil
@@ -522,7 +522,7 @@ func (i *Indexer) CommitLedgerUpdate(update *LedgerUpdate) error {
 func (i *Indexer) Status() (*Status, error) {
 	status := &Status{}
 	if err := i.db.Take(&status).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if ierrors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrStatusNotFound
 		}
 

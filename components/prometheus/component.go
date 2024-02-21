@@ -9,13 +9,13 @@ import (
 	echoprometheus "github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/dig"
 
 	"github.com/iotaledger/hive.go/app"
+	"github.com/iotaledger/hive.go/ierrors"
 	"github.com/iotaledger/inx-indexer/pkg/daemon"
 )
 
@@ -93,7 +93,7 @@ func run() error {
 
 		go func() {
 			Component.LogInfof("You can now access the Prometheus exporter using: http://%s/metrics", ParamsPrometheus.BindAddress)
-			if err := deps.PrometheusEcho.Start(ParamsPrometheus.BindAddress); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			if err := deps.PrometheusEcho.Start(ParamsPrometheus.BindAddress); err != nil && !ierrors.Is(err, http.ErrServerClosed) {
 				Component.LogWarnf("Stopped Prometheus exporter due to an error (%s)", err)
 			}
 		}()

@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
 
+	"github.com/iotaledger/hive.go/ierrors"
 	"github.com/iotaledger/hive.go/log"
 	"github.com/iotaledger/hive.go/runtime/ioutils"
 )
@@ -124,7 +124,7 @@ func CheckEngine(dbPath string, createDatabaseIfNotExists bool, dbEngine ...Engi
 		}
 
 		if createDatabaseIfNotExists && !dbEngineSpecified {
-			return EngineUnknown, errors.New("the database engine must be specified if the database should be newly created")
+			return EngineUnknown, ierrors.New("the database engine must be specified if the database should be newly created")
 		}
 	}
 
