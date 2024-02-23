@@ -5,10 +5,15 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/iotaledger/hive.go/db"
 	"github.com/iotaledger/hive.go/ierrors"
 	"github.com/iotaledger/hive.go/log"
-	"github.com/iotaledger/inx-indexer/pkg/database"
+	"github.com/iotaledger/hive.go/sql"
 	iotago "github.com/iotaledger/iota.go/v4"
+)
+
+var (
+	AllowedEngines = []db.Engine{db.EngineSQLite, db.EnginePostgreSQL}
 )
 
 var (
@@ -32,11 +37,11 @@ var (
 type Indexer struct {
 	log.Logger
 	db     *gorm.DB
-	engine database.Engine
+	engine db.Engine
 }
 
-func NewIndexer(dbParams database.Params, logger log.Logger) (*Indexer, error) {
-	db, engine, err := database.NewWithDefaultSettings(dbParams, true, logger)
+func NewIndexer(dbParams sql.DatabaseParameters, logger log.Logger) (*Indexer, error) {
+	db, engine, err := sql.New(logger, dbParams, true, AllowedEngines)
 	if err != nil {
 		return nil, err
 	}

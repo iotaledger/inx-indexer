@@ -15,11 +15,12 @@ import (
 
 	"github.com/iotaledger/hive.go/app"
 	"github.com/iotaledger/hive.go/app/shutdown"
+	"github.com/iotaledger/hive.go/db"
 	"github.com/iotaledger/hive.go/ierrors"
+	"github.com/iotaledger/hive.go/sql"
 	"github.com/iotaledger/inx-app/pkg/httpserver"
 	"github.com/iotaledger/inx-app/pkg/nodebridge"
 	"github.com/iotaledger/inx-indexer/pkg/daemon"
-	"github.com/iotaledger/inx-indexer/pkg/database"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	"github.com/iotaledger/inx-indexer/pkg/server"
 	inx "github.com/iotaledger/inx/go"
@@ -58,26 +59,27 @@ func provide(c *dig.Container) error {
 	if err := c.Provide(func() (*indexer.Indexer, error) {
 		Component.LogInfo("Setting up database ...")
 
-		engine, err := database.EngineFromString(ParamsIndexer.Database.Engine)
-		if err != nil {
-			return nil, err
-		}
+		engine := db.EngineFromString(ParamsIndexer.Database.Engine)
 
-		dbParams := database.Params{
+		dbParams := sql.DatabaseParameters{
 			Engine: engine,
 		}
 
 		//nolint:exhaustive // we already checked the values is one of the valid ones
 		switch engine {
-		case database.EngineSQLite:
+		case db.EngineSQLite:
 			dbParams.Path = ParamsIndexer.Database.SQLite.Path
+			dbParams.Filename = "indexer.db"
 
-		case database.EnginePostgreSQL:
+		case db.EnginePostgreSQL:
 			dbParams.Host = ParamsIndexer.Database.PostgreSQL.Host
 			dbParams.Port = ParamsIndexer.Database.PostgreSQL.Port
 			dbParams.Database = ParamsIndexer.Database.PostgreSQL.Database
 			dbParams.Username = ParamsIndexer.Database.PostgreSQL.Username
 			dbParams.Password = ParamsIndexer.Database.PostgreSQL.Password
+
+		default:
+			return nil, ierrors.Errorf("unknown database engine: %s, supported engines: %s", dbParams.Engine, db.GetSupportedEnginesString(indexer.AllowedEngines))
 		}
 
 		return indexer.NewIndexer(dbParams, Component.Logger)
