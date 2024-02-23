@@ -6,8 +6,8 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/iotaledger/hive.go/db"
 	"github.com/iotaledger/hive.go/ierrors"
-	"github.com/iotaledger/inx-indexer/pkg/database"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
 
@@ -74,9 +74,9 @@ func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string)
 		var cursorQuery string
 		//nolint:exhaustive // we have a default case.
 		switch i.engine {
-		case database.EngineSQLite:
+		case db.EngineSQLite:
 			cursorQuery = "printf('%016X', created_at_slot) || hex(output_id) as cursor"
-		case database.EnginePostgreSQL:
+		case db.EnginePostgreSQL:
 			cursorQuery = "lpad(to_hex(created_at_slot), 16, '0') || encode(output_id, 'hex') as cursor"
 		default:
 			i.LogFatalf("Unsupported db engine pagination queries: %s", i.engine)
@@ -91,9 +91,9 @@ func (i *Indexer) filteredQuery(query *gorm.DB, pageSize uint32, cursor *string)
 			}
 			//nolint:exhaustive // we have a default case.
 			switch i.engine {
-			case database.EngineSQLite:
+			case db.EngineSQLite:
 				query = query.Where("cursor >= ?", strings.ToUpper(*cursor))
-			case database.EnginePostgreSQL:
+			case db.EnginePostgreSQL:
 				query = query.Where("lpad(to_hex(created_at_slot), 16, '0') || encode(output_id, 'hex') >= ?", *cursor)
 			default:
 				i.LogFatalf("Unsupported db engine pagination queries: %s", i.engine)

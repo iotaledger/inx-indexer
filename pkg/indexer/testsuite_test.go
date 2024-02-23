@@ -6,11 +6,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/iotaledger/hive.go/db"
 	"github.com/iotaledger/hive.go/ds/shrinkingmap"
 	"github.com/iotaledger/hive.go/ierrors"
 	"github.com/iotaledger/hive.go/log"
 	"github.com/iotaledger/hive.go/runtime/options"
-	"github.com/iotaledger/inx-indexer/pkg/database"
+	"github.com/iotaledger/hive.go/sql"
 	"github.com/iotaledger/inx-indexer/pkg/indexer"
 	iotago "github.com/iotaledger/iota.go/v4"
 	iotago_tpkg "github.com/iotaledger/iota.go/v4/tpkg"
@@ -29,9 +30,10 @@ type indexerOutputSet struct {
 }
 
 func newTestSuite(t *testing.T) *indexerTestsuite {
-	dbParams := database.Params{
-		Engine: database.EngineSQLite,
-		Path:   t.TempDir(),
+	dbParams := sql.DatabaseParameters{
+		Engine:   db.EngineSQLite,
+		Path:     t.TempDir(),
+		Filename: "indexer_test.db",
 	}
 
 	rootLogger := log.NewLogger()
