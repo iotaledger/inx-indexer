@@ -30,6 +30,8 @@ COPY ./config_defaults.json /app/config.json
 ############################
 FROM golang:1.22-bookworm
 
+HEALTHCHECK --interval=10s --timeout=5s --retries=30 CMD [ "/app/inx-indexer", "tools", "health"]
+
 ## Install delve
 RUN CGO_ENABLED=0 go install -ldflags "-s -w -extldflags '-static'" github.com/go-delve/delve/cmd/dlv@latest
 
