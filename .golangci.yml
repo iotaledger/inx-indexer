@@ -1,19 +1,16 @@
 run:
     tests: true
-    skip-files:
-        - ".*_test.go$"
 
 linters-settings:
     gofmt:
         simplify: true
     goimports:
         local-prefixes: github.com/iotaledger
-    golint:
-        min-confidence: 0.9
     gocyclo:
         min-complexity: 15
     govet:
-        check-shadowing: false
+        disable:
+          - shadow
     misspell:
         locale: US
     nlreturn:
@@ -31,7 +28,7 @@ linters:
     disable-all: true
     # Enable specific linter
     enable:
-        - deadcode
+        #- deadcode
         - errcheck
         - gosimple
         - govet
@@ -45,7 +42,7 @@ linters:
         - bidichk
         - bodyclose
         - containedctx
-        - contextcheck
+        #- contextcheck # this linter is buggy and renders all nolint rules useless
         - decorder
         #- depguard
         - dogsled
@@ -109,6 +106,8 @@ linters:
         - wastedassign
 
 issues:
+    exclude-files:
+        - ".*_test.go$"
     # Maximum issues count per one linter.
     # Set to 0 to disable.
     # Default: 50
