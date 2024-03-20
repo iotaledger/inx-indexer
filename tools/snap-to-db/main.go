@@ -56,7 +56,6 @@ func convert() error {
 		}
 
 		// open snapshot file
-		//nolint:nosnakecase // false positive, system symbol.
 		snapshotFileRead, err := os.OpenFile(snapshotParams.FullPath, os.O_RDONLY, 0666)
 		if err != nil {
 			return err

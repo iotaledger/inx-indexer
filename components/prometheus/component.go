@@ -45,7 +45,6 @@ var (
 )
 
 func provide(c *dig.Container) error {
-
 	type depsOut struct {
 		dig.Out
 		PrometheusEcho *echo.Echo `name:"prometheusEcho"`
@@ -63,11 +62,9 @@ func provide(c *dig.Container) error {
 }
 
 func configure() error {
-
 	registry := registerMetrics()
 
 	deps.PrometheusEcho.GET("/metrics", func(c echo.Context) error {
-
 		handler := promhttp.HandlerFor(
 			registry,
 			promhttp.HandlerOpts{
