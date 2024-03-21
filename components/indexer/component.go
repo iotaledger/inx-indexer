@@ -55,7 +55,6 @@ var (
 )
 
 func provide(c *dig.Container) error {
-
 	if err := c.Provide(func() (*indexer.Indexer, error) {
 		Component.LogInfo("Setting up database ...")
 
@@ -97,7 +96,6 @@ func provide(c *dig.Container) error {
 }
 
 func run() error {
-
 	indexerInitWait := make(chan struct{})
 
 	// create a background worker that handles the indexer events
@@ -260,7 +258,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		status, err = deps.Indexer.Status()
 		if err != nil {
 			if !ierrors.Is(err, indexer.ErrStatusNotFound) {
-				return nil, fmt.Errorf("reading committedSlot from Indexer failed! Error: %w", err)
+				return nil, ierrors.Errorf("reading committedSlot from Indexer failed! Error: %w", err)
 			}
 			Component.LogInfo("Indexer is empty, so import initial ledger...")
 			needsToFillIndexer = true
@@ -284,7 +282,7 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 	if needsToClearIndexer {
 		Component.LogInfo("Re-import initial ledger...")
 		if err := deps.Indexer.Clear(); err != nil {
-			return nil, fmt.Errorf("clearing Indexer failed! Error: %w", err)
+			return nil, ierrors.Errorf("clearing Indexer failed! Error: %w", err)
 		}
 		needsToFillIndexer = true
 	}
@@ -294,13 +292,13 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 		timeStart := time.Now()
 		var count int
 		if count, err = fillIndexer(ctx, deps.Indexer); err != nil {
-			return nil, fmt.Errorf("filling Indexer failed! Error: %w", err)
+			return nil, ierrors.Errorf("filling Indexer failed! Error: %w", err)
 		}
 		duration := time.Since(timeStart)
 		// Read new committedSlot after filling up the indexer
 		status, err = deps.Indexer.Status()
 		if err != nil {
-			return nil, fmt.Errorf("reading committedSlot from Indexer failed! Error: %w", err)
+			return nil, ierrors.Errorf("reading committedSlot from Indexer failed! Error: %w", err)
 		}
 		Component.LogInfo("Re-creating indexes")
 		// Run auto migrate to make sure all required tables and indexes are there
@@ -328,7 +326,6 @@ func checkIndexerStatus(ctx context.Context) (*indexer.Status, error) {
 }
 
 func fillIndexer(ctx context.Context, indexer *indexer.Indexer) (int, error) {
-
 	// Drop indexes to speed up data insertion
 	if err := deps.Indexer.DropIndexes(); err != nil {
 		return 0, err

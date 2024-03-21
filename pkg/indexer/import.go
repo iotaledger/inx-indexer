@@ -1,4 +1,3 @@
-//nolint:structcheck
 package indexer
 
 import (
@@ -14,6 +13,7 @@ import (
 	"gorm.io/gorm/clause"
 	gormLogger "gorm.io/gorm/logger"
 
+	"github.com/iotaledger/hive.go/ierrors"
 	"github.com/iotaledger/hive.go/log"
 	iotago "github.com/iotaledger/iota.go/v4"
 )
@@ -25,13 +25,11 @@ const (
 )
 
 func typeOf[T any]() string {
-	//nolint:gocritic // We cannot use T(nil) here
 	t := *new(T)
 	return reflect.TypeOf(t).Elem().Name()
 }
 
 func typeIsRefCountable[T any]() bool {
-	//nolint:gocritic // We cannot use T(nil) here
 	_, ok := interface{}(new(T)).(refCountable)
 	return ok
 }
@@ -69,7 +67,7 @@ func (b *batcher[T]) closeAndWait() {
 }
 
 func (b *batcher[T]) Run(ctx context.Context, workerCount int) {
-	for n := 0; n < workerCount; n++ {
+	for n := range workerCount {
 		workerName := fmt.Sprintf("batcher-%s-%d", b.name, n)
 		b.wg.Add(1)
 		go func() {
@@ -118,10 +116,9 @@ func newImporter[T any](db *gorm.DB, logger log.Logger) *inserter[T] {
 	return w
 }
 
-//nolint:golint,revive // false positive.
 func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T) {
 	useRefCounts := typeIsRefCountable[T]()
-	for n := 0; n < workerCount; n++ {
+	for n := range workerCount {
 		workerName := fmt.Sprintf("inserter-%s-%d", i.name, n)
 		i.wg.Add(1)
 		go func() {
@@ -134,12 +131,11 @@ func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T
 			p := message.NewPrinter(language.English)
 
 			var count int
-			for b := range input {
+			for batch := range input {
 				if ctx.Err() != nil {
 					return
 				}
 
-				batch := b
 				if err := i.db.Transaction(func(tx *gorm.DB) error {
 					if useRefCounts {
 						for _, item := range batch {
@@ -151,7 +147,7 @@ func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T
 									return err
 								}
 							} else {
-								return fmt.Errorf("item %T does not implement RefCountable", item)
+								return ierrors.Errorf("item %T does not implement RefCountable", item)
 							}
 						}
 
@@ -171,7 +167,6 @@ func (i *inserter[T]) Run(ctx context.Context, workerCount int, input <-chan []T
 	}
 }
 
-//nolint:golint,revive // false positive.
 func (i *inserter[T]) closeAndWait() {
 	i.wg.Wait()
 }
@@ -192,14 +187,12 @@ func newProcessor[T fmt.Stringer](ctx context.Context, db *gorm.DB, logger log.L
 	return p
 }
 
-//nolint:golint,revive // false positive.
 func (p *processor[T]) enqueue(items ...T) {
 	for _, item := range items {
 		p.batcher.input <- item
 	}
 }
 
-//nolint:golint,revive // false positive.
 func (p *processor[T]) closeAndWait() {
 	p.batcher.closeAndWait()
 	p.importer.closeAndWait()

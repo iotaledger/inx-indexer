@@ -90,7 +90,6 @@ func addressesInOutput(output iotago.Output) []iotago.Address {
 		if issuerBlock := immutableFeatures.Issuer(); issuerBlock != nil {
 			foundAddresses = append(foundAddresses, issuerBlock.Address)
 		}
-
 	}
 
 	// Check for addresses in delegation output
@@ -121,7 +120,6 @@ func tableForOutput(output iotago.Output) interface{} {
 }
 
 func processSpent(output *LedgerOutput, committed bool, tx *gorm.DB) error {
-
 	// Properly delete the outputs if they were committed
 	if committed {
 		if err := tx.Where("output_id = ?", output.OutputID[:]).Delete(tableForOutput(output.Output)).Error; err != nil {
