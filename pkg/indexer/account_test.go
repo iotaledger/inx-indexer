@@ -219,29 +219,29 @@ func TestIndexer_MutateExistingAccount(t *testing.T) {
 	foundryOutputID := iotago_tpkg.RandOutputID(1)
 
 	update := &indexer.LedgerUpdate{
-		Slot: 2,
+		Slot: 3,
 		Consumed: []*indexer.LedgerOutput{
 			{
 				OutputID: basicOutputID,
 				Output:   basicOutput,
-				SpentAt:  2,
+				SpentAt:  3,
 			},
 			{
 				OutputID: accountOutputID,
 				Output:   accountOutput,
-				SpentAt:  2,
+				SpentAt:  3,
 			},
 		},
 		Created: []*indexer.LedgerOutput{
 			{
 				OutputID: newOutputID,
 				Output:   newOutput,
-				BookedAt: 2,
+				BookedAt: 3,
 			},
 			{
 				OutputID: foundryOutputID,
 				Output:   foundryOutput,
-				BookedAt: 2,
+				BookedAt: 3,
 			},
 		},
 	}

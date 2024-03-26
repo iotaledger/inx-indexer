@@ -96,7 +96,7 @@ func (ts *indexerTestsuite) AddOutputOnCommitment(output iotago.Output, outputID
 	}
 }
 
-func (ts *indexerTestsuite) AddOutputOnAcceptance(output iotago.Output, outputID iotago.OutputID, slot iotago.SlotIndex) *indexerOutputSet {
+func (ts *indexerTestsuite) AddOutputOnAcceptance(output iotago.Output, outputID iotago.OutputID, slot iotago.SlotIndex, expectSkipped ...bool) *indexerOutputSet {
 	ts.committedOutputs.Set(outputID, output)
 
 	update := &indexer.LedgerUpdate{
@@ -110,7 +110,12 @@ func (ts *indexerTestsuite) AddOutputOnAcceptance(output iotago.Output, outputID
 		},
 	}
 
-	require.NoError(ts.T, ts.Indexer.AcceptLedgerUpdate(update))
+	err := ts.Indexer.AcceptLedgerUpdate(update)
+	if len(expectSkipped) > 0 && expectSkipped[0] {
+		require.ErrorIs(ts.T, err, indexer.ErrLedgerUpdateSkipped)
+	} else {
+		require.NoError(ts.T, err)
+	}
 
 	return &indexerOutputSet{
 		ts:      ts,

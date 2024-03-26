@@ -17,7 +17,8 @@ var (
 )
 
 var (
-	ErrStatusNotFound = ierrors.New("status not found")
+	ErrStatusNotFound      = ierrors.New("status not found")
+	ErrLedgerUpdateSkipped = ierrors.New("ledger update skipped")
 
 	dbTables = append([]interface{}{
 		&Status{},
@@ -469,6 +470,14 @@ func (i *Indexer) AutoMigrate() error {
 
 func (i *Indexer) AcceptLedgerUpdate(update *LedgerUpdate) error {
 	return i.db.Transaction(func(tx *gorm.DB) error {
+		status := Status{}
+		if err := tx.Take(&status).Error; err != nil {
+			return err
+		}
+		if update.Slot <= status.CommittedSlot {
+			return ierrors.Wrapf(ErrLedgerUpdateSkipped, "accepted slot %d is not greater than committed slot %d", update.Slot, status.CommittedSlot)
+		}
+
 		spentOutputs := make(map[iotago.OutputID]struct{})
 		for _, output := range update.Consumed {
 			spentOutputs[output.OutputID] = struct{}{}
