@@ -68,12 +68,11 @@ func (o *outputTest) commitAddThenAccept(t *testing.T) {
 	// Accepted outputs are found
 	ts.requireFound(o.outputID)
 
-	// Accept Add
-	ts.AddOutputOnAcceptance(o.output, o.outputID, 1)
+	// Accept Add (should be skipped because it was already committed)
+	ts.AddOutputOnAcceptance(o.output, o.outputID, 1, true)
 
 	// Still needs to be found
 	ts.requireFound(o.outputID)
-
 }
 
 // TestIndexer_AcceptAdd_CommitAdd_AcceptDelete_CommitDelete tests the following scenario:

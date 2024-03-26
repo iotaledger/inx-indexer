@@ -159,6 +159,11 @@ func run() error {
 				return err
 			}
 			if err := deps.Indexer.AcceptLedgerUpdate(ledgerUpdate); err != nil {
+				if ierrors.Is(err, indexer.ErrLedgerUpdateSkipped) {
+					Component.LogInfof("Skipped accepted transaction %s at slot %d with %d new and %d consumed outputs", tx.TransactionID.ToHex(), tx.Slot, len(tx.Created), len(tx.Consumed))
+					return nil
+				}
+
 				return err
 			}
 
