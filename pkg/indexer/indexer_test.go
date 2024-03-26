@@ -50,6 +50,32 @@ type outputTest struct {
 	outputID iotago.OutputID
 }
 
+// TestIndexer_CommitAdd_AcceptAdd tests the following scenario:
+// 1. Add output on commitment
+// 2. Add output on acceptance (because it was delayed by some reason)
+func TestIndexer_CommitAdd_AcceptAdd(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, tt.commitAddThenAccept)
+	}
+}
+
+func (o *outputTest) commitAddThenAccept(t *testing.T) {
+	ts := newTestSuite(t)
+
+	// Commit Add
+	ts.AddOutputOnCommitment(o.output, o.outputID) // Slot 1
+
+	// Accepted outputs are found
+	ts.requireFound(o.outputID)
+
+	// Accept Add
+	ts.AddOutputOnAcceptance(o.output, o.outputID, 1)
+
+	// Still needs to be found
+	ts.requireFound(o.outputID)
+
+}
+
 // TestIndexer_AcceptAdd_CommitAdd_AcceptDelete_CommitDelete tests the following scenario:
 // 1. Add output on acceptance
 // 2. Add output on commitment
