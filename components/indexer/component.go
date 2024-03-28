@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -16,7 +17,9 @@ import (
 	"github.com/iotaledger/hive.go/app"
 	"github.com/iotaledger/hive.go/app/shutdown"
 	"github.com/iotaledger/hive.go/db"
+	"github.com/iotaledger/hive.go/ds/shrinkingmap"
 	"github.com/iotaledger/hive.go/ierrors"
+	"github.com/iotaledger/hive.go/runtime/timeutil"
 	"github.com/iotaledger/hive.go/sql"
 	"github.com/iotaledger/inx-app/pkg/httpserver"
 	"github.com/iotaledger/inx-app/pkg/nodebridge"
@@ -98,6 +101,21 @@ func provide(c *dig.Container) error {
 func run() error {
 	indexerInitWait := make(chan struct{})
 
+	pendingAcceptedTransactions := shrinkingmap.New[iotago.SlotIndex, []*nodebridge.AcceptedTransaction]()
+
+	nextPendingAcceptedSlot := func() iotago.SlotIndex {
+		keys := pendingAcceptedTransactions.Keys()
+		switch len(keys) {
+		case 0:
+			return 0
+		case 1:
+			return keys[0]
+		default:
+			slices.Sort(keys)
+			return keys[0]
+		}
+	}
+
 	// create a background worker that handles the indexer events
 	if err := Component.Daemon().BackgroundWorker("Indexer", func(ctx context.Context) {
 		Component.LogInfo("Starting Indexer")
@@ -123,6 +141,14 @@ func run() error {
 			if err != nil {
 				return err
 			}
+
+			// check if we have any pending accepted transactions for this slot or previous slots and drop them
+			for nextSlot := nextPendingAcceptedSlot(); nextSlot > 0 && nextSlot <= ledgerUpdate.Slot; nextSlot = nextPendingAcceptedSlot() {
+				if deleted := pendingAcceptedTransactions.Delete(nextSlot); deleted {
+					Component.LogInfof("Drop pending accepted transactions for slot %d", nextSlot)
+				}
+			}
+
 			if err := deps.Indexer.CommitLedgerUpdate(ledgerUpdate); err != nil {
 				return err
 			}
@@ -152,22 +178,44 @@ func run() error {
 		}
 
 		Component.LogInfo("Starting AcceptedTransactions ... done")
-		if err := deps.NodeBridge.ListenToAcceptedTransactions(ctx, func(tx *nodebridge.AcceptedTransaction) error {
-			ts := time.Now()
-			ledgerUpdate, err := LedgerUpdateFromNodeBridgeAcceptedTransaction(tx)
-			if err != nil {
-				return err
+
+		ticker := timeutil.NewTicker(func() {
+			nextSlot := nextPendingAcceptedSlot()
+			if nextSlot == 0 {
+				return
 			}
-			if err := deps.Indexer.AcceptLedgerUpdate(ledgerUpdate); err != nil {
-				if ierrors.Is(err, indexer.ErrLedgerUpdateSkipped) {
-					Component.LogInfof("Skipped accepted transaction %s at slot %d with %d new and %d consumed outputs", tx.TransactionID.ToHex(), tx.Slot, len(tx.Created), len(tx.Consumed))
-					return nil
+
+			ts := time.Now()
+			if txs, deleted := pendingAcceptedTransactions.DeleteAndReturn(nextSlot); deleted {
+				ledgerUpdate, err := LedgerUpdateFromNodeBridgeAcceptedTransactions(txs)
+				if err != nil {
+					deps.ShutdownHandler.SelfShutdown(fmt.Sprintf("LedgerUpdateFromNodeBridgeAcceptedTransactions failed, error: %s", err), false)
 				}
 
-				return err
-			}
+				if err := deps.Indexer.AcceptLedgerUpdate(ledgerUpdate); err != nil {
+					if ierrors.Is(err, indexer.ErrLedgerUpdateSkipped) {
+						Component.LogInfof("Skipped accepted transactions batch at slot %d with %d new and %d consumed outputs", ledgerUpdate.Slot, len(ledgerUpdate.Created), len(ledgerUpdate.Consumed))
+						return
+					}
 
-			Component.LogInfof("Applying accepted transaction %s at slot %d with %d new and %d consumed outputs took %s", tx.TransactionID.ToHex(), tx.Slot, len(tx.Created), len(tx.Consumed), time.Since(ts).Truncate(time.Millisecond))
+					deps.ShutdownHandler.SelfShutdown(fmt.Sprintf("AcceptLedgerUpdate failed, error: %s", err), false)
+				}
+
+				Component.LogInfof("Applying accepted transactions batch at slot %d with %d new and %d consumed outputs took %s", ledgerUpdate.Slot, len(ledgerUpdate.Created), len(ledgerUpdate.Consumed), time.Since(ts).Truncate(time.Millisecond))
+			}
+		}, 1*time.Second, ctx)
+
+		defer ticker.Shutdown()
+
+		if err := deps.NodeBridge.ListenToAcceptedTransactions(ctx, func(tx *nodebridge.AcceptedTransaction) error {
+			pendingAcceptedTransactions.Compute(tx.Slot, func(currentTxs []*nodebridge.AcceptedTransaction, exists bool) []*nodebridge.AcceptedTransaction {
+				Component.LogDebugf("Batching accepted transaction %s at slot %d", tx.TransactionID.ToHex(), tx.Slot)
+				if !exists {
+					return []*nodebridge.AcceptedTransaction{tx}
+				}
+
+				return append(currentTxs, tx)
+			})
 
 			return nil
 		}); err != nil {
@@ -441,28 +489,35 @@ func LedgerUpdateFromNodeBridge(update *nodebridge.LedgerUpdate) (*indexer.Ledge
 	}, nil
 }
 
-func LedgerUpdateFromNodeBridgeAcceptedTransaction(tx *nodebridge.AcceptedTransaction) (*indexer.LedgerUpdate, error) {
-	consumed := make([]*indexer.LedgerOutput, len(tx.Consumed))
-	for i, output := range tx.Consumed {
-		consumed[i] = &indexer.LedgerOutput{
-			OutputID: output.OutputID,
-			Output:   output.Output,
-			BookedAt: output.Metadata.Included.Slot,
-			SpentAt:  output.Metadata.Spent.Slot,
-		}
+func LedgerUpdateFromNodeBridgeAcceptedTransactions(txs []*nodebridge.AcceptedTransaction) (*indexer.LedgerUpdate, error) {
+	if len(txs) == 0 {
+		return nil, ierrors.New("no transactions provided")
 	}
 
-	created := make([]*indexer.LedgerOutput, len(tx.Created))
-	for i, output := range tx.Created {
-		created[i] = &indexer.LedgerOutput{
-			OutputID: output.OutputID,
-			Output:   output.Output,
-			BookedAt: output.Metadata.Included.Slot,
+	var consumed []*indexer.LedgerOutput
+	var created []*indexer.LedgerOutput
+
+	for _, tx := range txs {
+		for _, output := range tx.Consumed {
+			consumed = append(consumed, &indexer.LedgerOutput{
+				OutputID: output.OutputID,
+				Output:   output.Output,
+				BookedAt: output.Metadata.Included.Slot,
+				SpentAt:  output.Metadata.Spent.Slot,
+			})
+		}
+
+		for _, output := range tx.Created {
+			created = append(created, &indexer.LedgerOutput{
+				OutputID: output.OutputID,
+				Output:   output.Output,
+				BookedAt: output.Metadata.Included.Slot,
+			})
 		}
 	}
 
 	return &indexer.LedgerUpdate{
-		Slot:     tx.Slot,
+		Slot:     txs[0].Slot,
 		Consumed: consumed,
 		Created:  created,
 	}, nil
