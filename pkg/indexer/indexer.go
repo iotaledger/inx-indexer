@@ -1,6 +1,8 @@
 package indexer
 
 import (
+	"sync"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -39,6 +41,9 @@ type Indexer struct {
 	log.Logger
 	db     *gorm.DB
 	engine db.Engine
+
+	lastCommittedSlot      iotago.SlotIndex
+	lastCommittedSlotMutex sync.RWMutex
 }
 
 func NewIndexer(dbParams sql.DatabaseParameters, logger log.Logger) (*Indexer, error) {
@@ -470,12 +475,12 @@ func (i *Indexer) AutoMigrate() error {
 
 func (i *Indexer) AcceptLedgerUpdate(update *LedgerUpdate) error {
 	return i.db.Transaction(func(tx *gorm.DB) error {
-		status := Status{}
-		if err := tx.Take(&status).Error; err != nil {
-			return err
-		}
-		if update.Slot <= status.CommittedSlot {
-			return ierrors.Wrapf(ErrLedgerUpdateSkipped, "accepted slot %d is not greater than committed slot %d", update.Slot, status.CommittedSlot)
+		i.lastCommittedSlotMutex.RLock()
+		lastCommitted := i.lastCommittedSlot
+		i.lastCommittedSlotMutex.RUnlock()
+
+		if update.Slot <= lastCommitted {
+			return ierrors.Wrapf(ErrLedgerUpdateSkipped, "accepted slot %d is not greater than last committed slot %d", update.Slot, lastCommitted)
 		}
 
 		spentOutputs := make(map[iotago.OutputID]struct{})
@@ -501,7 +506,7 @@ func (i *Indexer) AcceptLedgerUpdate(update *LedgerUpdate) error {
 }
 
 func (i *Indexer) CommitLedgerUpdate(update *LedgerUpdate) error {
-	return i.db.Transaction(func(tx *gorm.DB) error {
+	if err := i.db.Transaction(func(tx *gorm.DB) error {
 		// Cleanup uncommitted changes for this update
 		if err := removeUncommittedChangesUpUntilSlot(update.Slot, tx); err != nil {
 			return err
@@ -528,7 +533,18 @@ func (i *Indexer) CommitLedgerUpdate(update *LedgerUpdate) error {
 		tx.Model(&Status{}).Where("id = ?", 1).Update("committed_slot", update.Slot)
 
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	i.lastCommittedSlotMutex.Lock()
+	defer i.lastCommittedSlotMutex.Unlock()
+
+	if i.lastCommittedSlot < update.Slot {
+		i.lastCommittedSlot = update.Slot
+	}
+
+	return nil
 }
 
 func (i *Indexer) Status() (*Status, error) {
@@ -541,10 +557,29 @@ func (i *Indexer) Status() (*Status, error) {
 		return nil, err
 	}
 
+	i.lastCommittedSlotMutex.RLock()
+	val := i.lastCommittedSlot
+	i.lastCommittedSlotMutex.RUnlock()
+
+	// Only get write lock if the new committed slot is greater than the last committed slot
+	if status.CommittedSlot > val {
+		i.lastCommittedSlotMutex.Lock()
+		defer i.lastCommittedSlotMutex.Unlock()
+
+		if status.CommittedSlot > i.lastCommittedSlot {
+			i.lastCommittedSlot = status.CommittedSlot
+		}
+	}
+
 	return status, nil
 }
 
 func (i *Indexer) Clear() error {
+	i.lastCommittedSlotMutex.Lock()
+	defer i.lastCommittedSlotMutex.Unlock()
+
+	i.lastCommittedSlot = 0
+
 	// Drop all tables
 	if err := i.db.Migrator().DropTable(dbTables...); err != nil {
 		return err
